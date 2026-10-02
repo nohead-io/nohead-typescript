@@ -326,6 +326,7 @@ npm install          # also builds dist/
 npm test             # unit and contract tests
 npm run lint && npm run typecheck && npm run format:check
 npm run generate     # after updating openapi.json
+npm run samples      # after changing test/calls.ts (the docs' code samples)
 NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=sk_live_… npm run smoke
 ```
 

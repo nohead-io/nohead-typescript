@@ -45,6 +45,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "smoke": "node smoke/smoke.ts",
+    "samples": "node scripts/samples.ts",
     "typecheck:smoke": "tsc -p smoke"
   },
   "devDependencies": {
