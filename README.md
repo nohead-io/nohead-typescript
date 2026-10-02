@@ -340,6 +340,14 @@ NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=sk_live_… npm run smoke
 
 The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. Nohead's own CI runs it on every API contract change.
 
+## Releasing
+
+1. Bump the version in `package.json` and `src/version.ts`.
+2. Add a section for it to `CHANGELOG.md` (`## 1.2.3`), which becomes the release's notes.
+3. Merge to `main`.
+4. Run the **SDK release** workflow in the Nohead API repository. It runs this commit's smoke test against the API and pushes the tag `v1.2.3`.
+5. The tag starts `.github/workflows/release.yml`. It checks the version and its notes, tests, and publishes to npm with provenance through trusted publishing (no token). Then it creates the GitHub release.
+
 ## License
 
 MIT
