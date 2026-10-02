@@ -7395,6 +7395,24 @@ export type FeatureFlagsListResponses = {
 
 export type FeatureFlagsListResponse = FeatureFlagsListResponses[keyof FeatureFlagsListResponses];
 
+export type RecordsDuplicateData = {
+    body?: never;
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/duplicate';
+};
+
+export type RecordsDuplicateResponses = {
+    /**
+     * The copy.
+     */
+    201: Record;
+};
+
+export type RecordsDuplicateResponse = RecordsDuplicateResponses[keyof RecordsDuplicateResponses];
+
 export type WebhookEventWebhookPayload = WebhookEventPayload;
 
 export type WebhookEventWebhookRequest = {

@@ -42,6 +42,7 @@ export const OPERATIONS = {
   records_create: { method: "POST", path: "/v1/collections/{collection_id}/records" },
   records_delete: { method: "DELETE", path: "/v1/records/{record_id}" },
   records_diff: { method: "GET", path: "/v1/records/{record_id}/diff" },
+  records_duplicate: { method: "POST", path: "/v1/records/{record_id}/duplicate" },
   records_get: { method: "GET", path: "/v1/records/{record_id}" },
   records_list: { method: "GET", path: "/v1/collections/{collection_id}/records" },
   records_publish: { method: "POST", path: "/v1/records/{record_id}/publish" },
@@ -109,6 +110,7 @@ export interface Operations {
   records_create: { data: T.RecordsCreateData; response: T.RecordsCreateResponse }
   records_delete: { data: T.RecordsDeleteData; response: T.RecordsDeleteResponse }
   records_diff: { data: T.RecordsDiffData; response: T.RecordsDiffResponse }
+  records_duplicate: { data: T.RecordsDuplicateData; response: T.RecordsDuplicateResponse }
   records_get: { data: T.RecordsGetData; response: T.RecordsGetResponse }
   records_list: { data: T.RecordsListData; response: T.RecordsListResponse }
   records_publish: { data: T.RecordsPublishData; response: T.RecordsPublishResponse }

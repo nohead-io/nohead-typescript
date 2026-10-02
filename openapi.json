@@ -2585,7 +2585,7 @@
           {
             "name": "fit",
             "in": "query",
-            "description": "`contain` fits inside width × height; `cover` fills it, cropping; `fill` stretches to it.",
+            "description": "`contain` fits inside width \u00d7 height; `cover` fills it, cropping; `fill` stretches to it.",
             "schema": {
               "type": "string",
               "enum": [
@@ -5553,6 +5553,34 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/v1/records/{record_id}/duplicate": {
+      "post": {
+        "operationId": "records_duplicate",
+        "summary": "Duplicate a record (test of the contract update pipeline)",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The copy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Record"
+                }
+              }
+            }
           }
         }
       }
@@ -9442,7 +9470,7 @@
               "null"
             ],
             "format": "uri",
-            "description": "A signed URL of a small rendition (fits in 640×640, WebP), for ready images; null otherwise."
+            "description": "A signed URL of a small rendition (fits in 640\u00d7640, WebP), for ready images; null otherwise."
           },
           "uploaded_at": {
             "$ref": "#/components/schemas/NullableTimestamp"
