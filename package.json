@@ -1,0 +1,61 @@
+{
+  "name": "@nohead/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for the Nohead API",
+  "license": "MIT",
+  "homepage": "https://nohead.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nohead-io/nohead-typescript.git"
+  },
+  "bugs": "https://github.com/nohead-io/nohead-typescript/issues",
+  "keywords": [
+    "nohead",
+    "cms",
+    "headless",
+    "api",
+    "sdk"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "default": "./dist/webhooks.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "generate": "openapi-ts && node scripts/operations.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "smoke": "node smoke/smoke.ts",
+    "typecheck:smoke": "tsc -p smoke"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "^26.6.4",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  }
+}
