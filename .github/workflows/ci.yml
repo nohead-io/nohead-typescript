@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # The API repository pushes contract/update. Its pull request is opened by
+    # github-actions (contract-pr.yml), which starts no pull_request run.
+    branches: [main, contract/update]
   pull_request:
 
 permissions:
