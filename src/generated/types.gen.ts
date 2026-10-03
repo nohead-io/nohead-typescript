@@ -737,7 +737,7 @@ export type SearchIndex = {
      */
     enabled: boolean;
     /**
-     * `building` until first built; `stale` while a rebuild is pending; `failed` if the last rebuild failed (it is retried).
+     * `building` until first built; `stale` from the change that queues a rebuild until it has run; `failed` if the last rebuild failed (it is retried).
      */
     status: 'building' | 'ready' | 'stale' | 'failed';
     documents: number;
