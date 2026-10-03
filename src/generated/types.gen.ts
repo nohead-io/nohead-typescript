@@ -217,9 +217,9 @@ export type Field = {
     position: number;
     /**
      * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`, plus
-     * search options (used when the collection is search-enabled): `searchable`
-     * (default true for text, long_text, rich_text and enum), `filterable` and `sortable`
-     * (default false).
+     * the options for searches with API keys: `searchable` (the search words match the
+     * field; default true for text, long_text, rich_text and enum), `filterable` and
+     * `sortable` (default false).
      *
      */
     configuration: {
@@ -286,7 +286,9 @@ export type Collection = {
     schema_version: number;
     deleted: boolean;
     /**
-     * Whether records can be searched (`GET /v1/collections/{collection_id}/search`).
+     * Whether API keys can search the collection (`GET /v1/collections/{collection_id}/search`).
+     * Every collection is indexed; members can search it in the web app either way.
+     *
      */
     search_enabled: boolean;
     /**
@@ -730,11 +732,14 @@ export type SearchResults = {
 export type SearchIndex = {
     object: 'search_index';
     collection_id: string;
+    /**
+     * The collection's `search_enabled`; the index is kept up to date either way.
+     */
     enabled: boolean;
     /**
      * `building` until first built; `stale` while a rebuild is pending; `failed` if the last rebuild failed (it is retried).
      */
-    status: 'disabled' | 'building' | 'ready' | 'stale' | 'failed';
+    status: 'building' | 'ready' | 'stale' | 'failed';
     documents: number;
     last_built_at: NullableTimestamp;
     rebuild_requested_at: NullableTimestamp;
