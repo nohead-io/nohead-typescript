@@ -55,3 +55,17 @@ jobs:
       - run: npm run generate && git diff --exit-code src/generated
       # The API reference's code samples must match test/calls.ts.
       - run: npm run samples && git diff --exit-code samples.json
+
+  # The one check main's ruleset requires, so the required checks don't change
+  # when the version matrix does.
+  ci-success:
+    name: CI passed
+    if: always()
+    needs: [test, checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify all jobs succeeded
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: echo "$RESULTS" | jq -e 'all(. == "success")'
