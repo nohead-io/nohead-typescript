@@ -103,6 +103,15 @@ export interface DeletedListParams extends ListParams {
   deleted?: boolean
 }
 
+export interface AssetListParams extends DeletedListParams {
+  /**
+   * Only assets of these MIME types or `type/*` wildcards, e.g.
+   * `["image/*", "application/pdf"]`, such as an asset field's
+   * `accepted_types`.
+   */
+  content_type?: string | string[]
+}
+
 export interface SchemaParams {
   /** A past schema version; the current one otherwise. */
   version?: number

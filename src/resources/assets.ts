@@ -8,7 +8,7 @@ import type {
   DownloadUrl,
   ImageUrl,
 } from "../generated/types.gen.ts"
-import type { DeletedListParams, ImageUrlParams } from "../types.ts"
+import type { AssetListParams, ImageUrlParams } from "../types.ts"
 import { Resource } from "./resource.ts"
 
 /** What `assets.upload` accepts. A stream needs `byte_size`. */
@@ -108,7 +108,7 @@ export class Assets extends Resource {
   }
 
   list(
-    params: DeletedListParams = {},
+    params: AssetListParams = {},
     options?: RequestOptions
   ): PagePromise<Asset> {
     return this.core.paginate("assets_list", { query: params }, options)
