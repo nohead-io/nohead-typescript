@@ -4026,6 +4026,12 @@ export type AssetsUploadErrors = {
      */
     401: Error;
     /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
+    /**
      * The caller is not allowed to perform this action.
      */
     403: Error;
