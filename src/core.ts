@@ -197,6 +197,7 @@ export class Core {
       Accept: "application/json",
       Authorization: `Bearer ${this.#apiKey}`,
       "Nohead-Client": `sdk-typescript/${VERSION}`,
+      ...USER_AGENT,
       ...this.#headers,
     }
     if (input.body !== undefined) headers["Content-Type"] = "application/json"
@@ -395,6 +396,25 @@ export function appendQuery(
 
 function scalar(value: unknown): string {
   return value instanceof Date ? value.toISOString() : String(value)
+}
+
+// `nohead-typescript/0.1.0 node/26.9.0`, or none in a browser, which sends its
+// own (Nohead-Client still names the SDK there).
+const RUNTIME = runtimeVersion()
+const USER_AGENT: Record<string, string> = {}
+if (RUNTIME)
+  USER_AGENT["User-Agent"] = `nohead-typescript/${VERSION} ${RUNTIME}`
+
+function runtimeVersion(): string | undefined {
+  const g = globalThis as {
+    Bun?: { version?: string }
+    Deno?: { version?: { deno?: string } }
+    process?: { versions?: { node?: string } }
+  }
+  if (g.Bun?.version) return `bun/${g.Bun.version}`
+  if (g.Deno?.version?.deno) return `deno/${g.Deno.version.deno}`
+  if (g.process?.versions?.node) return `node/${g.process.versions.node}`
+  return undefined
 }
 
 function environment(): Record<string, string | undefined> {

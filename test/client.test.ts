@@ -41,6 +41,9 @@ describe("configuration", () => {
     expect(calls[0]!.headers.get("nohead-client")).toBe(
       `sdk-typescript/${VERSION}`
     )
+    expect(calls[0]!.headers.get("user-agent")).toBe(
+      `nohead-typescript/${VERSION} node/${process.versions.node}`
+    )
     expect(calls[0]!.headers.get("accept")).toBe("application/json")
     expect(calls[0]!.headers.get("x-extra")).toBe("yes")
   })
