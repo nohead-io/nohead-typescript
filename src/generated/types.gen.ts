@@ -213,10 +213,15 @@ export type Field = {
     api_key: string;
     type: FieldType;
     required: boolean;
+    /**
+     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     */
     multiple: boolean;
     position: number;
     /**
-     * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`, plus
+     * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
+     * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
+     * written values must have; any file when absent), plus
      * the options for searches with API keys: `searchable` (the search words match the
      * field; default true for text, long_text, rich_text and enum), `filterable` and
      * `sortable` (default false).
@@ -252,6 +257,9 @@ export type FieldCreate = {
     api_key: string;
     type: FieldType;
     required?: boolean;
+    /**
+     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     */
     multiple?: boolean;
     position?: number;
     configuration?: {
@@ -264,6 +272,9 @@ export type FieldUpdate = {
     api_key?: string;
     type?: FieldType;
     required?: boolean;
+    /**
+     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     */
     multiple?: boolean;
     position?: number;
     configuration?: {
@@ -398,6 +409,9 @@ export type FieldDefinition = {
     configuration: {
         [key: string]: unknown;
     };
+    /**
+     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     */
     multiple: boolean;
     required: boolean;
 };
@@ -413,6 +427,9 @@ export type FieldMigrationRequest = {
     configuration?: {
         [key: string]: unknown;
     };
+    /**
+     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     */
     multiple?: boolean;
     required?: boolean;
     /**
@@ -3925,6 +3942,10 @@ export type AssetsListData = {
          * List soft-deleted items instead of active ones.
          */
         deleted?: boolean;
+        /**
+         * Comma-separated MIME types or `type*` wildcards.
+         */
+        content_type?: string;
     };
     url: '/v1/projects/{project_id}/assets';
 };
@@ -4004,6 +4025,12 @@ export type AssetsUploadErrors = {
      * Authentication is missing or invalid.
      */
     401: Error;
+    /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
     /**
      * The caller is not allowed to perform this action.
      */
