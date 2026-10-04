@@ -1,7 +1,9 @@
-# Publishes a release when its tag (v1.2.3) is pushed. Tags are pushed by the
+# Stages a release when its tag (v1.2.3) is pushed. Tags are pushed by the
 # Nohead API repository's "SDK release" workflow, after this commit's smoke
-# test passed against the API. npm trusted publishing (OIDC, no token) adds
-# provenance; CHANGELOG.md's section for the version is the release's notes.
+# test passed against the API. npm trusted publishing (OIDC, no token) stages
+# the package with provenance; it goes live only when a maintainer approves it
+# on npm with 2FA (`npm stage approve <stage-id>`). The GitHub release
+# is a draft until then; CHANGELOG.md's section for the version is its notes.
 name: Release
 
 on:
@@ -19,8 +21,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # npm's trusted publisher only accepts this environment, which only v* tags can use.
+    environment: release
     permissions:
-      contents: write # the GitHub release
+      contents: write # the draft GitHub release
       id-token: write # npm trusted publishing and provenance
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -47,9 +51,10 @@ jobs:
       # Also builds dist/ (prepare).
       - run: npm ci
       - run: npm test
-      - run: npm publish --provenance --access public
-      - name: GitHub release
+      # The trusted publisher may only stage (npm 11.15+, which Node 26 has).
+      - run: npm stage publish --provenance --access public
+      - name: Draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+        run: gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file notes.md

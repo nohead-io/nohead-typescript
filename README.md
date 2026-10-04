@@ -346,7 +346,8 @@ The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using t
 2. Add a section for it to `CHANGELOG.md` (`## 1.2.3`), which becomes the release's notes.
 3. Merge to `main`.
 4. Run the **SDK release** workflow in the Nohead API repository. It runs this commit's smoke test against the API and pushes the tag `v1.2.3`.
-5. The tag starts `.github/workflows/release.yml`. It checks the version and its notes, tests, and publishes to npm with provenance through trusted publishing (no token). Then it creates the GitHub release.
+5. The tag starts `.github/workflows/release.yml`. It checks the version and its notes, tests, and stages the package on npm with provenance through trusted publishing (no token). Then it creates a draft GitHub release.
+6. Approve the staged version with 2FA, on npmjs.com, or with `npm stage list @nohead/sdk` and `npm stage approve <stage-id>`. Only then is it installable. Publish the draft GitHub release.
 
 ## License
 
