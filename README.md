@@ -14,7 +14,7 @@ for await (const post of nohead.records.list("posts", {
 }
 ```
 
-> **Status:** 0.x, not yet published to npm. Until it is, install from GitHub: `npm install github:nohead-io/nohead-typescript`.
+> **Status:** 0.x until the Nohead API launches.
 
 ## Contents
 
