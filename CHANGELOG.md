@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.2.0
 
 - `onRetry` client option: called before each retry with the attempt, the
   delay, and the status or error that failed, for example to report retries.
@@ -13,6 +13,8 @@ section is its GitHub release's notes.
   completes the upload: the key only starts it. Running the same upload again
   resumes it, and returns an asset that is already `ready` without sending the
   bytes again.
+- Types follow the API's current contract. They add types only for
+  operations an API key can't call, so no method changed.
 
 ## 0.1.0
 
