@@ -108,7 +108,7 @@ export type Invitation = {
         name: string;
     };
     /**
-     * What became of the invitation email, or null while it has not been sent (or when sending is off). `sent`: accepted for delivery. `not_sent`: the address had bounced or been marked as spam before, so no email went out. `bounced`: the email could not be delivered; check the address. `complained`: the invitee marked it as spam. Either way the invitation still works when the invitee signs in with the address.
+     * What became of the invitation email, or null while it has not been sent (or when sending is off). `sent`: accepted for delivery. `not_sent`: no email went out, because the address had bounced or been marked as spam before, or had already received several invitation emails that day. `bounced`: the email could not be delivered; check the address. `complained`: the invitee marked it as spam. Either way the invitation still works when the invitee signs in with the address.
      */
     email_delivery: null | {
         status: 'sent' | 'not_sent' | 'bounced' | 'complained';
@@ -368,6 +368,12 @@ export type Actor = {
      * The user (`usr_...`) or API key (`key_...`), or null for system changes.
      */
     id: string | null;
+    /**
+     * Resolved when read, never stored: a user's current name (or
+     * email), "Deleted user" once they deleted their account, an API
+     * key's name, or "System".
+     *
+     */
     name: string | null;
 };
 
@@ -712,6 +718,24 @@ export type FeatureFlags = {
     };
 };
 
+export type AccountDeletionCode = {
+    object: 'account_deletion_code';
+    /**
+     * Where the code was sent.
+     */
+    email: string;
+    expires_at: string;
+};
+
+export type AccountDeletion = {
+    object: 'account_deletion';
+    /**
+     * The deleted user, as history still refers to it.
+     */
+    user_id: string;
+    deleted_at: string;
+};
+
 export type Principal = {
     object: 'principal';
     type: 'user' | 'api_key';
@@ -927,6 +951,31 @@ export type Usage = {
         end: string;
     };
     metrics: Array<UsageMetric>;
+    retention: UsageRetention;
+};
+
+/**
+ * How long the plan keeps record revisions (beyond each record's first and latest 10) and audit events, in days; null keeps everything.
+ */
+export type UsageRetention = {
+    revision_days: number | null;
+    audit_days: number | null;
+    /**
+     * After a downgrade, the previous plan's longer retention still applies for 30 days; history past the plan's retention is removed after `ends_at`. Null otherwise.
+     */
+    grace: null | UsageRetentionGrace;
+};
+
+export type UsageRetentionGrace = {
+    ends_at: string;
+    /**
+     * Days of revisions kept until `ends_at`; null keeps everything.
+     */
+    revision_days: number | null;
+    /**
+     * Days of audit events kept until `ends_at`.
+     */
+    audit_days: number | null;
 };
 
 export type UsageMetric = {
@@ -7286,6 +7335,71 @@ export type HealthCheckResponses = {
 
 export type HealthCheckResponse = HealthCheckResponses[keyof HealthCheckResponses];
 
+export type MeDeleteData = {
+    body: {
+        /**
+         * The six-digit code emailed by `POST /v1/me/deletion-code`.
+         */
+        code: string;
+    };
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/me';
+};
+
+export type MeDeleteErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). Wait `Retry-After` seconds; retries with
+     * the same `Idempotency-Key` are safe.
+     *
+     */
+    429: Error;
+};
+
+export type MeDeleteError = MeDeleteErrors[keyof MeDeleteErrors];
+
+export type MeDeleteResponses = {
+    /**
+     * The account is deleted, and the session cookie cleared.
+     */
+    200: AccountDeletion;
+};
+
+export type MeDeleteResponse = MeDeleteResponses[keyof MeDeleteResponses];
+
 export type MeGetData = {
     body?: never;
     path?: never;
@@ -7377,6 +7491,62 @@ export type MeUpdateResponses = {
 };
 
 export type MeUpdateResponse = MeUpdateResponses[keyof MeUpdateResponses];
+
+export type MeDeletionCodeSendData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/me/deletion-code';
+};
+
+export type MeDeletionCodeSendErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). Wait `Retry-After` seconds; retries with
+     * the same `Idempotency-Key` are safe.
+     *
+     */
+    429: Error;
+};
+
+export type MeDeletionCodeSendError = MeDeletionCodeSendErrors[keyof MeDeletionCodeSendErrors];
+
+export type MeDeletionCodeSendResponses = {
+    /**
+     * The code is on its way.
+     */
+    202: AccountDeletionCode;
+};
+
+export type MeDeletionCodeSendResponse = MeDeletionCodeSendResponses[keyof MeDeletionCodeSendResponses];
 
 export type FeatureFlagsListData = {
     body?: never;
