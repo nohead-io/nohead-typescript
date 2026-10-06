@@ -92,6 +92,8 @@ export type {
   Timestamp,
   Usage,
   UsageMetric,
+  UsageRetention,
+  UsageRetentionGrace,
   Via,
   Webhook,
   WebhookCreate,

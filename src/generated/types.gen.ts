@@ -927,6 +927,31 @@ export type Usage = {
         end: string;
     };
     metrics: Array<UsageMetric>;
+    retention: UsageRetention;
+};
+
+/**
+ * How long the plan keeps record revisions (beyond each record's first and latest 10) and audit events, in days; null keeps everything.
+ */
+export type UsageRetention = {
+    revision_days: number | null;
+    audit_days: number | null;
+    /**
+     * After a downgrade, the previous plan's longer retention still applies for 30 days; history past the plan's retention is removed after `ends_at`. Null otherwise.
+     */
+    grace: null | UsageRetentionGrace;
+};
+
+export type UsageRetentionGrace = {
+    ends_at: string;
+    /**
+     * Days of revisions kept until `ends_at`; null keeps everything.
+     */
+    revision_days: number | null;
+    /**
+     * Days of audit events kept until `ends_at`.
+     */
+    audit_days: number | null;
 };
 
 export type UsageMetric = {
