@@ -4,6 +4,10 @@
 # the package with provenance; it goes live only when a maintainer approves it
 # on npm with 2FA (`npm stage approve <stage-id>`). The GitHub release
 # is a draft until then; CHANGELOG.md's section for the version is its notes.
+#
+# Two jobs, so no dependency code runs where the publishing credential can be
+# minted: `build` installs and packs without it (CI and the smoke test have
+# already tested this commit), and `publish` only stages that tarball.
 name: Release
 
 on:
@@ -18,14 +22,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # npm's trusted publisher only accepts this environment, which only v* tags can use.
-    environment: release
-    permissions:
-      contents: write # the draft GitHub release
-      id-token: write # npm trusted publishing and provenance
     steps:
       # Only a commit on main is released, whoever pushed the tag: the deploy
       # key that pushes tags also syncs the contract.
@@ -49,7 +48,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 26
-          registry-url: https://registry.npmjs.org
           # No dependency cache for a release: a poisoned cache could reach the package.
           package-manager-cache: false
       - name: Check the version and its notes
@@ -66,11 +64,37 @@ jobs:
           fi
       # Also builds dist/ (prepare).
       - run: npm ci
-      - run: npm test
+      - run: npm pack --pack-destination release
+      - run: mv notes.md release/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release
+          path: release
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # npm's trusted publisher only accepts this environment, which only v* tags can use.
+    environment: release
+    permissions:
+      contents: write # the draft GitHub release
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       # The trusted publisher may only stage (npm 11.15+, which Node 26 has).
-      - run: npm stage publish --provenance --access public
+      - run: npm stage publish ./*.tgz --provenance --access public
       - name: Draft GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file notes.md
+        run: gh release create "$TAG" -R "$REPO" --verify-tag --draft --title "$TAG" --notes-file notes.md
