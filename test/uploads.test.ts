@@ -52,6 +52,36 @@ describe("assets.upload", () => {
     expect(put.headers.has("authorization")).toBe(false)
   })
 
+  it("uses an idempotency key only to start the upload", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      json(200, asset("pending")),
+      new Response(null),
+      json(200, asset("ready")),
+    ])
+    await nohead.assets.upload(new Blob(["x"]), {}, { idempotencyKey: "k1" })
+    expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual([
+      "POST /v1/projects/prj_1/assets/uploads",
+      "GET /v1/assets/ast_1",
+      "PUT /uploads/prj_1/ast_1",
+      "POST /v1/assets/ast_1/complete",
+    ])
+    const keys = calls.map((c) => c.headers.get("idempotency-key"))
+    expect(keys[0]).toBe("k1")
+    expect(keys[3]).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it("returns an asset a replayed upload already finished", async () => {
+    const { nohead, calls } = mockClient([created, json(200, asset("ready"))])
+    const ready = await nohead.assets.upload(
+      new Blob(["x"]),
+      {},
+      { idempotencyKey: "k1" }
+    )
+    expect(ready.status).toBe("ready")
+    expect(calls.map((c) => c.method)).toEqual(["POST", "GET"])
+  })
+
   it("names bytes without a file name", async () => {
     const { nohead, calls } = mockClient([
       created,

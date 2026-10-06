@@ -31,6 +31,10 @@ export class Assets extends Resource {
    * file). Throws `UploadError` if storage refuses the bytes, and
    * `ValidationError` if the file fails the checks.
    *
+   * With an `idempotencyKey`, running the same upload again resumes it: the
+   * key starts the upload, and an asset that is already `ready` is returned
+   * without sending the bytes again.
+   *
    *   import { openAsBlob } from "node:fs"
    *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg" })
    */
@@ -58,6 +62,16 @@ export class Assets extends Resource {
       options
     )
 
+    // A replayed start returns the first run's asset, which may be done.
+    if (options?.idempotencyKey) {
+      const current = await this.get(asset.id, {
+        ...options,
+        idempotencyKey: undefined,
+        changeNote: undefined,
+      })
+      if (current.status === "ready") return current
+    }
+
     const stream = file instanceof ReadableStream
     const response = await this.core
       .fetchWithRetries(
@@ -84,7 +98,8 @@ export class Assets extends Resource {
         response.status
       )
     }
-    return this.complete(asset.id, options)
+    // The key belongs to the start: the API refuses one key on two requests.
+    return this.complete(asset.id, { ...options, idempotencyKey: undefined })
   }
 
   /**
