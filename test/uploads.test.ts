@@ -44,8 +44,12 @@ describe("assets.upload", () => {
       content_type: "image/png",
       byte_size: 3,
     })
-    expect(calls[1]!.headers.get("content-type")).toBe("image/png")
-    expect(calls[1]!.headers.has("authorization")).toBe(false)
+    const put = calls[1]!
+    expect(new Uint8Array(await (put.body as Blob).arrayBuffer())).toEqual(
+      new Uint8Array([1, 2, 3])
+    )
+    expect(put.headers.get("content-type")).toBe("image/png")
+    expect(put.headers.has("authorization")).toBe(false)
   })
 
   it("names bytes without a file name", async () => {
