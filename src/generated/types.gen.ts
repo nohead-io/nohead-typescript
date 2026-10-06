@@ -32,6 +32,9 @@ export type ListMeta = {
      * Opaque cursor for the next page, or null on the last page.
      */
     next_cursor: string | null;
+    /**
+     * Whether another page follows. A page can hold fewer than `limit` items, even none, while this is true.
+     */
     has_more: boolean;
 };
 
