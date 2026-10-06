@@ -9,6 +9,7 @@ export type {
   ClientOptions,
   ConditionalRequestOptions,
   RequestOptions,
+  RetryEvent,
 } from "./core.ts"
 export {
   APIError,

@@ -40,6 +40,22 @@ export interface ClientOptions {
   headers?: Record<string, string>
   /** Log deprecation and plan usage warnings (once each). Default true. */
   warnings?: boolean
+  /** Called before each retry, for example to report it. */
+  onRetry?: (retry: RetryEvent) => void
+}
+
+/** A retry about to happen (`onRetry`). */
+export interface RetryEvent {
+  /** 1 for the first retry of the request, 2 for the second… */
+  attempt: number
+  /** Seconds the client waits before it. */
+  delay: number
+  /** The URL being retried. */
+  url: string
+  /** The status that failed, or undefined when the connection did. */
+  status?: number
+  /** What failed: an `APIError` or a `ConnectionError` (none for storage). */
+  error?: NoheadError
 }
 
 export interface RequestOptions {
@@ -86,6 +102,7 @@ export class Core {
   readonly #maxRetries: number
   readonly #timeout: number
   readonly #warnings: boolean
+  readonly #onRetry: ClientOptions["onRetry"]
   #projectId: Promise<string> | undefined
 
   constructor(options: ClientOptions) {
@@ -107,6 +124,7 @@ export class Core {
     this.#maxRetries = options.maxRetries ?? 2
     this.#timeout = options.timeout ?? 60_000
     this.#warnings = options.warnings ?? true
+    this.#onRetry = options.onRetry
     if (options.projectId) this.#projectId = Promise.resolve(options.projectId)
   }
 
@@ -170,17 +188,20 @@ export class Core {
       ? (options.maxRetries ?? this.#maxRetries)
       : 0
     for (let attempt = 0; ; attempt++) {
+      let failed: { status?: number; error?: NoheadError }
       try {
         const { response } = await this.#attempt(url, init, options, false)
         if (!RETRYABLE_STATUSES.has(response.status) || attempt >= maxRetries) {
           return response
         }
+        failed = { status: response.status }
       } catch (error) {
         if (!(error instanceof ConnectionError) || attempt >= maxRetries) {
           throw error
         }
+        failed = { error }
       }
-      await sleep(backoff(attempt), options.signal)
+      await this.#retry(url, attempt, backoff(attempt), failed, options.signal)
     }
   }
 
@@ -229,7 +250,13 @@ export class Core {
         if (!(error instanceof ConnectionError) || attempt >= maxRetries) {
           throw error
         }
-        await sleep(backoff(attempt), options.signal)
+        await this.#retry(
+          url.toString(),
+          attempt,
+          backoff(attempt),
+          { error },
+          options.signal
+        )
         continue
       }
 
@@ -241,8 +268,25 @@ export class Core {
       const error = apiError(response.status, body, response.headers)
       const delay = retryDelay(error, attempt, maxRetries)
       if (delay === undefined) throw error
-      await sleep(delay, options.signal)
+      await this.#retry(
+        url.toString(),
+        attempt,
+        delay,
+        { status: response.status, error },
+        options.signal
+      )
     }
+  }
+
+  #retry(
+    url: string,
+    attempt: number,
+    delay: number,
+    failed: { status?: number; error?: NoheadError },
+    signal: AbortSignal | undefined
+  ): Promise<void> {
+    this.#onRetry?.({ attempt: attempt + 1, delay, url, ...failed })
+    return sleep(delay, signal)
   }
 
   async #attempt(

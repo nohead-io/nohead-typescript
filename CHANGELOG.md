@@ -5,6 +5,15 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `onRetry` client option: called before each retry with the attempt, the
+  delay, and the status or error that failed, for example to report retries.
+- `assets.upload()` with an `idempotencyKey` no longer fails when it
+  completes the upload: the key only starts it. Running the same upload again
+  resumes it, and returns an asset that is already `ready` without sending the
+  bytes again.
+
 ## 0.1.0
 
 The first release.

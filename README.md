@@ -50,16 +50,17 @@ const nohead = new Nohead({
 })
 ```
 
-| Option       | Default                                        |                                                      |
-| ------------ | ---------------------------------------------- | ---------------------------------------------------- |
-| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`sk_live_…`). Required.           |
-| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                      |
-| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.       |
-| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).             |
-| `timeout`    | `60000`                                        | Milliseconds per attempt.                            |
-| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.              |
-| `headers`    | `{}`                                           | Added to every request.                              |
-| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each. |
+| Option       | Default                                        |                                                                    |
+| ------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
+| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`sk_live_…`). Required.                         |
+| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                    |
+| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                     |
+| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                           |
+| `timeout`    | `60000`                                        | Milliseconds per attempt.                                          |
+| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                            |
+| `headers`    | `{}`                                           | Added to every request.                                            |
+| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.               |
+| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency). |
 
 API keys belong to a project, so methods like `collections.list()` need no project ID. Collections can be named by ID or slug everywhere.
 
@@ -163,6 +164,17 @@ Failed requests are retried twice by default (`maxRetries`), with exponential ba
 - what's retried: connection errors, timeouts, 429, 500, 502, 503, 504, and a 409 for a request that is still running
 - `Retry-After` is honored up to 60 seconds; a longer one throws `RateLimitError` straight away
 
+To report retries, pass `onRetry`. It gets the retry's `attempt` (1 for the first), `delay` in seconds, `url`, the failed `status` (none when the connection failed) and the `error`:
+
+```ts
+const nohead = new Nohead({
+  onRetry: ({ attempt, delay, status }) =>
+    console.error(
+      `Retry ${attempt} in ${delay.toFixed(1)}s (${status ?? "network"})`
+    ),
+})
+```
+
 Every write gets an `Idempotency-Key` that stays the same across its retries, so a retry after a lost response never writes twice. To make a write safe across your own retries (a job that may run twice), pass a key:
 
 ```ts
@@ -222,6 +234,8 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 3. Completes the upload, which checks the file, and returns the `ready` asset.
 
 **Errors:** `UploadError` if storage refuses the bytes; `ValidationError` if the file fails the checks.
+
+**Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again picks up where it stopped. An asset that is already `ready` comes back without sending the bytes again.
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 

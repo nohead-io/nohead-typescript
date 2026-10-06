@@ -26,6 +26,27 @@ describe("retries", () => {
     ).toBe(1)
   })
 
+  it("reports each retry to onRetry", async () => {
+    const onRetry = vi.fn()
+    const { nohead } = mockClient(
+      [
+        apiError(429, "rate_limited", {}, now),
+        new TypeError("fetch failed"),
+        json(200, record("rec_1")),
+      ],
+      { onRetry }
+    )
+    await nohead.records.get("rec_1")
+    expect(onRetry).toHaveBeenCalledTimes(2)
+    const [first, second] = onRetry.mock.calls.map(([event]) => event)
+    expect(first).toMatchObject({ attempt: 1, delay: 0, status: 429 })
+    expect(first.error).toBeInstanceOf(RateLimitError)
+    expect(first.url).toBe("https://api.test/v1/records/rec_1")
+    expect(second.attempt).toBe(2)
+    expect(second.status).toBeUndefined()
+    expect(second.error).toBeInstanceOf(ConnectionError)
+  })
+
   it("waits out a short Retry-After", async () => {
     vi.useFakeTimers()
     try {
