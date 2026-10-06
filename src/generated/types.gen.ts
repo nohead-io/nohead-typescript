@@ -32,6 +32,9 @@ export type ListMeta = {
      * Opaque cursor for the next page, or null on the last page.
      */
     next_cursor: string | null;
+    /**
+     * Whether another page follows. A page can hold fewer than `limit` items, even none, while this is true.
+     */
     has_more: boolean;
 };
 
@@ -1466,8 +1469,10 @@ export type RecordsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1549,8 +1554,10 @@ export type RecordsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1629,8 +1636,10 @@ export type RecordsDeleteErrors = {
     412: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1684,8 +1693,10 @@ export type RecordsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1768,8 +1779,10 @@ export type RecordsUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1848,8 +1861,10 @@ export type RecordsPublishErrors = {
     412: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1928,8 +1943,10 @@ export type RecordsUnpublishErrors = {
     412: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -1994,8 +2011,10 @@ export type RecordsUnscheduleErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2064,8 +2083,10 @@ export type RecordsScheduleErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2140,8 +2161,10 @@ export type RecordsRestoreErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2207,8 +2230,10 @@ export type RecordRevisionsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2257,8 +2282,10 @@ export type RecordRevisionsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2347,8 +2374,10 @@ export type RecordRevisionsRevertErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2396,8 +2425,10 @@ export type RecordsDiffErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2487,8 +2518,10 @@ export type RecordsRedactErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2543,8 +2576,10 @@ export type RecordsCountErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2620,8 +2655,10 @@ export type RecordsBulkErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2679,8 +2716,10 @@ export type CollectionsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2759,8 +2798,10 @@ export type CollectionsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2832,8 +2873,10 @@ export type CollectionsDeleteErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2881,8 +2924,10 @@ export type CollectionsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -2958,8 +3003,10 @@ export type CollectionsUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3041,8 +3088,10 @@ export type CollectionsRestoreErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3095,8 +3144,10 @@ export type CollectionsGetSchemaErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3153,8 +3204,10 @@ export type SchemaChangesListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3203,8 +3256,10 @@ export type SchemaChangesGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3265,8 +3320,10 @@ export type FieldsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3342,8 +3399,10 @@ export type FieldsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3412,8 +3471,10 @@ export type FieldsDeleteErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3486,8 +3547,10 @@ export type FieldsUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3560,8 +3623,10 @@ export type FieldsRestoreErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3630,8 +3695,10 @@ export type FieldsRemoveAliasErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3709,8 +3776,10 @@ export type FieldsReorderErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3767,8 +3836,10 @@ export type MigrationsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3843,8 +3914,10 @@ export type FieldsMigrateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3893,8 +3966,10 @@ export type MigrationsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -3955,8 +4030,10 @@ export type MigrationsCancelErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4018,8 +4095,10 @@ export type AssetsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4098,8 +4177,10 @@ export type AssetsUploadErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4168,8 +4249,10 @@ export type AssetsDeleteErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4214,8 +4297,10 @@ export type AssetsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4288,8 +4373,10 @@ export type AssetsCompleteErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4351,8 +4438,10 @@ export type AssetsImageUrlErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4405,8 +4494,10 @@ export type AssetsDownloadUrlErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4475,8 +4566,10 @@ export type AssetsRestoreErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4549,8 +4642,10 @@ export type CollectionsSearchErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4602,8 +4697,10 @@ export type SearchIndexGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4675,8 +4772,10 @@ export type SearchIndexRebuildErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4741,8 +4840,10 @@ export type ProjectsSearchErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4800,8 +4901,10 @@ export type WebhooksListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4880,8 +4983,10 @@ export type WebhooksCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4950,8 +5055,10 @@ export type WebhooksDeleteErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -4996,8 +5103,10 @@ export type WebhooksGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5070,8 +5179,10 @@ export type WebhooksUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5140,8 +5251,10 @@ export type WebhooksRotateSecretErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5210,8 +5323,10 @@ export type WebhooksTestErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5266,8 +5381,10 @@ export type WebhookDeliveriesListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5312,8 +5429,10 @@ export type WebhookDeliveriesGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5382,8 +5501,10 @@ export type WebhookDeliveriesRetryErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5437,8 +5558,10 @@ export type ApiKeysListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5503,8 +5626,10 @@ export type ApiKeysCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5565,8 +5690,10 @@ export type ApiKeysRevokeErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5628,8 +5755,10 @@ export type ProjectsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5698,8 +5827,10 @@ export type ProjectsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5769,8 +5900,10 @@ export type ProjectsDeleteErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5815,8 +5948,10 @@ export type ProjectsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5881,8 +6016,10 @@ export type ProjectsUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -5949,8 +6086,10 @@ export type ProjectsRestoreErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6002,8 +6141,10 @@ export type OrganizationsListErrors = {
     403: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6062,8 +6203,10 @@ export type OrganizationsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6133,8 +6276,10 @@ export type OrganizationsDeleteErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6179,8 +6324,10 @@ export type OrganizationsGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6245,8 +6392,10 @@ export type OrganizationsUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6307,8 +6456,10 @@ export type OrganizationsRestoreErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6353,8 +6504,10 @@ export type UsageGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6408,8 +6561,10 @@ export type MembersListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6474,8 +6629,10 @@ export type MembersRemoveErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6540,8 +6697,10 @@ export type MembersUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6595,8 +6754,10 @@ export type InvitationsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6667,8 +6828,10 @@ export type InvitationsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6729,8 +6892,10 @@ export type InvitationsRevokeErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6775,8 +6940,10 @@ export type OrganizationsAccessReviewErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6824,8 +6991,10 @@ export type MeInvitationsListErrors = {
     403: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6886,8 +7055,10 @@ export type MeInvitationsAcceptErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6948,8 +7119,10 @@ export type MeInvitationsDeclineErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -6994,8 +7167,10 @@ export type BillingGetErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7064,8 +7239,10 @@ export type BillingCheckoutSessionsCreateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7134,8 +7311,10 @@ export type BillingPortalSessionsCreateErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7215,8 +7394,10 @@ export type AuditEventsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7292,8 +7473,10 @@ export type AuditEventsListForProjectErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7382,8 +7565,10 @@ export type MeDeleteErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7414,8 +7599,10 @@ export type MeGetErrors = {
     401: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7474,8 +7661,10 @@ export type MeUpdateErrors = {
     422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7530,8 +7719,10 @@ export type MeDeletionCodeSendErrors = {
     409: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
@@ -7579,8 +7770,10 @@ export type FeatureFlagsListErrors = {
     404: Error;
     /**
      * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). Wait `Retry-After` seconds; retries with
-     * the same `Idempotency-Key` are safe.
+     * credentials, this IP address). A published-only key is counted per
+     * client IP, and all of an organization's keys together are limited too.
+     * Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
      *
      */
     429: Error;
