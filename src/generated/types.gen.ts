@@ -718,15 +718,6 @@ export type FeatureFlags = {
     };
 };
 
-export type AccountDeletionCode = {
-    object: 'account_deletion_code';
-    /**
-     * Where the code was sent.
-     */
-    email: string;
-    expires_at: string;
-};
-
 export type AccountDeletion = {
     object: 'account_deletion';
     /**
@@ -961,7 +952,7 @@ export type UsageRetention = {
     revision_days: number | null;
     audit_days: number | null;
     /**
-     * After a downgrade, the previous plan's longer retention still applies for 30 days; history past the plan's retention is removed after `ends_at`. Null otherwise.
+     * After a downgrade, all history is kept for 30 days; history past the plan's retention is removed after `ends_at`. Null otherwise.
      */
     grace: null | UsageRetentionGrace;
 };
@@ -969,11 +960,11 @@ export type UsageRetention = {
 export type UsageRetentionGrace = {
     ends_at: string;
     /**
-     * Days of revisions kept until `ends_at`; null keeps everything.
+     * Days of revisions kept until `ends_at`; null keeps everything (as a downgrade's grace does).
      */
     revision_days: number | null;
     /**
-     * Days of audit events kept until `ends_at`.
+     * Days of audit events kept until `ends_at`; null keeps everything (as a downgrade's grace does).
      */
     audit_days: number | null;
 };
@@ -7426,12 +7417,7 @@ export type HealthCheckResponses = {
 export type HealthCheckResponse = HealthCheckResponses[keyof HealthCheckResponses];
 
 export type MeDeleteData = {
-    body: {
-        /**
-         * The six-digit code emailed by `POST /v1/me/deletion-code`.
-         */
-        code: string;
-    };
+    body?: never;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -7466,10 +7452,6 @@ export type MeDeleteErrors = {
      * The request conflicts with current state.
      */
     409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
@@ -7584,63 +7566,6 @@ export type MeUpdateResponses = {
 };
 
 export type MeUpdateResponse = MeUpdateResponses[keyof MeUpdateResponses];
-
-export type MeDeletionCodeSendData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/v1/me/deletion-code';
-};
-
-export type MeDeletionCodeSendErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeDeletionCodeSendError = MeDeletionCodeSendErrors[keyof MeDeletionCodeSendErrors];
-
-export type MeDeletionCodeSendResponses = {
-    /**
-     * The code is on its way.
-     */
-    202: AccountDeletionCode;
-};
-
-export type MeDeletionCodeSendResponse = MeDeletionCodeSendResponses[keyof MeDeletionCodeSendResponses];
 
 export type FeatureFlagsListData = {
     body?: never;
