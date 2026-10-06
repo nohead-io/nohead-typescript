@@ -6,6 +6,7 @@ import { WebhookVerificationError } from "../src/index.ts"
 import { mockClient } from "./helpers.ts"
 
 const secret = `whsec_${Buffer.from("a-very-secret-key").toString("base64")}`
+const otherSecret = `whsec_${Buffer.from("another-secret-key").toString("base64")}`
 const body = JSON.stringify({
   id: "wev_1",
   object: "event",
@@ -21,10 +22,13 @@ const body = JSON.stringify({
 
 function sign(
   payload: string,
-  timestamp = Math.floor(Date.now() / 1000),
-  id = "msg_1"
+  {
+    timestamp = Math.floor(Date.now() / 1000),
+    id = "msg_1",
+    signingSecret = secret,
+  } = {}
 ) {
-  const key = Buffer.from(secret.slice("whsec_".length), "base64")
+  const key = Buffer.from(signingSecret.slice("whsec_".length), "base64")
   const signature = createHmac("sha256", key)
     .update(`${id}.${timestamp}.${payload}`)
     .digest("base64")
@@ -61,16 +65,36 @@ describe("webhook verification", () => {
 
   it.each([
     ["a changed body", () => [body.replace("Hi", "Bye"), sign(body)] as const],
-    ["a wrong secret", () => [body, sign(body.replace("Hi", "x"))] as const],
+    [
+      "a wrong secret",
+      () => [body, sign(body, { signingSecret: otherSecret })] as const,
+    ],
     [
       "an old timestamp",
-      () => [body, sign(body, Math.floor(Date.now() / 1000) - 600)] as const,
+      () =>
+        [
+          body,
+          sign(body, { timestamp: Math.floor(Date.now() / 1000) - 600 }),
+        ] as const,
+    ],
+    [
+      "a timestamp that isn't a number",
+      () => [body, { ...sign(body), "webhook-timestamp": "soon" }] as const,
     ],
     ["missing headers", () => [body, {}] as const],
+    ["a body that isn't JSON", () => ["not json", sign("not json")] as const],
   ])("rejects %s", async (_, input) => {
     const [payload, headers] = input()
     await expect(
       unwrapWebhook(payload, headers, { secret })
     ).rejects.toBeInstanceOf(WebhookVerificationError)
+  })
+
+  it("rejects a secret that isn't base64", async () => {
+    const error = await unwrapWebhook(body, sign(body), {
+      secret: "whsec_not base64!",
+    }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WebhookVerificationError)
+    expect((error as Error).message).toMatch("not base64")
   })
 })

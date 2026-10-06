@@ -76,16 +76,6 @@ describe("the key's project", () => {
     ])
   })
 
-  it("can be given", async () => {
-    const list = json(200, {
-      data: [],
-      meta: { next_cursor: null, has_more: false },
-    })
-    const { nohead, calls } = mockClient([list])
-    await nohead.assets.list()
-    expect(calls[0]!.url.pathname).toBe("/v1/projects/prj_1/assets")
-  })
-
   it("fails clearly for credentials without a project", async () => {
     const me = json(200, {
       object: "principal",

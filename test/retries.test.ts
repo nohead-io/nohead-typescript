@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   AbortError,
@@ -27,12 +27,21 @@ describe("retries", () => {
   })
 
   it("waits out a short Retry-After", async () => {
-    const { nohead, calls } = mockClient([
-      apiError(429, "rate_limited", {}, now),
-      json(200, record("rec_1")),
-    ])
-    await nohead.records.get("rec_1")
-    expect(calls).toHaveLength(2)
+    vi.useFakeTimers()
+    try {
+      const { nohead, calls } = mockClient([
+        apiError(429, "rate_limited", {}, { "retry-after": "3" }),
+        json(200, record("rec_1")),
+      ])
+      const got = nohead.records.get("rec_1")
+      await vi.advanceTimersByTimeAsync(2999)
+      expect(calls).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(1)
+      await got
+      expect(calls).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("gives up at once on a long Retry-After", async () => {

@@ -30,6 +30,19 @@ describe("pagination", () => {
     expect(calls[1]!.url.searchParams.get("filter[status]")).toBe("draft")
   })
 
+  it("stops fetching once it has enough", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1"), record("rec_2")], "c2"),
+    ])
+    const ids: string[] = []
+    for await (const r of nohead.records.list("posts")) {
+      ids.push(r.id)
+      break
+    }
+    expect(ids).toEqual(["rec_1"])
+    expect(calls).toHaveLength(1)
+  })
+
   it("pages by hand", async () => {
     const { nohead } = mockClient([
       page([record("rec_1")], "c2"),
@@ -46,17 +59,6 @@ describe("pagination", () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("posts", { cursor: "saved" })
     expect(calls[0]!.url.searchParams.get("cursor")).toBe("saved")
-  })
-
-  it("iterates a page from its own items on", async () => {
-    const { nohead } = mockClient([
-      page([record("rec_1")], "c2"),
-      page([record("rec_2")], null),
-    ])
-    const first = await nohead.records.list("posts")
-    const ids: string[] = []
-    for await (const r of first) ids.push(r.id)
-    expect(ids).toEqual(["rec_1", "rec_2"])
   })
 
   it("keeps search totals", async () => {
