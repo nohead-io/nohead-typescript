@@ -234,6 +234,9 @@ export type Field = {
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple: boolean;
+    /**
+     * Where the field sorts in the collection's order, lowest first. New fields are added last; `POST /v1/collections/{collection_id}/fields/reorder` changes the order, numbering the fields from 0.
+     */
     position: number;
     /**
      * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
@@ -304,7 +307,6 @@ export type FieldCreate = {
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
-    position?: number;
     configuration?: {
         [key: string]: unknown;
     };
@@ -319,7 +321,6 @@ export type FieldUpdate = {
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
-    position?: number;
     configuration?: {
         [key: string]: unknown;
     };
