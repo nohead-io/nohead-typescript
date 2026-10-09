@@ -7,6 +7,10 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- Field types: `datetime` is now `date`. A plain date field holds
+  `YYYY-MM-DD`; with `include_time` it holds a moment, written in the field's
+  `time_zone` when it has one. Field migrations take `time_zone`, the zone
+  whose day each moment falls on when the time is removed.
 - `assets.usage()`: where an asset is used, as counts of the records that use
   it (and of those, the published ones) and the 10 most recently updated with
   the fields that use it. Needs the `records:read` scope too.

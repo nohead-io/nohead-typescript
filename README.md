@@ -113,7 +113,7 @@ while (page.hasNextPage()) page = await page.getNextPage()
 await nohead.records.list("posts", { cursor: page.meta.next_cursor! })
 ```
 
-Filters are equality filters (for fields with several values: "contains"), and accept strings, numbers, booleans and dates:
+Filters are equality filters (for fields with several values: "contains"), and accept strings, numbers, booleans and dates. A `Date` is sent as a moment, for date fields with a time; a plain date field takes its `YYYY-MM-DD` string:
 
 ```ts
 nohead.records.list("posts", {
