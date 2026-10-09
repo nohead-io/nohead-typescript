@@ -8,8 +8,10 @@ export const OPERATIONS = {
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
   assets_image_url: { method: "GET", path: "/v1/assets/{asset_id}/image-url" },
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
+  assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
   assets_upload: { method: "POST", path: "/v1/projects/{project_id}/assets/uploads" },
+  assets_usage: { method: "GET", path: "/v1/assets/{asset_id}/usage" },
   audit_events_list_for_project: { method: "GET", path: "/v1/projects/{project_id}/audit-events" },
   collections_create: { method: "POST", path: "/v1/projects/{project_id}/collections" },
   collections_delete: { method: "DELETE", path: "/v1/collections/{collection_id}" },
@@ -75,8 +77,10 @@ export interface Operations {
   assets_get: { data: T.AssetsGetData; response: T.AssetsGetResponse }
   assets_image_url: { data: T.AssetsImageUrlData; response: T.AssetsImageUrlResponse }
   assets_list: { data: T.AssetsListData; response: T.AssetsListResponse }
+  assets_purge: { data: T.AssetsPurgeData; response: T.AssetsPurgeResponse }
   assets_restore: { data: T.AssetsRestoreData; response: T.AssetsRestoreResponse }
   assets_upload: { data: T.AssetsUploadData; response: T.AssetsUploadResponse }
+  assets_usage: { data: T.AssetsUsageData; response: T.AssetsUsageResponse }
   audit_events_list_for_project: { data: T.AuditEventsListForProjectData; response: T.AuditEventsListForProjectResponse }
   collections_create: { data: T.CollectionsCreateData; response: T.CollectionsCreateResponse }
   collections_delete: { data: T.CollectionsDeleteData; response: T.CollectionsDeleteResponse }
