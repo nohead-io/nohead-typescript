@@ -113,7 +113,7 @@ while (page.hasNextPage()) page = await page.getNextPage()
 await nohead.records.list("posts", { cursor: page.meta.next_cursor! })
 ```
 
-Filters take a value to equal, or operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in` (a list) and `exists`. They combine with AND. On fields with several values, equal means "contains". Values are strings, numbers, booleans and dates. A `Date` is sent as a moment, for date fields with a time; a plain date field takes its `YYYY-MM-DD` string, and both take `"today"`. Lists sort by a field too, with records that have no value last:
+Filters take a value to equal, or operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in` (a list) and `exists`. They combine with AND. On fields with several values, equal means "contains". Values are strings, numbers, booleans and dates. A `Date` is sent as a moment, for date fields with a time; a plain date field takes its `YYYY-MM-DD` string, and both take `"today"` (dates with a time `"now"` too). Lists sort by a field too, with records that have no value last:
 
 ```ts
 nohead.records.list("posts", {

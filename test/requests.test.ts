@@ -60,6 +60,20 @@ describe("requests", () => {
     expect(params.get("sort")).toBe("-price")
   })
 
+  it("leaves missing list items out, and a list of none", async () => {
+    const { nohead, calls } = mockClient([page([], null)])
+    const missing = [undefined, null] as unknown as string[]
+    await nohead.records.list("products", {
+      filter: {
+        category: { in: ["shoes", ...missing] },
+        tag: { in: missing },
+      },
+    })
+    const params = calls[0]!.url.searchParams
+    expect(params.get("filter[category][in]")).toBe("shoes")
+    expect(params.has("filter[tag][in]")).toBe(false)
+  })
+
   it("sends bodies as JSON", async () => {
     const { nohead, calls } = mockClient([json(201, record("rec_1"))])
     await nohead.records.create("posts", { data: { title: "Hi" } })

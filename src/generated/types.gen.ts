@@ -245,8 +245,8 @@ export type Field = {
      * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
      * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
      * written values must have; any file when absent), `include_time` and
-     * `time_zone` (date fields, below), `format` and `unique` (text
-     * fields, below), plus
+     * `time_zone` (date fields, below), `format` (text fields, below),
+     * `unique` (text and integer fields, below), plus
      * the options for searches with API keys: `searchable` (the search words match the
      * field; default true for text, long_text, rich_text and enum), `filterable` and
      * `sortable` (default false).
@@ -274,8 +274,9 @@ export type Field = {
      * `taken` and the `record_id` that has it. Turning `unique` on is
      * refused with `duplicate_values` while records share a value (and
      * so is restoring a deleted unique field, `409`). A field migration
-     * can't keep or turn on `unique`: migrate without it, then turn it
-     * on again.
+     * to a unique field is refused with `duplicate_values` when its
+     * converted values or backfill would be shared, and fails if values
+     * written while it waits would be.
      *
      */
     configuration: {
@@ -483,7 +484,7 @@ export type FieldDefinition = {
 export type FieldMigrationRequest = {
     type?: FieldType;
     /**
-     * The complete new configuration. When the type changes and this is omitted, only `description` carries over.
+     * The complete new configuration. When the type changes and this is omitted, only `description`, `searchable`, `filterable` and `sortable` carry over.
      */
     configuration?: {
         [key: string]: unknown;
@@ -1445,7 +1446,8 @@ export type Expand = string;
  * (and `published_at`: ever published).
  *
  * Values are parsed per field type (`"5"` is not the integer 5), but
- * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+ * not held to the field's limits or format (`price[lt]=10` works when
+ * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
  * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
  * given for a date with a time, or a timestamp, covers that day in the
  * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
@@ -1561,7 +1563,8 @@ export type RecordsListData = {
          * (and `published_at`: ever published).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
-         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * not held to the field's limits or format (`price[lt]=10` works when
+         * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
          * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
          * given for a date with a time, or a timestamp, covers that day in the
          * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
@@ -2695,7 +2698,8 @@ export type RecordsCountData = {
          * (and `published_at`: ever published).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
-         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * not held to the field's limits or format (`price[lt]=10` works when
+         * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
          * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
          * given for a date with a time, or a timestamp, covers that day in the
          * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
@@ -4865,7 +4869,8 @@ export type CollectionsSearchData = {
          * (and `published_at`: ever published).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
-         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * not held to the field's limits or format (`price[lt]=10` works when
+         * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
          * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
          * given for a date with a time, or a timestamp, covers that day in the
          * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
