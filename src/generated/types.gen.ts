@@ -229,6 +229,9 @@ export type Field = {
      */
     api_key: string;
     type: FieldType;
+    /**
+     * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
+     */
     required: boolean;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
@@ -302,6 +305,9 @@ export type FieldCreate = {
     name: string;
     api_key: string;
     type: FieldType;
+    /**
+     * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
+     */
     required?: boolean;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
@@ -316,6 +322,9 @@ export type FieldUpdate = {
     name?: string;
     api_key?: string;
     type?: FieldType;
+    /**
+     * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
+     */
     required?: boolean;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
