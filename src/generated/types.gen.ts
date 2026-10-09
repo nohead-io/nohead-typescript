@@ -214,7 +214,7 @@ export type Field = {
     type: FieldType;
     required: boolean;
     /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple: boolean;
     position: number;
@@ -258,7 +258,7 @@ export type FieldCreate = {
     type: FieldType;
     required?: boolean;
     /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
     position?: number;
@@ -273,7 +273,7 @@ export type FieldUpdate = {
     type?: FieldType;
     required?: boolean;
     /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
     position?: number;
@@ -416,7 +416,7 @@ export type FieldDefinition = {
         [key: string]: unknown;
     };
     /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple: boolean;
     required: boolean;
@@ -434,12 +434,12 @@ export type FieldMigrationRequest = {
         [key: string]: unknown;
     };
     /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`). Not available for boolean, rich_text and json fields.
+     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
     required?: boolean;
     /**
-     * Value for active records that have no value, validated like a record value of the new definition.
+     * Value for active records that have no value, validated like a record value of the new definition; an empty string is refused with `blank_value`.
      */
     backfill?: unknown;
     /**
@@ -565,7 +565,15 @@ export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'syste
 export type ChangeVia = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system';
 
 /**
- * Field values keyed by field `api_key`.
+ * Field values keyed by field `api_key`. A rich text value is a
+ * ProseMirror/Tiptap JSON document (`{"type": "doc", "content": [...]}`).
+ * An image of an asset in it is `{"type": "image", "attrs": {"asset_id":
+ * "ast_...", "alt": "..."}}`, between the document's blocks (not inside
+ * a list or quote), at most 100 per document (`too_many_images`); a
+ * newly shown image must be an uploaded JPEG, PNG, GIF, WebP or AVIF of
+ * the project (`invalid_reference`, `type_not_accepted`). `expand` embeds the assets, and published-only
+ * keys can read the images of published records.
+ *
  */
 export type RecordData = {
     [key: string]: unknown;
@@ -594,11 +602,13 @@ export type Record = {
     deleted: boolean;
     data: RecordData;
     /**
-     * Only with `expand`: what each requested relation or asset field
-     * points at, keyed by field API key: records for relation fields,
-     * assets for asset fields. A single value is the object, or null when
+     * Only with `expand`: what each requested relation, asset or rich
+     * text field points at, keyed by field API key: records for
+     * relation fields, assets for asset fields. A single value is the object, or null when
      * it no longer exists; a multiple value is a list of those that still
-     * exist. Expanded records are not expanded further.
+     * exist. For a rich text field, the list of assets its images show,
+     * in document order, leaving out those that no longer exist.
+     * Expanded records are not expanded further.
      *
      */
     expanded?: {
@@ -1150,7 +1160,7 @@ export type Asset = {
     status: 'pending' | 'ready' | 'failed';
     deleted: boolean;
     /**
-     * A signed URL of a small rendition (fits in 640×640, WebP), for ready images; null otherwise.
+     * A signed URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
     uploaded_at: NullableTimestamp;
@@ -1172,6 +1182,29 @@ export type ImageUrl = {
     fit: 'contain' | 'cover' | 'fill';
     format: 'original' | 'webp' | 'avif' | 'jpeg' | 'png';
     quality: number | null;
+};
+
+export type AssetUsage = {
+    object: 'asset_usage';
+    asset_id: string;
+    /**
+     * Undeleted records that use the asset.
+     */
+    records: number;
+    /**
+     * Of those, the published ones (what sites show).
+     */
+    published: number;
+    /**
+     * The most recently updated records that use the asset.
+     */
+    uses: Array<{
+        record: Record;
+        /**
+         * API keys of the record's fields that use the asset.
+         */
+        fields: Array<string>;
+    }>;
 };
 
 export type DownloadUrl = {
@@ -1321,7 +1354,7 @@ export type RecordId = string;
 export type RevisionNumber = number;
 
 /**
- * Comma-separated relation or asset field API keys whose records or assets to embed under `expanded` (at most 5). Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets (`403` otherwise).
+ * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
  */
 export type Expand = string;
 
@@ -1423,7 +1456,7 @@ export type RecordsListData = {
         };
         sort?: 'created_at' | '-created_at' | 'updated_at' | '-updated_at' | 'published_at' | '-published_at' | 'id' | '-id';
         /**
-         * Comma-separated relation or asset field API keys whose records or assets to embed under `expanded` (at most 5). Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets (`403` otherwise).
+         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
         /**
@@ -1648,7 +1681,7 @@ export type RecordsGetData = {
     };
     query?: {
         /**
-         * Comma-separated relation or asset field API keys whose records or assets to embed under `expanded` (at most 5). Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets (`403` otherwise).
+         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
         /**
@@ -4458,6 +4491,53 @@ export type AssetsDownloadUrlResponses = {
 
 export type AssetsDownloadUrlResponse = AssetsDownloadUrlResponses[keyof AssetsDownloadUrlResponses];
 
+export type AssetsUsageData = {
+    body?: never;
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/v1/assets/{asset_id}/usage';
+};
+
+export type AssetsUsageErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type AssetsUsageError = AssetsUsageErrors[keyof AssetsUsageErrors];
+
+export type AssetsUsageResponses = {
+    /**
+     * Where the asset is used.
+     */
+    200: AssetUsage;
+};
+
+export type AssetsUsageResponse = AssetsUsageResponses[keyof AssetsUsageResponses];
+
 export type AssetsRestoreData = {
     body?: never;
     headers?: {
@@ -4529,6 +4609,77 @@ export type AssetsRestoreResponses = {
 
 export type AssetsRestoreResponse = AssetsRestoreResponses[keyof AssetsRestoreResponses];
 
+export type AssetsPurgeData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (max 500 characters).
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/v1/assets/{asset_id}/purge';
+};
+
+export type AssetsPurgeErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type AssetsPurgeError = AssetsPurgeErrors[keyof AssetsPurgeErrors];
+
+export type AssetsPurgeResponses = {
+    /**
+     * The purged asset, as it was.
+     */
+    200: Asset;
+};
+
+export type AssetsPurgeResponse = AssetsPurgeResponses[keyof AssetsPurgeResponses];
+
 export type CollectionsSearchData = {
     body?: never;
     path: {
@@ -4555,7 +4706,7 @@ export type CollectionsSearchData = {
         };
         sort?: string;
         /**
-         * Comma-separated relation or asset field API keys whose records or assets to embed under `expanded` (at most 5). Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets (`403` otherwise).
+         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };

@@ -13,6 +13,7 @@ export type {
   AssetList,
   AssetUpload,
   AssetUploadCreate,
+  AssetUsage,
   AuditEvent,
   AuditEventList,
   Billing,
