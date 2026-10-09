@@ -194,6 +194,23 @@ export type ProjectList = {
     meta: ListMeta;
 };
 
+/**
+ * A value to equal, or operators with their values (see the `filter` parameter).
+ */
+export type RecordFilterValue = string | {
+    eq?: string;
+    ne?: string;
+    gt?: string;
+    gte?: string;
+    lt?: string;
+    lte?: string;
+    /**
+     * Comma-separated; `\,` is a comma inside a value.
+     */
+    in?: string;
+    exists?: 'true' | 'false';
+};
+
 export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'enum' | 'asset' | 'relation' | 'json';
 
 export type Field = {
@@ -1380,6 +1397,35 @@ export type RevisionNumber = number;
 export type Expand = string;
 
 /**
+ * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
+ * filters combine with AND. Keys are field API keys, `status`,
+ * `deleted` (`true` lists soft-deleted records instead) and, in record
+ * lists and counts, `created_at`, `updated_at` and `published_at`.
+ *
+ * - `eq`, `ne`: equal, not equal. For fields with several values,
+ * "contains" and "does not contain". `ne` matches records with no value.
+ * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
+ * value, and the timestamps.
+ * - `in`: any of up to 100 comma-separated values (`\,` is a comma
+ * inside a value, `\\` a backslash); for fields with several values,
+ * "contains any of".
+ * - `exists`: `true` for records with a value, `false` for those without
+ * (and `published_at`: ever published).
+ *
+ * Values are parsed per field type (`"5"` is not the integer 5), but
+ * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+ * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
+ * given for a date with a time, or a timestamp, covers that day in the
+ * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
+ * its end, `eq` within it. A date with a time matches the same moment
+ * written with any offset.
+ *
+ */
+export type RecordFilter = {
+    [key: string]: RecordFilterValue;
+};
+
+/**
  * `action` matches exactly, or by prefix with a trailing `.*`
  * (`filter[action]=record.*`). `since` is inclusive and `until` exclusive.
  *
@@ -1467,15 +1513,41 @@ export type RecordsListData = {
     };
     query?: {
         /**
-         * Equality filters: `filter[status]=published`, `filter[deleted]=true`,
-         * and `filter[<field api_key>]=value` for scalar field types (for
-         * multiple-value fields: "contains value").
+         * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
+         * filters combine with AND. Keys are field API keys, `status`,
+         * `deleted` (`true` lists soft-deleted records instead) and, in record
+         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         *
+         * - `eq`, `ne`: equal, not equal. For fields with several values,
+         * "contains" and "does not contain". `ne` matches records with no value.
+         * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
+         * value, and the timestamps.
+         * - `in`: any of up to 100 comma-separated values (`\,` is a comma
+         * inside a value, `\\` a backslash); for fields with several values,
+         * "contains any of".
+         * - `exists`: `true` for records with a value, `false` for those without
+         * (and `published_at`: ever published).
+         *
+         * Values are parsed per field type (`"5"` is not the integer 5), but
+         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
+         * given for a date with a time, or a timestamp, covers that day in the
+         * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
+         * its end, `eq` within it. A date with a time matches the same moment
+         * written with any offset.
          *
          */
         filter?: {
-            [key: string]: string;
+            [key: string]: RecordFilterValue;
         };
-        sort?: 'created_at' | '-created_at' | 'updated_at' | '-updated_at' | 'published_at' | '-published_at' | 'id' | '-id';
+        /**
+         * `id`, `created_at`, `updated_at`, `published_at` (unpublished
+         * records first), or the API key of a text, number, boolean, date or
+         * enum field with one value (records without a value last, in both
+         * directions; text by code point). `-` for descending.
+         *
+         */
+        sort?: string;
         /**
          * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
@@ -2575,10 +2647,32 @@ export type RecordsCountData = {
     };
     query?: {
         /**
-         * The list's filters (`filter[status]`, `filter[deleted]`, `filter[<field api_key>]`).
+         * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
+         * filters combine with AND. Keys are field API keys, `status`,
+         * `deleted` (`true` lists soft-deleted records instead) and, in record
+         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         *
+         * - `eq`, `ne`: equal, not equal. For fields with several values,
+         * "contains" and "does not contain". `ne` matches records with no value.
+         * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
+         * value, and the timestamps.
+         * - `in`: any of up to 100 comma-separated values (`\,` is a comma
+         * inside a value, `\\` a backslash); for fields with several values,
+         * "contains any of".
+         * - `exists`: `true` for records with a value, `false` for those without
+         * (and `published_at`: ever published).
+         *
+         * Values are parsed per field type (`"5"` is not the integer 5), but
+         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
+         * given for a date with a time, or a timestamp, covers that day in the
+         * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
+         * its end, `eq` within it. A date with a time matches the same moment
+         * written with any offset.
+         *
          */
         filter?: {
-            [key: string]: string;
+            [key: string]: RecordFilterValue;
         };
     };
     url: '/v1/collections/{collection_id}/records/count';
@@ -4722,8 +4816,33 @@ export type CollectionsSearchData = {
          * The `next_cursor` from the previous page.
          */
         cursor?: string;
+        /**
+         * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
+         * filters combine with AND. Keys are field API keys, `status`,
+         * `deleted` (`true` lists soft-deleted records instead) and, in record
+         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         *
+         * - `eq`, `ne`: equal, not equal. For fields with several values,
+         * "contains" and "does not contain". `ne` matches records with no value.
+         * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
+         * value, and the timestamps.
+         * - `in`: any of up to 100 comma-separated values (`\,` is a comma
+         * inside a value, `\\` a backslash); for fields with several values,
+         * "contains any of".
+         * - `exists`: `true` for records with a value, `false` for those without
+         * (and `published_at`: ever published).
+         *
+         * Values are parsed per field type (`"5"` is not the integer 5), but
+         * not held to the field's limits (`price[lt]=10` works when `max` is 5). Dates
+         * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
+         * given for a date with a time, or a timestamp, covers that day in the
+         * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
+         * its end, `eq` within it. A date with a time matches the same moment
+         * written with any offset.
+         *
+         */
         filter?: {
-            [key: string]: string;
+            [key: string]: RecordFilterValue;
         };
         sort?: string;
         /**
