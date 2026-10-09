@@ -38,6 +38,28 @@ describe("requests", () => {
     expect(params.get("limit")).toBe("50")
   })
 
+  it("sends filter operators, escaping commas in lists", async () => {
+    const { nohead, calls } = mockClient([page([], null)])
+    await nohead.records.list("products", {
+      filter: {
+        status: { ne: "draft" },
+        price: { gte: 10, lt: 50 },
+        category: { in: ["shoes", "hats, caps", "a\\b"] },
+        cover: { exists: true },
+        released: { gte: "today" },
+      },
+      sort: "-price",
+    })
+    const params = calls[0]!.url.searchParams
+    expect(params.get("filter[status][ne]")).toBe("draft")
+    expect(params.get("filter[price][gte]")).toBe("10")
+    expect(params.get("filter[price][lt]")).toBe("50")
+    expect(params.get("filter[category][in]")).toBe("shoes,hats\\, caps,a\\\\b")
+    expect(params.get("filter[cover][exists]")).toBe("true")
+    expect(params.get("filter[released][gte]")).toBe("today")
+    expect(params.get("sort")).toBe("-price")
+  })
+
   it("sends bodies as JSON", async () => {
     const { nohead, calls } = mockClient([json(201, record("rec_1"))])
     await nohead.records.create("posts", { data: { title: "Hi" } })

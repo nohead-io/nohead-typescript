@@ -416,8 +416,9 @@ async function parseBody(response: Response): Promise<unknown> {
 
 /**
  * Query parameters as the API reads them: objects become `key[sub]=…`
- * (`filter[status]=published`), arrays are comma-separated
- * (`expand=author,tags`), dates are ISO 8601.
+ * (`filter[price][lt]=50`), arrays are comma-separated (`expand=author,tags`)
+ * with `\,` for a comma inside a value and `\\` for a backslash, dates are
+ * ISO 8601.
  */
 export function appendQuery(
   params: URLSearchParams,
@@ -428,7 +429,11 @@ export function appendQuery(
   if (value instanceof Date) {
     params.append(key!, value.toISOString())
   } else if (Array.isArray(value)) {
-    if (value.length > 0) params.append(key!, value.map(scalar).join(","))
+    if (value.length > 0)
+      params.append(
+        key!,
+        value.map((item) => scalar(item).replace(/[\\,]/g, "\\$&")).join(",")
+      )
   } else if (typeof value === "object") {
     for (const [name, inner] of Object.entries(value)) {
       appendQuery(params, inner, key ? `${key}[${name}]` : name)

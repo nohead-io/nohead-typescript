@@ -21,13 +21,37 @@ export type RecordDataUpdate<D> = { [K in keyof D]?: D[K] | null }
 export type FilterValue = string | number | boolean | Date
 
 /**
- * Equality filters: `{ status: "published", author: "rec_…" }`. For fields
- * with several values a filter means "contains".
+ * Operators for one key. `ne` matches records without a value; on fields
+ * with several values `eq`, `ne` and `in` mean contains, does not contain and
+ * contains any of. Ranges take numbers and dates (`"today"`, `"now"`, or a
+ * day, which covers that day in the field's time zone).
+ */
+export interface FilterOperators<V = FilterValue> {
+  eq?: V
+  ne?: V
+  gt?: V
+  gte?: V
+  lt?: V
+  lte?: V
+  /** Any of these (up to 100). */
+  in?: V[]
+  /** Has a value (`true`) or has none (`false`). */
+  exists?: boolean
+}
+
+/**
+ * Filters, combined with AND: a value to equal, or operators, e.g.
+ * `{ status: "published", price: { lt: 50 }, category: { in: ["shoes", "bags"] } }`.
+ * Record lists and counts also filter `created_at`, `updated_at` and
+ * `published_at`.
  */
 export interface RecordFilter {
-  status?: "draft" | "published"
+  status?:
+    | "draft"
+    | "published"
+    | Pick<FilterOperators<"draft" | "published">, "eq" | "ne" | "in">
   deleted?: boolean
-  [apiKey: string]: FilterValue | undefined
+  [apiKey: string]: FilterValue | FilterOperators | undefined
 }
 
 export type RecordSort = NonNullable<
@@ -76,7 +100,7 @@ export type RecordBulkParams = G.BulkRecordsRequest
 export type RecordDiffParams = NonNullable<G.RecordsDiffData["query"]>
 
 export interface RecordSearchParams extends ListParams {
-  /** Needs `filterable` fields (status and timestamps always work). */
+  /** Needs `filterable` fields (status always works). */
   filter?: RecordFilter
   /** Needs a `sortable` field, e.g. `-published_at`; relevance otherwise. */
   sort?: string
