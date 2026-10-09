@@ -194,7 +194,7 @@ export type ProjectList = {
     meta: ListMeta;
 };
 
-export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'boolean' | 'datetime' | 'enum' | 'asset' | 'relation' | 'json';
+export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'enum' | 'asset' | 'relation' | 'json';
 
 export type Field = {
     /**
@@ -221,10 +221,20 @@ export type Field = {
     /**
      * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
      * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
-     * written values must have; any file when absent), plus
+     * written values must have; any file when absent), `include_time` and
+     * `time_zone` (date fields, below), plus
      * the options for searches with API keys: `searchable` (the search words match the
      * field; default true for text, long_text, rich_text and enum), `filterable` and
      * `sortable` (default false).
+     *
+     * Date fields hold a calendar date, `YYYY-MM-DD`, with no time and no
+     * time zone: returned exactly as written, so it never shows as the day
+     * before or after. With `include_time: true` they hold a moment: ISO
+     * 8601 with an offset, stored in UTC and returned in UTC, or with the
+     * offset of `time_zone` (an IANA name such as `Europe/Copenhagen`,
+     * daylight saving included) when the field has one. Input may use any
+     * offset. Changing `time_zone` never rewrites values; turning
+     * `include_time` on or off does, through a field migration.
      *
      */
     configuration: {
@@ -446,6 +456,13 @@ export type FieldMigrationRequest = {
      * `clear` removes values that cannot be converted (or backfills them); `fail` refuses the migration.
      */
     on_invalid?: 'fail' | 'clear';
+    /**
+     * When a date field's `include_time` is turned off: the IANA time zone
+     * (e.g. `Europe/Copenhagen`) whose day each moment falls on. Default:
+     * the field's `time_zone`, else UTC. Refused for any other change.
+     *
+     */
+    time_zone?: string;
 };
 
 /**
@@ -507,6 +524,10 @@ export type FieldMigration = {
         value: unknown;
     };
     on_invalid: 'fail' | 'clear';
+    /**
+     * The time zone dates were read in when `include_time` was turned off, if one was given.
+     */
+    time_zone: string | null;
     records: FieldMigrationCounts;
     /**
      * Why the migration failed; null otherwise. A failed migration changed nothing.
