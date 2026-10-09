@@ -263,7 +263,8 @@ export type Field = {
      * Text fields (not long text) can have a `format`: `email`, `url`
      * (an absolute `http` or `https` address) or `slug` (lowercase
      * letters, digits and single hyphens, at most 200 characters; one
-     * value per record, never a list). A value that doesn't match is
+     * value per record, never a list, and always unique: a slug field
+     * has `unique: true`). A value that doesn't match is
      * refused with `invalid_format`. A format sets its own length limits
      * (254 characters for emails, 2,048 for URLs), so `min_length` and
      * `max_length` are for plain text. Text and integer
