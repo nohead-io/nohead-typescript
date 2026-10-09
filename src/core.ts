@@ -429,10 +429,12 @@ export function appendQuery(
   if (value instanceof Date) {
     params.append(key!, value.toISOString())
   } else if (Array.isArray(value)) {
-    if (value.length > 0)
+    // Missing items are left out, as missing values are.
+    const items = value.filter((item) => item !== undefined && item !== null)
+    if (items.length > 0)
       params.append(
         key!,
-        value.map((item) => scalar(item).replace(/[\\,]/g, "\\$&")).join(",")
+        items.map((item) => scalar(item).replace(/[\\,]/g, "\\$&")).join(",")
       )
   } else if (typeof value === "object") {
     for (const [name, inner] of Object.entries(value)) {
