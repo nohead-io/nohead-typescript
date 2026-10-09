@@ -239,7 +239,8 @@ export type Field = {
      * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
      * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
      * written values must have; any file when absent), `include_time` and
-     * `time_zone` (date fields, below), plus
+     * `time_zone` (date fields, below), `format`, `relative`, `unique` and
+     * `source_field` (text fields, below), plus
      * the options for searches with API keys: `searchable` (the search words match the
      * field; default true for text, long_text, rich_text and enum), `filterable` and
      * `sortable` (default false).
@@ -252,6 +253,21 @@ export type Field = {
      * daylight saving included) when the field has one. Input may use any
      * offset. Changing `time_zone` never rewrites values; turning
      * `include_time` on or off does, through a field migration.
+     *
+     * Text fields (not long text) can have a `format`: `email`, `url`
+     * (`http` or `https`; with `relative: true` also paths starting with
+     * `/`) or `slug` (lowercase letters, digits and single hyphens, at
+     * most 200 characters). A value that doesn't match is refused with
+     * `invalid_format`. `source_field` (another text field's ID, with
+     * `slug`) is the field the editor fills the slug from. Text and integer
+     * fields with one value can be `unique`: no two active records of the
+     * collection share a value (emails compare ignoring capitals; records
+     * without a value don't count). A taken value is refused with
+     * `taken` and the `record_id` that has it. Turning `unique` on is
+     * refused with `duplicate_values` while records share a value (and
+     * so is restoring a deleted unique field, `409`). A field migration
+     * can't keep or turn on `unique`: migrate without it, then turn it
+     * on again.
      *
      */
     configuration: {
@@ -1350,6 +1366,10 @@ export type ErrorDetail = {
      * The resource's current revision, for `revision_mismatch` details.
      */
     current_revision?: number;
+    /**
+     * The record that already has the value, for `taken` details.
+     */
+    record_id?: string;
 };
 
 export type Error = {
