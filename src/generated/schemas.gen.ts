@@ -71,6 +71,7 @@ export type {
   RecordCount,
   RecordData,
   RecordDiff,
+  RecordFilterValue,
   RecordList,
   RecordRevision,
   RecordRevisionDetail,
