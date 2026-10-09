@@ -239,6 +239,14 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 
+**Deleting:** `delete` keeps a deleted asset for 30 days, and `restore` brings it back. To remove it for good now, `purge` it after the delete. Records that use it keep an ID that no longer resolves, so check `usage` first:
+
+```ts
+const usage = await nohead.assets.usage(asset.id)
+usage.records // how many records use it, usage.published of them published
+usage.uses // the 10 most recently updated, with the fields that use it
+```
+
 ## Search
 
 ```ts
@@ -323,7 +331,7 @@ response.headers.get("RateLimit-Remaining")
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                            |
 | `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `reorder`, `removeAlias`, `migrate`                                                        |
 | `migrations`                | `list`, `get`, `cancel`                                                                                                                     |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `imageUrl`, `downloadUrl`                                         |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                       |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `rotateSecret`, `test`, `unwrap`                                                               |
 | `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                      |
 | `auditEvents`               | `list`                                                                                                                                      |

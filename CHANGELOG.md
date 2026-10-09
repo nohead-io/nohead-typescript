@@ -5,6 +5,14 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `assets.usage()`: where an asset is used, as counts of the records that use
+  it (and of those, the published ones) and the 10 most recently updated with
+  the fields that use it. Needs the `records:read` scope too.
+- `assets.purge()`: permanently deletes a deleted asset now, instead of 30
+  days after the delete, and frees its storage.
+
 ## 0.2.0
 
 - `onRetry` client option: called before each retry with the attempt, the

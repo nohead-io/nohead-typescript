@@ -5,6 +5,7 @@ import type {
   Asset,
   AssetUpload,
   AssetUploadCreate,
+  AssetUsage,
   DownloadUrl,
   ImageUrl,
 } from "../generated/types.gen.ts"
@@ -137,7 +138,10 @@ export class Assets extends Resource {
     )
   }
 
-  /** Soft-deletes the asset; the file is purged after 30 days. */
+  /**
+   * Soft-deletes the asset; the file is purged after 30 days, or now with
+   * `purge`.
+   */
   delete(asset: string, options?: RequestOptions): APIPromise<Asset> {
     return this.core.request(
       "assets_delete",
@@ -149,6 +153,34 @@ export class Assets extends Resource {
   restore(asset: string, options?: RequestOptions): APIPromise<Asset> {
     return this.core.request(
       "assets_restore",
+      { path: { asset_id: asset } },
+      options
+    )
+  }
+
+  /**
+   * Permanently deletes a deleted asset now, instead of 30 days after the
+   * delete, and frees its storage. It can't be restored, records that use
+   * it keep an ID that no longer resolves, and its image URLs stop working
+   * within a minute or so. Returns the asset as it was. An asset that isn't
+   * deleted is a `ConflictError`: delete it first.
+   */
+  purge(asset: string, options?: RequestOptions): APIPromise<Asset> {
+    return this.core.request(
+      "assets_purge",
+      { path: { asset_id: asset } },
+      options
+    )
+  }
+
+  /**
+   * Where the asset is used: how many undeleted records use it (`records`),
+   * how many of those are published (`published`), and the 10 most recently
+   * updated with the fields that use it (`uses`). Needs `records:read` too.
+   */
+  usage(asset: string, options?: RequestOptions): APIPromise<AssetUsage> {
+    return this.core.request(
+      "assets_usage",
       { path: { asset_id: asset } },
       options
     )
