@@ -125,7 +125,10 @@ describe("the contract", () => {
 
       // The method returns the response its last request got, parsed.
       const last = apiCalls.at(-1)!
-      const reply = exampleReply(routeOf(last.method, last.url.pathname))
+      const reply = exampleReply(
+        routeOf(last.method, last.url.pathname),
+        last.url
+      )
       if (promise instanceof PagePromise) {
         expect(result).toBeInstanceOf(Page)
         const { data, meta } = result as Page<unknown>
@@ -155,7 +158,10 @@ describe("the contract", () => {
   it("has a valid example of every success response", () => {
     for (const route of routes) {
       expect(
-        errors(route.response.pointer, exampleReply(route)),
+        errors(
+          route.response.pointer,
+          exampleReply(route, new URL("https://api.test/"))
+        ),
         route.id
       ).toEqual([])
     }

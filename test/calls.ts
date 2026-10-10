@@ -140,12 +140,16 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
 export function mockReply(call: Call): Response {
   if (call.url.host === "storage.test") return new Response(null)
   const route = routeOf(call.method, call.url.pathname)
-  return json(route.status, exampleReply(route))
+  return json(route.status, exampleReply(route, call.url))
 }
 
-/** The body of `mockReply` for an operation. */
-export function exampleReply(route: Route): unknown {
-  const body = example(route.response.schema)
+/** The body of `mockReply` for a request of an operation. */
+export function exampleReply(route: Route, url: URL): unknown {
+  let schema = route.response.schema
+  if (url.searchParams.get("dry_run") === "true" && schema.oneOf) {
+    schema = schema.oneOf.at(-1) // the preview (records.revisions.revert)
+  }
+  const body = example(schema)
   if (route.id === "assets_upload") {
     const { upload } = body as { upload: { url: string } }
     upload.url = "https://storage.test/u"
