@@ -162,12 +162,18 @@ interface Envelope {
   details?: ErrorDetail[]
 }
 
+// The error envelope's fields that have the right type: a proxy or gateway
+// in front of the API may answer with any JSON.
 function errorEnvelope(body: unknown): Envelope | undefined {
-  if (typeof body !== "object" || body === null || !("error" in body)) {
-    return undefined
+  if (!isObject(body) || !isObject(body.error)) return undefined
+  const { type, message, request_id, details } = body.error
+  return {
+    type: typeof type === "string" ? (type as ErrorType) : undefined,
+    message: typeof message === "string" ? message : undefined,
+    request_id: typeof request_id === "string" ? request_id : undefined,
+    details: Array.isArray(details) ? (details as ErrorDetail[]) : undefined,
   }
-  const error = (body as { error: unknown }).error
-  return typeof error === "object" && error !== null
-    ? (error as Envelope)
-    : undefined
 }
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null

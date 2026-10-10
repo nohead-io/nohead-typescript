@@ -142,7 +142,7 @@ describe("the contract", () => {
     expect(missing, "operations without an SDK method").toEqual([])
     const unsent = Object.fromEntries(
       routes
-        .map(({ id, query }) => [
+        .map(({ id, query }): [string, string[]] => [
           id,
           query
             .map((p) => p.name)

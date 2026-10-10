@@ -39,8 +39,10 @@ for (const call of everyCall) {
     baseUrl: "https://api.test",
     projectId: "prj_sample",
     maxRetries: 0,
+    // Async like fetch: anything that throws rejects the request's promise.
+    // eslint-disable-next-line @typescript-eslint/require-await
     fetch: async (input, init = {}) => {
-      const url = new URL(String(input))
+      const url = new URL(input instanceof Request ? input.url : input)
       const method = init.method ?? "GET"
       const route = routes.find(
         (r) => r.method === method && r.pattern.test(url.pathname)

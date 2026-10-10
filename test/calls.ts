@@ -145,9 +145,10 @@ export function mockReply(call: Call): Response {
 
 /** The body of `mockReply` for a request of an operation. */
 export function exampleReply(route: Route, url: URL): unknown {
-  let schema = route.response.schema
-  if (url.searchParams.get("dry_run") === "true" && schema.oneOf) {
-    schema = schema.oneOf.at(-1) // the preview (records.revisions.revert)
+  let schema: unknown = route.response.schema
+  const variants = (schema as { oneOf?: unknown[] }).oneOf
+  if (url.searchParams.get("dry_run") === "true" && variants) {
+    schema = variants.at(-1) // the preview (records.revisions.revert)
   }
   const body = structuredClone(example(schema)) // examples are the contract's
   if (route.id === "assets_upload") {
