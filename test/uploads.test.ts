@@ -39,12 +39,12 @@ describe("assets.upload", () => {
       "PUT storage.test/uploads/prj_1/ast_1",
       "POST api.test/v1/assets/ast_1/complete",
     ])
-    expect(calls[0]!.body).toEqual({
+    expect(calls[0].body).toEqual({
       filename: "a.png",
       content_type: "image/png",
       byte_size: 3,
     })
-    const put = calls[1]!
+    const put = calls[1]
     expect(new Uint8Array(await (put.body as Blob).arrayBuffer())).toEqual(
       new Uint8Array([1, 2, 3])
     )
@@ -89,7 +89,7 @@ describe("assets.upload", () => {
       json(200, asset("ready")),
     ])
     await nohead.assets.upload(new Uint8Array(10), { filename: "data.bin" })
-    expect(calls[0]!.body).toEqual({
+    expect(calls[0].body).toEqual({
       filename: "data.bin",
       content_type: "application/octet-stream",
       byte_size: 10,

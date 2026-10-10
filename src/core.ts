@@ -325,7 +325,7 @@ export class Core {
   ): Promise<string> {
     let path = template
     for (const [, name] of template.matchAll(/\{(\w+)\}/g)) {
-      let value = values[name!]
+      let value = values[name]
       if (value === undefined && name === "project_id") {
         value = await this.projectId()
       }

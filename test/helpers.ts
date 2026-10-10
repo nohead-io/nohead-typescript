@@ -59,7 +59,7 @@ export function mockClient(
     const raw = init.body
     const call: Call = {
       method: init.method ?? "GET",
-      url: new URL(String(input)),
+      url: new URL(input instanceof Request ? input.url : input),
       headers: new Headers(init.headers),
       body:
         typeof raw === "string"
@@ -70,7 +70,7 @@ export function mockClient(
       signal: init.signal ?? undefined,
     }
     calls.push(call)
-    const reply = replies[Math.min(index++, replies.length - 1)]!
+    const reply = replies[Math.min(index++, replies.length - 1)]
     if (reply instanceof Error) throw reply
     const response = typeof reply === "function" ? await reply(call) : reply
     return response.clone()
@@ -79,7 +79,7 @@ export function mockClient(
     apiKey: "sk_live_test",
     baseUrl: "https://api.test",
     projectId: "prj_1",
-    fetch: fetch as typeof globalThis.fetch,
+    fetch: fetch,
     ...options,
   })
   return { nohead, calls }

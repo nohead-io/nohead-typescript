@@ -50,14 +50,14 @@ describe("configuration", () => {
       headers: { "X-Extra": "yes" },
     })
     await nohead.records.get("rec_1")
-    expect(calls[0]!.headers.get("nohead-client")).toBe(
+    expect(calls[0].headers.get("nohead-client")).toBe(
       `sdk-typescript/${VERSION}`
     )
-    expect(calls[0]!.headers.get("user-agent")).toBe(
+    expect(calls[0].headers.get("user-agent")).toBe(
       `nohead-typescript/${VERSION} node/${process.versions.node}`
     )
-    expect(calls[0]!.headers.get("accept")).toBe("application/json")
-    expect(calls[0]!.headers.get("x-extra")).toBe("yes")
+    expect(calls[0].headers.get("accept")).toBe("application/json")
+    expect(calls[0].headers.get("x-extra")).toBe("yes")
   })
 
   it("keeps VERSION in step with package.json", () => {

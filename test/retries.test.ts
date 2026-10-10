@@ -23,7 +23,10 @@ const now = { "retry-after": "0" }
 // Answers only when the request's signal aborts it, as fetch does.
 const hang = (call: Call) =>
   new Promise<Response>((_, reject) => {
-    call.signal?.addEventListener("abort", () => reject(call.signal!.reason))
+    // fetch rejects with the signal's reason (an AbortError DOMException).
+    call.signal?.addEventListener("abort", () =>
+      reject(call.signal!.reason as Error)
+    )
   })
 
 // The waits between attempts take no time; `settle` runs them.

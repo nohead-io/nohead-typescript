@@ -45,7 +45,7 @@ function parameters(owner: Schema, path: string): Parameter[] {
 function json(path: string | undefined) {
   if (!path) return undefined
   const schema = `${at(path).pointer}/content/application~1json/schema`
-  return { pointer: schema, schema: at(schema).value as Schema }
+  return { pointer: schema, schema: at(schema).value }
 }
 
 export const routes = Object.entries(OPERATIONS).map(

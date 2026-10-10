@@ -9,8 +9,14 @@ interface Operation {
   security?: Record<string, string[]>[]
 }
 
+interface Spec {
+  security: Record<string, string[]>[]
+  paths: Record<string, Record<string, Operation>>
+  components: { schemas: Record<string, unknown> }
+}
+
 const METHODS = ["get", "post", "put", "patch", "delete"] as const
-const spec = JSON.parse(readFileSync("openapi.json", "utf8"))
+const spec = JSON.parse(readFileSync("openapi.json", "utf8")) as Spec
 
 const pascal = (id: string) =>
   id.replace(/(^|_)([a-z])/g, (_, __, letter: string) => letter.toUpperCase())
@@ -22,9 +28,7 @@ const callableWithApiKey = (operation: Operation) => {
 }
 
 const operations: { id: string; method: string; path: string }[] = []
-for (const [path, item] of Object.entries<Record<string, Operation>>(
-  spec.paths
-)) {
+for (const [path, item] of Object.entries(spec.paths)) {
   for (const method of METHODS) {
     const operation = item[method]
     if (operation && callableWithApiKey(operation)) {

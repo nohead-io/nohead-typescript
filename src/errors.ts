@@ -166,8 +166,6 @@ function errorEnvelope(body: unknown): Envelope | undefined {
   if (typeof body !== "object" || body === null || !("error" in body)) {
     return undefined
   }
-  const error = (body as { error: unknown }).error
-  return typeof error === "object" && error !== null
-    ? (error as Envelope)
-    : undefined
+  const error = body.error
+  return typeof error === "object" && error !== null ? error : undefined
 }

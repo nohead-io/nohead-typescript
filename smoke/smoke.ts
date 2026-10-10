@@ -93,7 +93,7 @@ try {
   )
   const next = await page.getNextPage()
   expect(
-    next.data.length === 1 && next.data[0]!.id !== page.data[0]!.id,
+    next.data.length === 1 && next.data[0].id !== page.data[0].id,
     "the cursor returns the next page"
   )
   const titles: string[] = []
