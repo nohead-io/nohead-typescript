@@ -149,7 +149,7 @@ export function exampleReply(route: Route, url: URL): unknown {
   if (url.searchParams.get("dry_run") === "true" && schema.oneOf) {
     schema = schema.oneOf.at(-1) // the preview (records.revisions.revert)
   }
-  const body = example(schema)
+  const body = structuredClone(example(schema)) // examples are the contract's
   if (route.id === "assets_upload") {
     const { upload } = body as { upload: { url: string } }
     upload.url = "https://storage.test/u"
