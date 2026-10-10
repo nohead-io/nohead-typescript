@@ -127,5 +127,6 @@ describe("errors", () => {
     const error = await failure(apiError(418, "teapot_error"))
     expect(error).toBeInstanceOf(APIError)
     expect((error as APIError).constructor).toBe(APIError)
+    expect((error as APIError).type).toBe("teapot_error")
   })
 })

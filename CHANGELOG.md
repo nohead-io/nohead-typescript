@@ -29,6 +29,9 @@ section is its GitHub release's notes.
 - An error reads only the fields of the API's error envelope that have the
   right type, so JSON from a proxy or gateway that merely looks like one no
   longer gives it a non-string `message`, `type` or `requestId`.
+- `APIError.type` is typed as the known error types or any string: the API
+  can add types, and one newer than the SDK is kept as is. Code that checks
+  it exhaustively needs a default branch.
 
 ## 0.2.0
 
