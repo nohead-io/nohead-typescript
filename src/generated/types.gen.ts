@@ -211,7 +211,7 @@ export type RecordFilterValue = string | {
     exists?: 'true' | 'false';
 };
 
-export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'boolean' | 'date' | 'enum' | 'asset' | 'relation' | 'json';
+export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'date' | 'boolean' | 'enum' | 'asset' | 'relation' | 'json';
 
 export type Field = {
     /**
@@ -260,11 +260,11 @@ export type Field = {
      * offset. Changing `time_zone` never rewrites values; turning
      * `include_time` on or off does, through a field migration.
      *
-     * Text fields (not long text) can have a `format`: `email`, `url`
-     * (an absolute `http` or `https` address) or `slug` (lowercase
-     * letters, digits and single hyphens, at most 200 characters; one
-     * value per record, never a list, and always unique: a slug field
-     * has `unique: true`). A value that doesn't match is
+     * Text fields (not long text) can have a `format`: `slug`
+     * (lowercase letters, digits and single hyphens, at most 200
+     * characters; one value per record, never a list, and always
+     * unique: a slug field has `unique: true`), `url` (an absolute
+     * `http` or `https` address) or `email`. A value that doesn't match is
      * refused with `invalid_format`. A format sets its own length limits
      * (254 characters for emails, 2,048 for URLs), so `min_length` and
      * `max_length` are for plain text. Text and integer
