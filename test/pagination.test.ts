@@ -14,10 +14,10 @@ describe("pagination", () => {
     expect(first.data.map((r) => r.id)).toEqual(["rec_1"])
     expect(first.meta).toEqual({ next_cursor: "c2", has_more: true })
     expect(first.hasNextPage()).toBe(true)
-    expect(calls[0].url.searchParams.has("cursor")).toBe(false)
+    expect(calls[0]!.url.searchParams.has("cursor")).toBe(false)
     const second = await first.getNextPage()
-    expect(second.data[0].id).toBe("rec_2")
-    expect(calls[1].url.searchParams.get("cursor")).toBe("c2")
+    expect(second.data[0]!.id).toBe("rec_2")
+    expect(calls[1]!.url.searchParams.get("cursor")).toBe("c2")
     expect(second.hasNextPage()).toBe(false)
     await expect(second.getNextPage()).rejects.toBeInstanceOf(NoheadError)
   })
@@ -34,8 +34,8 @@ describe("pagination", () => {
       ids.push(r.id)
     }
     expect(ids).toEqual(["rec_1", "rec_2", "rec_3"])
-    expect(calls[1].url.searchParams.get("cursor")).toBe("c2")
-    expect(calls[1].url.searchParams.get("filter[status]")).toBe("draft")
+    expect(calls[1]!.url.searchParams.get("cursor")).toBe("c2")
+    expect(calls[1]!.url.searchParams.get("filter[status]")).toBe("draft")
   })
 
   it("stops fetching once it has enough", async () => {
@@ -54,7 +54,7 @@ describe("pagination", () => {
   it("resumes from a cursor", async () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("posts", { cursor: "saved" })
-    expect(calls[0].url.searchParams.get("cursor")).toBe("saved")
+    expect(calls[0]!.url.searchParams.get("cursor")).toBe("saved")
   })
 
   it("keeps search totals", async () => {
@@ -68,8 +68,8 @@ describe("pagination", () => {
       collections: ["posts", "pages"],
     })
     expect(hits.meta.total_estimate).toBe(1)
-    expect(calls[0].url.pathname).toBe("/v1/projects/prj_1/search")
-    expect(calls[0].url.searchParams.get("q")).toBe("hello")
-    expect(calls[0].url.searchParams.get("collections")).toBe("posts,pages")
+    expect(calls[0]!.url.pathname).toBe("/v1/projects/prj_1/search")
+    expect(calls[0]!.url.searchParams.get("q")).toBe("hello")
+    expect(calls[0]!.url.searchParams.get("collections")).toBe("posts,pages")
   })
 })

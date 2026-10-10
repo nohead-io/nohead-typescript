@@ -6,7 +6,9 @@ describe("requests", () => {
   it("encodes path parameters", async () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("my posts/1")
-    expect(calls[0].url.pathname).toBe("/v1/collections/my%20posts%2F1/records")
+    expect(calls[0]!.url.pathname).toBe(
+      "/v1/collections/my%20posts%2F1/records"
+    )
   })
 
   it("serializes filters, sorts and expansions as the API reads them", async () => {
@@ -23,7 +25,7 @@ describe("requests", () => {
       expand: ["author", "tags"],
       limit: 50,
     })
-    const params = calls[0].url.searchParams
+    const params = calls[0]!.url.searchParams
     expect(params.get("filter[status]")).toBe("published")
     expect(params.get("filter[featured]")).toBe("true")
     expect(params.get("filter[views]")).toBe("3")
@@ -48,7 +50,7 @@ describe("requests", () => {
       },
       sort: "-price",
     })
-    const params = calls[0].url.searchParams
+    const params = calls[0]!.url.searchParams
     expect(params.get("filter[status][ne]")).toBe("draft")
     expect(params.get("filter[price][gte]")).toBe("10")
     expect(params.get("filter[price][lt]")).toBe("50")
@@ -67,7 +69,7 @@ describe("requests", () => {
         tag: { in: missing },
       },
     })
-    const params = calls[0].url.searchParams
+    const params = calls[0]!.url.searchParams
     expect(params.get("filter[category][in]")).toBe("shoes")
     expect(params.has("filter[tag][in]")).toBe(false)
   })
@@ -75,9 +77,9 @@ describe("requests", () => {
   it("sends bodies as JSON", async () => {
     const { nohead, calls } = mockClient([json(201, record("rec_1"))])
     await nohead.records.create("posts", { data: { title: "Hi" } })
-    expect(calls[0].method).toBe("POST")
-    expect(calls[0].headers.get("content-type")).toBe("application/json")
-    expect(calls[0].body).toEqual({ data: { title: "Hi" } })
+    expect(calls[0]!.method).toBe("POST")
+    expect(calls[0]!.headers.get("content-type")).toBe("application/json")
+    expect(calls[0]!.body).toEqual({ data: { title: "Hi" } })
   })
 
   it("serializes dates in bodies as ISO 8601", async () => {
@@ -85,13 +87,13 @@ describe("requests", () => {
     await nohead.records.schedule("rec_1", {
       publish_at: new Date("2027-01-01T09:00:00Z"),
     })
-    expect(calls[0].body).toEqual({ publish_at: "2027-01-01T09:00:00.000Z" })
+    expect(calls[0]!.body).toEqual({ publish_at: "2027-01-01T09:00:00.000Z" })
   })
 
   it("clears scheduled times with null", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))])
     await nohead.records.schedule("rec_1", { unpublish_at: null })
-    expect(calls[0].body).toEqual({ unpublish_at: null })
+    expect(calls[0]!.body).toEqual({ unpublish_at: null })
   })
 
   it("gives every write an idempotency key, and none to reads", async () => {
@@ -114,7 +116,7 @@ describe("requests", () => {
       { data: {} },
       { idempotencyKey: "import-42" }
     )
-    expect(calls[0].headers.get("idempotency-key")).toBe("import-42")
+    expect(calls[0]!.headers.get("idempotency-key")).toBe("import-42")
   })
 
   it("sends If-Match from a revision or a record", async () => {
@@ -131,14 +133,14 @@ describe("requests", () => {
   it("sends a change note", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))])
     await nohead.records.delete("rec_1", { changeNote: "Duplicate" })
-    expect(calls[0].headers.get("nohead-change-note")).toBe("Duplicate")
+    expect(calls[0]!.headers.get("nohead-change-note")).toBe("Duplicate")
   })
 
   it("sends dry runs as a query parameter", async () => {
     const { nohead, calls } = mockClient([json(200, {})])
     await nohead.fields.migrate("fld_1", { type: "integer", dry_run: true })
-    expect(calls[0].url.searchParams.get("dry_run")).toBe("true")
-    expect(calls[0].body).toEqual({ type: "integer" })
+    expect(calls[0]!.url.searchParams.get("dry_run")).toBe("true")
+    expect(calls[0]!.body).toEqual({ type: "integer" })
   })
 
   it("sends a diff's revisions as from and to", async () => {
@@ -147,7 +149,7 @@ describe("requests", () => {
     ])
     const diff = await nohead.records.diff("rec_1", { from: 1, to: 2 })
     expect(diff.to).toBe(2)
-    expect(Object.fromEntries(calls[0].url.searchParams)).toEqual({
+    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
       from: "1",
       to: "2",
     })

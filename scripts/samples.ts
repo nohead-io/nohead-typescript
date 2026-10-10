@@ -27,7 +27,7 @@ const ITEMS: Record<string, string> = {
 }
 const itemName = (operation: string) =>
   Object.entries(ITEMS).find(([prefix]) => operation.startsWith(prefix))?.[1] ??
-  operation.split("_")[0].replace(/s$/, "")
+  operation.split("_")[0]!.replace(/s$/, "")
 
 const HEADER = `import { Nohead } from "@nohead/sdk"\n\nconst nohead = new Nohead()\n\n`
 
@@ -39,21 +39,21 @@ for (const call of everyCall) {
     baseUrl: "https://api.test",
     projectId: "prj_sample",
     maxRetries: 0,
-    fetch: (input, init = {}) => {
+    // Async like fetch: anything that throws rejects the request's promise.
+    // eslint-disable-next-line @typescript-eslint/require-await
+    fetch: async (input, init = {}) => {
       const url = new URL(input instanceof Request ? input.url : input)
       const method = init.method ?? "GET"
       const route = routes.find(
         (r) => r.method === method && r.pattern.test(url.pathname)
       )
       if (url.host === "api.test" && route) first ??= route.id
-      return Promise.resolve(
-        mockReply({
-          method,
-          url,
-          headers: new Headers(init.headers),
-          body: undefined,
-        })
-      )
+      return mockReply({
+        method,
+        url,
+        headers: new Headers(init.headers),
+        body: undefined,
+      })
     },
   })
   const result = call(nohead)
