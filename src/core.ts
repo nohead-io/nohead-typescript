@@ -115,10 +115,9 @@ export class Core {
       )
     }
     this.#apiKey = apiKey
-    this.#baseUrl = (
-      options.baseUrl ??
-      (env.NOHEAD_API_URL || DEFAULT_BASE_URL)
-    ).replace(/\/+$/, "")
+    this.#baseUrl = withoutTrailingSlashes(
+      options.baseUrl ?? (env.NOHEAD_API_URL || DEFAULT_BASE_URL)
+    )
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.#headers = options.headers ?? {}
     this.#maxRetries = options.maxRetries ?? 2
@@ -466,6 +465,13 @@ function runtimeVersion(): string | undefined {
   if (g.Deno?.version?.deno) return `deno/${g.Deno.version.deno}`
   if (g.process?.versions?.node) return `node/${g.process.versions.node}`
   return undefined
+}
+
+/** `url` without trailing slashes; a loop, as a regex backtracks on long runs of them. */
+function withoutTrailingSlashes(url: string): string {
+  let end = url.length
+  while (end > 0 && url[end - 1] === "/") end--
+  return url.slice(0, end)
 }
 
 function environment(): Record<string, string | undefined> {

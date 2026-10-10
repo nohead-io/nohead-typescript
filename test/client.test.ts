@@ -24,6 +24,18 @@ describe("configuration", () => {
     )
   })
 
+  it("drops trailing slashes from the base URL", async () => {
+    const fetch = vi.fn(async () => json(200, record("rec_1")))
+    await new Nohead({
+      apiKey: "sk_live_x",
+      baseUrl: "https://api.test///",
+      fetch,
+    }).records.get("rec_1")
+    expect(String((fetch.mock.calls[0] as unknown[])[0])).toBe(
+      "https://api.test/v1/records/rec_1"
+    )
+  })
+
   it("defaults to the production API", async () => {
     vi.stubEnv("NOHEAD_API_URL", "")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
