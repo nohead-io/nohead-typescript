@@ -367,7 +367,7 @@ NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=sk_live_… npm run smoke
   - the types, in `src/generated/types.gen.ts` (hey-api)
   - the operation table, in `src/generated/operations.gen.ts`
 - The methods in `src/resources` are written by hand.
-- `test/contract.test.ts` calls every public method. It fails when an API-key operation in the contract has no method, when a query parameter is never sent (no method takes it, or no call passes it), or when a request doesn't match its operation.
+- `test/contract.test.ts` calls every public method. It fails when an API-key operation in the contract has no method, when a query parameter is never sent (no method takes it, or no call passes it), or when a request doesn't match its operation (method, path, query parameters and JSON body, against their schemas). Each call gets an example of its operation's response, built from the contract's schema, and must return it.
 
 The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. Nohead's own CI runs it on every API contract change.
 

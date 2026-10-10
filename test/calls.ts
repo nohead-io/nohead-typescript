@@ -3,7 +3,8 @@
 // scripts/samples.ts turns each into the API reference's code sample for the
 // operation it calls (samples.json).
 import type { Nohead } from "../src/index.ts"
-import { json, page, record, type Call } from "./helpers.ts"
+import { json, type Call } from "./helpers.ts"
+import { example, routeOf, type Route } from "./spec.ts"
 
 export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
@@ -132,26 +133,26 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.health.check(),
 ]
 
-const upload = {
-  object: "asset_upload",
-  asset: { id: "ast_01J9ZQ3F8X", filename: "hello.txt" },
-  upload: {
-    method: "PUT",
-    url: "https://storage.test/u",
-    headers: {},
-    expires_at: "2026-10-02T13:00:00.000Z",
-  },
-}
-
-const LISTS =
-  /\/(records|collections|fields|assets|webhooks|deliveries|revisions|schema-changes|migrations|audit-events|search)$/
-
-/** A plausible answer to any of the calls above. */
+/**
+ * The reply to any of the calls above: the contract's example of the
+ * operation's success response (spec.ts), with an upload URL on storage.
+ */
 export function mockReply(call: Call): Response {
   if (call.url.host === "storage.test") return new Response(null)
-  if (call.url.pathname.endsWith("/assets/uploads")) return json(201, upload)
-  if (call.method === "GET" && LISTS.test(call.url.pathname)) {
-    return page([record("rec_01J9ZQ3F8X")], null)
+  const route = routeOf(call.method, call.url.pathname)
+  return json(route.status, exampleReply(route, call.url))
+}
+
+/** The body of `mockReply` for a request of an operation. */
+export function exampleReply(route: Route, url: URL): unknown {
+  let schema = route.response.schema
+  if (url.searchParams.get("dry_run") === "true" && schema.oneOf) {
+    schema = schema.oneOf.at(-1) // the preview (records.revisions.revert)
   }
-  return json(200, record("rec_01J9ZQ3F8X"))
+  const body = structuredClone(example(schema)) // examples are the contract's
+  if (route.id === "assets_upload") {
+    const { upload } = body as { upload: { url: string } }
+    upload.url = "https://storage.test/u"
+  }
+  return body
 }

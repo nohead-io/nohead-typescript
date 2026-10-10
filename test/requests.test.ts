@@ -90,6 +90,12 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ publish_at: "2027-01-01T09:00:00.000Z" })
   })
 
+  it("clears scheduled times with null", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    await nohead.records.schedule("rec_1", { unpublish_at: null })
+    expect(calls[0]!.body).toEqual({ unpublish_at: null })
+  })
+
   it("gives every write an idempotency key, and none to reads", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))])
     await nohead.records.publish("rec_1")
@@ -135,5 +141,17 @@ describe("requests", () => {
     await nohead.fields.migrate("fld_1", { type: "integer", dry_run: true })
     expect(calls[0]!.url.searchParams.get("dry_run")).toBe("true")
     expect(calls[0]!.body).toEqual({ type: "integer" })
+  })
+
+  it("sends a diff's revisions as from and to", async () => {
+    const { nohead, calls } = mockClient([
+      json(200, { object: "record_diff", from: 1, to: 2, changes: [] }),
+    ])
+    const diff = await nohead.records.diff("rec_1", { from: 1, to: 2 })
+    expect(diff.to).toBe(2)
+    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
+      from: "1",
+      to: "2",
+    })
   })
 })

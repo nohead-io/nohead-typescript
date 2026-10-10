@@ -1,15 +1,46 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   AbortError,
   ConnectionError,
+  InternalServerError,
   RateLimitError,
   TimeoutError,
   ValidationError,
+  type RetryEvent,
 } from "../src/index.ts"
-import { apiError, json, mockClient, record } from "./helpers.ts"
+import {
+  apiError,
+  json,
+  mockClient,
+  record,
+  settle,
+  type Call,
+} from "./helpers.ts"
 
 const now = { "retry-after": "0" }
+
+// Answers only when the request's signal aborts it, as fetch does.
+const hang = (call: Call) =>
+  new Promise<Response>((_, reject) => {
+    call.signal?.addEventListener("abort", () => reject(call.signal!.reason))
+  })
+
+// The waits between attempts take no time; `settle` runs them.
+beforeEach(() => {
+  vi.useFakeTimers()
+})
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
+
+/** The delays a call waited before each retry. */
+function retryDelays() {
+  const events: RetryEvent[] = []
+  const onRetry = (event: RetryEvent) => events.push(event)
+  return { onRetry, delays: () => events.map((e) => e.delay) }
+}
 
 describe("retries", () => {
   it("retries server errors with the same idempotency key", async () => {
@@ -18,12 +49,40 @@ describe("retries", () => {
       apiError(503, "service_unavailable", {}, now),
       json(201, record("rec_1")),
     ])
-    const created = await nohead.records.create("posts", { data: {} })
+    const created = await settle(nohead.records.create("posts", { data: {} }))
     expect(created.id).toBe("rec_1")
     expect(calls).toHaveLength(3)
     expect(
       new Set(calls.map((c) => c.headers.get("idempotency-key"))).size
     ).toBe(1)
+  })
+
+  it.each([502, 504])("retries %i", async (status) => {
+    const { nohead, calls } = mockClient([
+      apiError(status, "internal_error"),
+      json(200, record("rec_1")),
+    ])
+    await settle(nohead.records.get("rec_1"))
+    expect(calls).toHaveLength(2)
+  })
+
+  it("gives up after the default two retries", async () => {
+    const { nohead, calls } = mockClient([apiError(500, "internal_error")])
+    await expect(settle(nohead.records.get("rec_1"))).rejects.toBeInstanceOf(
+      InternalServerError
+    )
+    expect(calls).toHaveLength(3)
+  })
+
+  it("backs off exponentially with jitter, up to 8 s", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5) // 12.5% off each delay
+    const { onRetry, delays } = retryDelays()
+    const { nohead } = mockClient([apiError(500, "internal_error")], {
+      maxRetries: 6,
+      onRetry,
+    })
+    await settle(nohead.records.get("rec_1")).catch(() => undefined)
+    expect(delays()).toEqual([0.4375, 0.875, 1.75, 3.5, 7, 7])
   })
 
   it("reports each retry to onRetry", async () => {
@@ -36,7 +95,7 @@ describe("retries", () => {
       ],
       { onRetry }
     )
-    await nohead.records.get("rec_1")
+    await settle(nohead.records.get("rec_1"))
     expect(onRetry).toHaveBeenCalledTimes(2)
     const [first, second] = onRetry.mock.calls.map(([event]) => event)
     expect(first).toMatchObject({ attempt: 1, delay: 0, status: 429 })
@@ -48,21 +107,47 @@ describe("retries", () => {
   })
 
   it("waits out a short Retry-After", async () => {
-    vi.useFakeTimers()
-    try {
-      const { nohead, calls } = mockClient([
-        apiError(429, "rate_limited", {}, { "retry-after": "3" }),
+    const { nohead, calls } = mockClient([
+      apiError(429, "rate_limited", {}, { "retry-after": "3" }),
+      json(200, record("rec_1")),
+    ])
+    const got = nohead.records.get("rec_1")
+    await vi.advanceTimersByTimeAsync(2999)
+    expect(calls).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(1)
+    await got
+    expect(calls).toHaveLength(2)
+  })
+
+  it("reads a Retry-After date", async () => {
+    vi.setSystemTime(new Date("2026-10-02T12:00:00Z"))
+    const { onRetry, delays } = retryDelays()
+    const { nohead } = mockClient(
+      [
+        apiError(
+          429,
+          "rate_limited",
+          {},
+          { "retry-after": "Fri, 02 Oct 2026 12:00:05 GMT" }
+        ),
         json(200, record("rec_1")),
-      ])
-      const got = nohead.records.get("rec_1")
-      await vi.advanceTimersByTimeAsync(2999)
-      expect(calls).toHaveLength(1)
-      await vi.advanceTimersByTimeAsync(1)
-      await got
-      expect(calls).toHaveLength(2)
-    } finally {
-      vi.useRealTimers()
-    }
+      ],
+      { onRetry }
+    )
+    await settle(nohead.records.get("rec_1"))
+    expect(delays()).toEqual([5])
+  })
+
+  it("backs off on a 429 without Retry-After", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0)
+    const { onRetry, delays } = retryDelays()
+    const { nohead, calls } = mockClient(
+      [apiError(429, "rate_limited"), json(200, record("rec_1"))],
+      { onRetry }
+    )
+    await settle(nohead.records.get("rec_1"))
+    expect(delays()).toEqual([0.5])
+    expect(calls).toHaveLength(2)
   })
 
   it("gives up at once on a long Retry-After", async () => {
@@ -85,7 +170,7 @@ describe("retries", () => {
       ),
       json(201, record("rec_1")),
     ])
-    await nohead.records.create("posts", { data: {} })
+    await settle(nohead.records.create("posts", { data: {} }))
     expect(calls).toHaveLength(2)
   })
 
@@ -102,7 +187,7 @@ describe("retries", () => {
       new TypeError("fetch failed"),
       json(200, record("rec_1")),
     ])
-    await nohead.records.get("rec_1")
+    await settle(nohead.records.get("rec_1"))
     expect(calls).toHaveLength(2)
   })
 
@@ -116,16 +201,27 @@ describe("retries", () => {
     expect(calls).toHaveLength(1)
   })
 
+  it("takes maxRetries and timeout per call", async () => {
+    const { nohead, calls } = mockClient([hang])
+    await expect(
+      settle(nohead.records.get("rec_1", {}, { maxRetries: 0, timeout: 10 }))
+    ).rejects.toBeInstanceOf(TimeoutError)
+    expect(calls).toHaveLength(1)
+  })
+
   it("times out slow attempts", async () => {
-    const slow = (call: { headers: Headers }) =>
-      new Promise<Response>((_, reject) => {
-        void call
-        setTimeout(() => reject(new DOMException("aborted", "AbortError")), 50)
-      })
-    const { nohead } = mockClient([slow], { maxRetries: 0, timeout: 10 })
-    await expect(nohead.records.get("rec_1")).rejects.toBeInstanceOf(
+    const { nohead } = mockClient([hang], { maxRetries: 0, timeout: 10 })
+    await expect(settle(nohead.records.get("rec_1"))).rejects.toBeInstanceOf(
       TimeoutError
     )
+  })
+
+  it("retries a timeout", async () => {
+    const { nohead, calls } = mockClient([hang, json(200, record("rec_1"))], {
+      timeout: 10,
+    })
+    expect((await settle(nohead.records.get("rec_1"))).id).toBe("rec_1")
+    expect(calls).toHaveLength(2)
   })
 
   it("stops when the caller aborts", async () => {

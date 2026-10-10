@@ -1,3 +1,5 @@
+import { vi } from "vitest"
+
 import { Nohead } from "../src/index.ts"
 import type { ClientOptions } from "../src/index.ts"
 
@@ -6,6 +8,7 @@ export interface Call {
   url: URL
   headers: Headers
   body: unknown
+  signal?: AbortSignal
 }
 
 type Reply = Response | Error | ((call: Call) => Response | Promise<Response>)
@@ -64,6 +67,7 @@ export function mockClient(
           : raw === undefined || raw === null
             ? undefined
             : raw,
+      signal: init.signal ?? undefined,
     }
     calls.push(call)
     const reply = replies[Math.min(index++, replies.length - 1)]!
@@ -79,6 +83,20 @@ export function mockClient(
     ...options,
   })
   return { nohead, calls }
+}
+
+/**
+ * What `promise` settles to, running fake timers (vi.useFakeTimers) until it
+ * does, so the waits between attempts take no time. Real timers, such as
+ * AbortSignal.timeout's, still fire: each run yields to the event loop.
+ */
+export async function settle<T>(promise: PromiseLike<T>): Promise<T> {
+  let done = false
+  const outcome = Promise.allSettled([promise]).finally(() => (done = true))
+  while (!done) await vi.runAllTimersAsync()
+  const [result] = await outcome
+  if (result.status === "rejected") throw result.reason
+  return result.value
 }
 
 export const record = (id: string, data: Record<string, unknown> = {}) => ({
