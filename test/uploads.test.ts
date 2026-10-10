@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { UploadError, ValidationError } from "../src/index.ts"
-import { apiError, json, mockClient } from "./helpers.ts"
+import { apiError, json, mockClient, settle } from "./helpers.ts"
 
 const asset = (status: string) => ({
   id: "ast_1",
@@ -101,6 +101,27 @@ describe("assets.upload", () => {
     await expect(
       nohead.assets.upload(new ReadableStream())
     ).rejects.toBeInstanceOf(UploadError)
+  })
+
+  it("retries the bytes on a server error", async () => {
+    vi.useFakeTimers()
+    try {
+      const { nohead, calls } = mockClient([
+        created,
+        new Response(null, { status: 503 }),
+        new Response(null),
+        json(200, asset("ready")),
+      ])
+      await settle(nohead.assets.upload(new Blob(["x"])))
+      expect(calls.map((c) => `${c.method} ${c.url.host}`)).toEqual([
+        "POST api.test",
+        "PUT storage.test",
+        "PUT storage.test",
+        "POST api.test",
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("throws UploadError when storage refuses the bytes", async () => {
