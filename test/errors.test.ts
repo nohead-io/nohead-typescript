@@ -97,6 +97,32 @@ describe("errors", () => {
     expect(error.requestId).toBe("req_9")
   })
 
+  it("ignores error fields of the wrong type", async () => {
+    // A gateway's JSON that looks like an envelope but is not one.
+    const body = {
+      error: {
+        type: 5,
+        message: { text: "x" },
+        request_id: 7,
+        details: "none",
+      },
+    }
+    const error = (await failure(
+      new Response(JSON.stringify(body), {
+        status: 502,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req_9",
+        },
+      })
+    )) as APIError
+    expect(error).toBeInstanceOf(InternalServerError)
+    expect(error.message).toBe("Request failed with status 502")
+    expect(error.type).toBeUndefined()
+    expect(error.requestId).toBe("req_9")
+    expect(error.details).toEqual([])
+  })
+
   it("keeps unknown error types as APIError", async () => {
     const error = await failure(apiError(418, "teapot_error"))
     expect(error).toBeInstanceOf(APIError)
