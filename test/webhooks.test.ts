@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { unwrapWebhook } from "../src/webhooks.ts"
 import { WebhookVerificationError } from "../src/index.ts"
@@ -20,13 +20,18 @@ const body = JSON.stringify({
   },
 })
 
+// The clock, frozen for each test.
+const now = Date.parse("2026-10-02T12:00:00Z") / 1000
+beforeEach(() => {
+  vi.useFakeTimers({ now: now * 1000, toFake: ["Date"] })
+})
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 function sign(
   payload: string,
-  {
-    timestamp = Math.floor(Date.now() / 1000),
-    id = "msg_1",
-    signingSecret = secret,
-  } = {}
+  { timestamp = now, id = "msg_1", signingSecret = secret } = {}
 ) {
   const key = Buffer.from(signingSecret.slice("whsec_".length), "base64")
   const signature = createHmac("sha256", key)
@@ -40,6 +45,20 @@ function sign(
 }
 
 describe("webhook verification", () => {
+  it("verifies the Standard Webhooks spec's example", async () => {
+    vi.setSystemTime(1614265330 * 1000)
+    const event = await unwrapWebhook(
+      '{"test": 2432232314}',
+      {
+        "webhook-id": "msg_p5jXN8AQM9LWM0D4loKWxJek",
+        "webhook-timestamp": "1614265330",
+        "webhook-signature": "v1,g0hM9SsE+OTPJTGt/tmIKtSyZlE3uFJELVlNIOLJ1OE=",
+      },
+      { secret: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw" }
+    )
+    expect(event).toEqual({ test: 2432232314 })
+  })
+
   it("returns the event of a correctly signed request", async () => {
     const event = await unwrapWebhook(body, new Headers(sign(body)), { secret })
     expect(event.type).toBe("record.published")
@@ -63,19 +82,50 @@ describe("webhook verification", () => {
     expect(event.project_id).toBe("prj_1")
   })
 
+  it("accepts timestamps up to the tolerance off", async () => {
+    for (const timestamp of [now - 300, now + 300]) {
+      const event = await unwrapWebhook(body, sign(body, { timestamp }), {
+        secret,
+      })
+      expect(event.id).toBe("wev_1")
+    }
+    const old = sign(body, { timestamp: now - 600 })
+    await expect(
+      unwrapWebhook(body, old, { secret, tolerance: 600 })
+    ).resolves.toMatchObject({ id: "wev_1" })
+    await expect(
+      unwrapWebhook(body, old, { secret, tolerance: 599 })
+    ).rejects.toBeInstanceOf(WebhookVerificationError)
+  })
+
   it.each([
     ["a changed body", () => [body.replace("Hi", "Bye"), sign(body)] as const],
+    [
+      "a changed webhook-id",
+      () => [body, { ...sign(body), "webhook-id": "msg_2" }] as const,
+    ],
+    [
+      "a signature of another version",
+      () => {
+        const headers = sign(body)
+        headers["webhook-signature"] = headers["webhook-signature"].replace(
+          "v1,",
+          "v2,"
+        )
+        return [body, headers] as const
+      },
+    ],
     [
       "a wrong secret",
       () => [body, sign(body, { signingSecret: otherSecret })] as const,
     ],
     [
       "an old timestamp",
-      () =>
-        [
-          body,
-          sign(body, { timestamp: Math.floor(Date.now() / 1000) - 600 }),
-        ] as const,
+      () => [body, sign(body, { timestamp: now - 301 })] as const,
+    ],
+    [
+      "a future timestamp",
+      () => [body, sign(body, { timestamp: now + 301 })] as const,
     ],
     [
       "a timestamp that isn't a number",

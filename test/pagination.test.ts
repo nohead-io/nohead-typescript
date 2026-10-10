@@ -4,14 +4,22 @@ import { NoheadError, Page } from "../src/index.ts"
 import { json, mockClient, page, record } from "./helpers.ts"
 
 describe("pagination", () => {
-  it("awaits to the first page", async () => {
-    const { nohead, calls } = mockClient([page([record("rec_1")], "c2")])
+  it("awaits to the first page, then pages by hand", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1")], "c2"),
+      page([record("rec_2")], null),
+    ])
     const first = await nohead.records.list("posts", { limit: 1 })
     expect(first).toBeInstanceOf(Page)
     expect(first.data.map((r) => r.id)).toEqual(["rec_1"])
     expect(first.meta).toEqual({ next_cursor: "c2", has_more: true })
     expect(first.hasNextPage()).toBe(true)
     expect(calls[0]!.url.searchParams.has("cursor")).toBe(false)
+    const second = await first.getNextPage()
+    expect(second.data[0]!.id).toBe("rec_2")
+    expect(calls[1]!.url.searchParams.get("cursor")).toBe("c2")
+    expect(second.hasNextPage()).toBe(false)
+    await expect(second.getNextPage()).rejects.toBeInstanceOf(NoheadError)
   })
 
   it("iterates every item across pages, keeping the parameters", async () => {
@@ -41,18 +49,6 @@ describe("pagination", () => {
     }
     expect(ids).toEqual(["rec_1"])
     expect(calls).toHaveLength(1)
-  })
-
-  it("pages by hand", async () => {
-    const { nohead } = mockClient([
-      page([record("rec_1")], "c2"),
-      page([record("rec_2")], null),
-    ])
-    const first = await nohead.records.list("posts")
-    const second = await first.getNextPage()
-    expect(second.data[0]!.id).toBe("rec_2")
-    expect(second.hasNextPage()).toBe(false)
-    await expect(second.getNextPage()).rejects.toBeInstanceOf(NoheadError)
   })
 
   it("resumes from a cursor", async () => {

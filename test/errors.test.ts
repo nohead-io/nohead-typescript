@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest"
 import {
   APIError,
   AuthenticationError,
+  AuthorizationError,
+  ConflictError,
   InternalServerError,
+  InvalidRequestError,
   NotFoundError,
   PlanLimitExceededError,
   PreconditionFailedError,
@@ -27,19 +30,23 @@ async function failure(response: Response) {
 
 describe("errors", () => {
   it.each([
+    [400, "invalid_request", InvalidRequestError],
     [401, "authentication_error", AuthenticationError],
     [402, "plan_limit_exceeded", PlanLimitExceededError],
+    [403, "authorization_error", AuthorizationError],
     [404, "not_found", NotFoundError],
+    [409, "conflict", ConflictError],
     [412, "precondition_failed", PreconditionFailedError],
     [422, "validation_error", ValidationError],
     [429, "rate_limited", RateLimitError],
     [500, "internal_error", InternalServerError],
     [503, "service_unavailable", ServiceUnavailableError],
   ])("maps %i %s to its class", async (status, type, Class) => {
-    const error = await failure(apiError(status, type))
+    const error = await failure(apiError(status, type, {}, { "x-a": "b" }))
     expect(error).toBeInstanceOf(Class)
     expect(error).toBeInstanceOf(APIError)
     expect(error).toMatchObject({ status, type, requestId: "req_1" })
+    expect((error as APIError).headers.get("x-a")).toBe("b")
   })
 
   it("carries details", async () => {
