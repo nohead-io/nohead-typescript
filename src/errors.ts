@@ -10,8 +10,11 @@ export class APIError extends NoheadError {
   override name = "APIError"
   /** The HTTP status. */
   readonly status: number
-  /** The error `type`, e.g. `validation_error`; undefined if the body had none. */
-  readonly type: ErrorType | undefined
+  /**
+   * The error `type`, e.g. `validation_error`; undefined if the body had
+   * none. A type newer than this SDK is kept as its string.
+   */
+  readonly type: ErrorType | (string & {}) | undefined
   /** The request's ID (`req_…`), for support requests and logs. */
   readonly requestId: string | undefined
   /** Field-level details, e.g. `[{ field: "title", code: "required", … }]`. */
@@ -113,19 +116,24 @@ export class WebhookVerificationError extends NoheadError {
   override name = "WebhookVerificationError"
 }
 
-const CLASSES: Partial<Record<ErrorType, typeof APIError>> = {
-  invalid_request: InvalidRequestError,
-  authentication_error: AuthenticationError,
-  plan_limit_exceeded: PlanLimitExceededError,
-  authorization_error: AuthorizationError,
-  not_found: NotFoundError,
-  conflict: ConflictError,
-  precondition_failed: PreconditionFailedError,
-  validation_error: ValidationError,
-  rate_limited: RateLimitError,
-  internal_error: InternalServerError,
-  service_unavailable: ServiceUnavailableError,
-}
+// By error `type`, one class for each the SDK knows. A Map, so a lookup finds
+// only these: a plain object would also find Object.prototype's
+// (`constructor`, `toString`).
+const CLASSES = new Map<string, typeof APIError>(
+  Object.entries({
+    invalid_request: InvalidRequestError,
+    authentication_error: AuthenticationError,
+    plan_limit_exceeded: PlanLimitExceededError,
+    authorization_error: AuthorizationError,
+    not_found: NotFoundError,
+    conflict: ConflictError,
+    precondition_failed: PreconditionFailedError,
+    validation_error: ValidationError,
+    rate_limited: RateLimitError,
+    internal_error: InternalServerError,
+    service_unavailable: ServiceUnavailableError,
+  } satisfies Record<ErrorType, typeof APIError>)
+)
 
 /** The error for a response, by its `type`, or by status when it has none. */
 export function apiError(
@@ -135,7 +143,7 @@ export function apiError(
 ): APIError {
   const type = errorEnvelope(body)?.type
   const Class =
-    (type && CLASSES[type]) ||
+    (type && CLASSES.get(type)) ||
     (status === 503
       ? ServiceUnavailableError
       : status >= 500
@@ -156,7 +164,7 @@ export function retryAfterSeconds(headers: Headers): number | undefined {
 }
 
 interface Envelope {
-  type?: ErrorType
+  type?: string
   message?: string
   request_id?: string
   details?: ErrorDetail[]
@@ -168,10 +176,13 @@ function errorEnvelope(body: unknown): Envelope | undefined {
   if (!isObject(body) || !isObject(body.error)) return undefined
   const { type, message, request_id, details } = body.error
   return {
-    type: typeof type === "string" ? (type as ErrorType) : undefined,
+    type: typeof type === "string" ? type : undefined,
     message: typeof message === "string" ? message : undefined,
     request_id: typeof request_id === "string" ? request_id : undefined,
-    details: Array.isArray(details) ? (details as ErrorDetail[]) : undefined,
+    // Only objects: currentRevision reads each detail's fields.
+    details: Array.isArray(details)
+      ? (details.filter(isObject) as ErrorDetail[])
+      : undefined,
   }
 }
 
