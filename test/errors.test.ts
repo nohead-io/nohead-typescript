@@ -123,6 +123,15 @@ describe("errors", () => {
     expect(error.details).toEqual([])
   })
 
+  it.each(["constructor", "toString", "__proto__"])(
+    "maps a %s type to APIError, not to Object's",
+    async (type) => {
+      const error = await failure(apiError(400, type))
+      expect((error as APIError).constructor).toBe(APIError)
+      expect((error as APIError).type).toBe(type)
+    }
+  )
+
   it("keeps unknown error types as APIError", async () => {
     const error = await failure(apiError(418, "teapot_error"))
     expect(error).toBeInstanceOf(APIError)

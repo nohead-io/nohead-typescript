@@ -32,6 +32,8 @@ section is its GitHub release's notes.
 - `APIError.type` is typed as the known error types or any string: the API
   can add types, and one newer than the SDK is kept as is. Code that checks
   it exhaustively needs a default branch.
+- An error whose type names a built-in property (`constructor`,
+  `toString`) is an `APIError`; it used to throw a value that wasn't one.
 
 ## 0.2.0
 

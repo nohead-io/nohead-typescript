@@ -138,8 +138,9 @@ export function apiError(
 ): APIError {
   const type = errorEnvelope(body)?.type
   const Class =
-    // A type newer than this SDK has no class here.
-    (type && CLASSES[type as ErrorType]) ||
+    // Only the SDK's own classes: a type newer than this SDK has none, and
+    // one like "constructor" must not find Object's.
+    (type && Object.hasOwn(CLASSES, type) && CLASSES[type as ErrorType]) ||
     (status === 503
       ? ServiceUnavailableError
       : status >= 500
