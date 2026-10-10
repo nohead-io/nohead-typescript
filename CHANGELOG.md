@@ -34,6 +34,8 @@ section is its GitHub release's notes.
   it exhaustively needs a default branch.
 - An error whose type names a built-in property (`constructor`,
   `toString`) is an `APIError`; it used to throw a value that wasn't one.
+- An error's `details` keep only entries that are objects, so
+  `currentRevision` no longer throws on a `null` one.
 
 ## 0.2.0
 

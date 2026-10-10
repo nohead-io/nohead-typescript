@@ -123,6 +123,19 @@ describe("errors", () => {
     expect(error.details).toEqual([])
   })
 
+  it("keeps only details that are objects", async () => {
+    const detail = {
+      code: "revision_mismatch",
+      message: "x",
+      current_revision: 7,
+    }
+    const error = (await failure(
+      apiError(412, "precondition_failed", { details: [null, 1, "x", detail] })
+    )) as PreconditionFailedError
+    expect(error.details).toEqual([detail])
+    expect(error.currentRevision).toBe(7)
+  })
+
   it.each(["constructor", "toString", "__proto__"])(
     "maps a %s type to APIError, not to Object's",
     async (type) => {

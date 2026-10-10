@@ -116,19 +116,24 @@ export class WebhookVerificationError extends NoheadError {
   override name = "WebhookVerificationError"
 }
 
-const CLASSES: Partial<Record<ErrorType, typeof APIError>> = {
-  invalid_request: InvalidRequestError,
-  authentication_error: AuthenticationError,
-  plan_limit_exceeded: PlanLimitExceededError,
-  authorization_error: AuthorizationError,
-  not_found: NotFoundError,
-  conflict: ConflictError,
-  precondition_failed: PreconditionFailedError,
-  validation_error: ValidationError,
-  rate_limited: RateLimitError,
-  internal_error: InternalServerError,
-  service_unavailable: ServiceUnavailableError,
-}
+// By error `type`, one class for each the SDK knows. A Map, so a lookup finds
+// only these: a plain object would also find Object.prototype's
+// (`constructor`, `toString`).
+const CLASSES = new Map<string, typeof APIError>(
+  Object.entries({
+    invalid_request: InvalidRequestError,
+    authentication_error: AuthenticationError,
+    plan_limit_exceeded: PlanLimitExceededError,
+    authorization_error: AuthorizationError,
+    not_found: NotFoundError,
+    conflict: ConflictError,
+    precondition_failed: PreconditionFailedError,
+    validation_error: ValidationError,
+    rate_limited: RateLimitError,
+    internal_error: InternalServerError,
+    service_unavailable: ServiceUnavailableError,
+  } satisfies Record<ErrorType, typeof APIError>)
+)
 
 /** The error for a response, by its `type`, or by status when it has none. */
 export function apiError(
@@ -138,9 +143,7 @@ export function apiError(
 ): APIError {
   const type = errorEnvelope(body)?.type
   const Class =
-    // Only the SDK's own classes: a type newer than this SDK has none, and
-    // one like "constructor" must not find Object's.
-    (type && Object.hasOwn(CLASSES, type) && CLASSES[type as ErrorType]) ||
+    (type && CLASSES.get(type)) ||
     (status === 503
       ? ServiceUnavailableError
       : status >= 500
@@ -176,7 +179,10 @@ function errorEnvelope(body: unknown): Envelope | undefined {
     type: typeof type === "string" ? type : undefined,
     message: typeof message === "string" ? message : undefined,
     request_id: typeof request_id === "string" ? request_id : undefined,
-    details: Array.isArray(details) ? (details as ErrorDetail[]) : undefined,
+    // Only objects: currentRevision reads each detail's fields.
+    details: Array.isArray(details)
+      ? (details.filter(isObject) as ErrorDetail[])
+      : undefined,
   }
 }
 
