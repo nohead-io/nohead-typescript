@@ -354,6 +354,7 @@ The SDK covers every operation an API key can call. Organizations, projects, mem
 
 ```bash
 npm install          # also builds dist/
+lefthook install     # a pre-commit secret scan (brew install lefthook gitleaks)
 npm test             # unit and contract tests
 npm run lint && npm run typecheck && npm run format:check
 npm run generate     # after updating openapi.json
