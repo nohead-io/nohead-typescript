@@ -130,10 +130,17 @@ describe("requests", () => {
     expect(calls.map((c) => c.headers.get("if-match"))).toEqual(['"3"', '"4"'])
   })
 
-  it("sends a change note", async () => {
-    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+  it("sends a change note in any language, percent-encoded", async () => {
+    const { nohead, calls } = mockClient([
+      json(200, record("rec_1")),
+      json(200, record("rec_1")),
+    ])
     await nohead.records.delete("rec_1", { changeNote: "Duplicate" })
+    await nohead.records.delete("rec_1", { changeNote: "Rettet på forsiden ✓" })
     expect(calls[0]!.headers.get("nohead-change-note")).toBe("Duplicate")
+    expect(calls[1]!.headers.get("nohead-change-note")).toBe(
+      "Rettet%20p%C3%A5%20forsiden%20%E2%9C%93"
+    )
   })
 
   it("sends dry runs as a query parameter", async () => {

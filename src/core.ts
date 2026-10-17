@@ -232,7 +232,10 @@ export class Core {
           : options.ifMatch
       headers["If-Match"] = `"${revision}"`
     }
-    if (options.changeNote) headers["Nohead-Change-Note"] = options.changeNote
+    // Percent-encoded UTF-8: header values are bytes, and fetch refuses
+    // anything past Latin-1 (the API decodes it).
+    if (options.changeNote)
+      headers["Nohead-Change-Note"] = encodeURIComponent(options.changeNote)
     Object.assign(headers, options.headers)
 
     const init: RequestInit = {
