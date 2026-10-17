@@ -52,7 +52,7 @@ export type RecordEvent<D = RecordData> = EventBase<
     draft_id?: string
   }
 >
-/** A change to a draft: the draft as it is now, `null` once merged or discarded. */
+/** A change to a draft. */
 export type DraftEvent = EventBase<
   | "draft.created"
   | "draft.updated"
@@ -60,7 +60,13 @@ export type DraftEvent = EventBase<
   | "draft.scheduled"
   | "draft.unscheduled"
   | "draft.schedule_failed",
-  { draft: Draft | null; record_id: string }
+  {
+    /** As it is now; `null` once merged or discarded, and while its record is deleted. */
+    draft: Draft | null
+    /** The draft's ID, also once it is gone. */
+    draft_id: string
+    record_id: string
+  }
 >
 /** An asset as it is now; only its ID once it is purged. */
 export type AssetEvent = EventBase<

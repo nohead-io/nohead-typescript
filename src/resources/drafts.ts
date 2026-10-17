@@ -35,13 +35,16 @@ export class Drafts extends Resource {
 
   /**
    * A collection's drafts, most recently changed first. `record_id` narrows
-   * them to one record, or to several (up to 100).
+   * them to one record, or to several (1 to 100; an empty list is a
+   * `TypeError`, since it would match no record).
    */
   list(
     collection: string,
     { record_id, ...params }: DraftListParams = {},
     options?: RequestOptions
   ): PagePromise<Draft> {
+    if (Array.isArray(record_id) && record_id.length === 0)
+      throw new TypeError("record_id needs at least one record ID")
     const filter =
       record_id === undefined
         ? undefined

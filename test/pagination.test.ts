@@ -46,6 +46,9 @@ describe("pagination", () => {
     expect(calls[1]!.url.searchParams.get("filter[record_id][in]")).toBe(
       "rec_1,rec_2"
     )
+    expect(() => nohead.drafts.list("posts", { record_id: [] })).toThrow(
+      TypeError
+    )
   })
 
   it("stops fetching once it has enough", async () => {
