@@ -67,11 +67,12 @@ export type SchemaEvent = EventBase<
   | "field.restored"
   | "field.migrated",
   {
+    /** Only `id` once the schema change is gone (the collection was purged). */
     collection: {
       id: string
-      slug: string
-      name: string
-      schema_version: number
+      slug: string | null
+      name: string | null
+      schema_version: number | null
       deleted_at: string | null
     }
     schema_change: {
