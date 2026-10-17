@@ -659,11 +659,18 @@ export type RecordPublication = {
 
 export type ScheduledChange = {
     object: 'scheduled_change';
-    action: 'publish' | 'unpublish';
+    /**
+     * `publish` and `unpublish` are the record's schedule; `merge` is a draft's.
+     */
+    action: 'publish' | 'unpublish' | 'merge';
     at: Timestamp;
     record_id: string;
     /**
-     * Why the record's last scheduled change could not be made, as in its schedule.
+     * The draft that merges, for `merge`.
+     */
+    draft_id: string | null;
+    /**
+     * Why the last scheduled change could not be made, as in the record's (or the draft's) schedule.
      */
     last_error: string | null;
 };
@@ -677,6 +684,94 @@ export type ScheduledChangeList = {
  * The client a change came through; `scheduler` for scheduled changes.
  */
 export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
+
+/**
+ * Changes to a record's content that wait until they are merged into
+ * it, now or at `schedule.merge_at`. Content only: whether the record
+ * is live is its publication and schedule.
+ *
+ */
+export type Draft = {
+    id: string;
+    object: 'draft';
+    record_id: string;
+    collection_id: string;
+    /**
+     * The collection slug.
+     */
+    collection: string;
+    /**
+     * The record's revision when the draft started. Fields the record
+     * changed since keep their values at the merge, unless the draft
+     * changes them too; compare with `GET /v1/records/{id}/diff?from=<base_revision>`.
+     *
+     */
+    base_revision: number;
+    /**
+     * The draft's own revision, 1 when started and one more per change; also returned as the ETag.
+     */
+    revision: number;
+    /**
+     * The record's values as they read after the merge.
+     */
+    data: RecordData;
+    /**
+     * API keys of the fields the draft changes.
+     */
+    changed_fields: Array<string>;
+    schedule: DraftSchedule;
+    created_by: Actor;
+    /**
+     * Everyone who changed it since, in order.
+     */
+    edited_by: Array<Actor>;
+    /**
+     * Only with `expand`, as on a record, for the values after the merge.
+     */
+    expanded?: {
+        [key: string]: Record | Asset | null | Array<Record | Asset>;
+    };
+    created_at: Timestamp;
+    updated_at: Timestamp;
+};
+
+/**
+ * When the draft merges on its own (within a minute of the time), set
+ * with `PUT /v1/drafts/{draft_id}/schedule`. `last_error` explains the
+ * last scheduled merge that could not be made, until a new one is set.
+ *
+ */
+export type DraftSchedule = {
+    merge_at: NullableTimestamp;
+    last_error: string | null;
+};
+
+export type DraftScheduleUpdate = {
+    merge_at: Timestamp;
+};
+
+export type DraftCreate = {
+    data?: RecordData;
+    /**
+     * Start from this revision's values instead of the record's current ones.
+     */
+    from_revision?: number;
+};
+
+export type DraftList = {
+    data: Array<Draft>;
+    meta: ListMeta;
+};
+
+/**
+ * The draft a `merge` revision merged, which is gone since.
+ */
+export type MergedDraft = {
+    id: string;
+    created_at: Timestamp;
+    created_by: Actor;
+    edited_by: Array<Actor>;
+};
 
 /**
  * Field values keyed by field `api_key`. A rich text value is a
@@ -772,7 +867,7 @@ export type RecordRevisionProperties = {
     object: 'record_revision';
     record_id: string;
     revision: number;
-    operation: 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'import';
+    operation: 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'import' | 'merge';
     actor: Actor;
     via: Via;
     note: string | null;
@@ -788,6 +883,10 @@ export type RecordRevisionProperties = {
      *
      */
     redacted_fields: Array<string>;
+    /**
+     * For a `merge`, the draft it merged, with who started and edited it; null otherwise.
+     */
+    draft: MergedDraft | null;
     created_at: Timestamp;
 };
 
@@ -911,12 +1010,12 @@ export type SearchIndex = {
 /**
  * An event webhooks can subscribe to: the same names as the activity
  * log's actions. A subscription can also be every type of a resource
- * (`record.*`, `collection.*`, `field.*`, `asset.*`) or `*` for all.
+ * (`record.*`, `draft.*`, `collection.*`, `field.*`, `asset.*`) or `*` for all.
  *
  */
-export type WebhookEventType = 'record.created' | 'record.imported' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
+export type WebhookEventType = 'record.created' | 'record.imported' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'draft.created' | 'draft.updated' | 'draft.discarded' | 'draft.scheduled' | 'draft.unscheduled' | 'draft.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
 
-export type WebhookSubscription = WebhookEventType | 'record.*' | 'collection.*' | 'field.*' | 'asset.*' | '*';
+export type WebhookSubscription = WebhookEventType | 'record.*' | 'draft.*' | 'collection.*' | 'field.*' | 'asset.*' | '*';
 
 export type Webhook = WebhookProperties;
 
@@ -1309,7 +1408,9 @@ export type WebhookEventPayload = {
     /**
      * `record.*`: `record` (as the change's revision left it, or as it is
      * now for events without a revision such as `record.scheduled`; null
-     * once it is purged), `revision` and `revision_id`. `asset.*`:
+     * once it is purged), `revision` and `revision_id`; a merged draft's
+     * `record.updated` adds its `draft_id`. `draft.*`: `draft` (as it is
+     * now; null once merged or discarded), `draft_id` and `record_id`. `asset.*`:
      * `asset` (as it is now). `collection.*` and `field.*`: `collection`
      * and `schema_change`, except `field.alias_removed`: `field`.
      * `webhook.test`: `webhook`.
@@ -1518,6 +1619,10 @@ export type ErrorDetail = {
      * The record that already has the value, for `taken` details.
      */
     record_id?: string;
+    /**
+     * The record's draft, for `draft_exists` and `draft_pending` details.
+     */
+    draft_id?: string;
 };
 
 export type Error = {
@@ -1555,6 +1660,8 @@ export type WebhookId = string;
 export type DeliveryId = string;
 
 export type RecordId = string;
+
+export type DraftId = string;
 
 /**
  * Per-record revision number.
@@ -1664,7 +1771,7 @@ export type AssetFilter = {
 };
 
 /**
- * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+ * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
  */
 export type IfMatch = string;
 
@@ -1888,7 +1995,7 @@ export type RecordsDeleteData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -2021,7 +2128,7 @@ export type RecordsUpdateData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -2106,7 +2213,7 @@ export type RecordsUnpublishData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -2234,7 +2341,7 @@ export type RecordsPublishData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -2500,7 +2607,7 @@ export type RecordsRestoreData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -2706,7 +2813,7 @@ export type RecordRevisionsRevertData = {
          */
         'Idempotency-Key'?: string;
         /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
          */
         'If-Match'?: string;
         /**
@@ -3143,6 +3250,634 @@ export type ScheduledChangesListResponses = {
 };
 
 export type ScheduledChangesListResponse = ScheduledChangesListResponses[keyof ScheduledChangesListResponses];
+
+export type RecordDraftsListData = {
+    body?: never;
+    path: {
+        record_id: string;
+    };
+    query?: {
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+    };
+    url: '/v1/records/{record_id}/drafts';
+};
+
+export type RecordDraftsListErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordDraftsListError = RecordDraftsListErrors[keyof RecordDraftsListErrors];
+
+export type RecordDraftsListResponses = {
+    /**
+     * A page of drafts.
+     */
+    200: DraftList;
+};
+
+export type RecordDraftsListResponse = RecordDraftsListResponses[keyof RecordDraftsListResponses];
+
+export type DraftsCreateData = {
+    body: DraftCreate;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/drafts';
+};
+
+export type DraftsCreateErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsCreateError = DraftsCreateErrors[keyof DraftsCreateErrors];
+
+export type DraftsCreateResponses = {
+    /**
+     * The started draft.
+     */
+    201: Draft;
+};
+
+export type DraftsCreateResponse = DraftsCreateResponses[keyof DraftsCreateResponses];
+
+export type DraftsListData = {
+    body?: never;
+    path: {
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
+    };
+    query?: {
+        filter?: {
+            record_id?: string | {
+                /**
+                 * Up to 100 comma-separated record IDs.
+                 */
+                in: string;
+            };
+        };
+        sort?: 'updated_at' | '-updated_at';
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+    };
+    url: '/v1/collections/{collection_id}/drafts';
+};
+
+export type DraftsListErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsListError = DraftsListErrors[keyof DraftsListErrors];
+
+export type DraftsListResponses = {
+    /**
+     * A page of drafts.
+     */
+    200: DraftList;
+};
+
+export type DraftsListResponse = DraftsListResponses[keyof DraftsListResponses];
+
+export type DraftsDiscardData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/v1/drafts/{draft_id}';
+};
+
+export type DraftsDiscardErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsDiscardError = DraftsDiscardErrors[keyof DraftsDiscardErrors];
+
+export type DraftsDiscardResponses = {
+    /**
+     * The draft.
+     */
+    200: Draft;
+};
+
+export type DraftsDiscardResponse = DraftsDiscardResponses[keyof DraftsDiscardResponses];
+
+export type DraftsGetData = {
+    body?: never;
+    path: {
+        draft_id: string;
+    };
+    query?: {
+        /**
+         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         */
+        expand?: string;
+    };
+    url: '/v1/drafts/{draft_id}';
+};
+
+export type DraftsGetErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsGetError = DraftsGetErrors[keyof DraftsGetErrors];
+
+export type DraftsGetResponses = {
+    /**
+     * The draft.
+     */
+    200: Draft;
+};
+
+export type DraftsGetResponse = DraftsGetResponses[keyof DraftsGetResponses];
+
+export type DraftsUpdateData = {
+    body: RecordWrite;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/v1/drafts/{draft_id}';
+};
+
+export type DraftsUpdateErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsUpdateError = DraftsUpdateErrors[keyof DraftsUpdateErrors];
+
+export type DraftsUpdateResponses = {
+    /**
+     * The draft.
+     */
+    200: Draft;
+};
+
+export type DraftsUpdateResponse = DraftsUpdateResponses[keyof DraftsUpdateResponses];
+
+export type DraftsMergeData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (max 500 characters).
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/v1/drafts/{draft_id}/merge';
+};
+
+export type DraftsMergeErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsMergeError = DraftsMergeErrors[keyof DraftsMergeErrors];
+
+export type DraftsMergeResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
+};
+
+export type DraftsMergeResponse = DraftsMergeResponses[keyof DraftsMergeResponses];
+
+export type DraftsUnscheduleData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/v1/drafts/{draft_id}/schedule';
+};
+
+export type DraftsUnscheduleErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsUnscheduleError = DraftsUnscheduleErrors[keyof DraftsUnscheduleErrors];
+
+export type DraftsUnscheduleResponses = {
+    /**
+     * The draft.
+     */
+    200: Draft;
+};
+
+export type DraftsUnscheduleResponse = DraftsUnscheduleResponses[keyof DraftsUnscheduleResponses];
+
+export type DraftsScheduleData = {
+    body: DraftScheduleUpdate;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        draft_id: string;
+    };
+    query?: never;
+    url: '/v1/drafts/{draft_id}/schedule';
+};
+
+export type DraftsScheduleErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type DraftsScheduleError = DraftsScheduleErrors[keyof DraftsScheduleErrors];
+
+export type DraftsScheduleResponses = {
+    /**
+     * The draft.
+     */
+    200: Draft;
+};
+
+export type DraftsScheduleResponse = DraftsScheduleResponses[keyof DraftsScheduleResponses];
 
 export type CollectionsListData = {
     body?: never;

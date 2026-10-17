@@ -2,6 +2,7 @@ import type { PagePromise } from "./api-promise.ts"
 import { Core, type ClientOptions, type RequestOptions } from "./core.ts"
 import type * as G from "./generated/types.gen.ts"
 import { Assets } from "./resources/assets.ts"
+import { Drafts } from "./resources/drafts.ts"
 import { AuditEvents, FeatureFlags, Health, Me } from "./resources/other.ts"
 import { Records } from "./resources/records.ts"
 import { Collections, Fields, Migrations } from "./resources/schema.ts"
@@ -23,6 +24,7 @@ import type {
  */
 export class Nohead {
   readonly records: Records
+  readonly drafts: Drafts
   readonly collections: Collections
   readonly fields: Fields
   readonly migrations: Migrations
@@ -38,6 +40,7 @@ export class Nohead {
     const core = new Core(options)
     this.#core = core
     this.records = new Records(core)
+    this.drafts = new Drafts(core)
     this.collections = new Collections(core)
     this.fields = new Fields(core)
     this.migrations = new Migrations(core)

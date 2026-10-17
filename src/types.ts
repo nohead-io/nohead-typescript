@@ -83,6 +83,27 @@ export interface RecordUpdateParams<D = G.RecordData> {
   data: RecordDataUpdate<D>
 }
 
+/** `data` over the record's values, or with `from_revision`, an earlier revision's. */
+export interface DraftCreateParams<D = G.RecordData> {
+  data?: RecordDataUpdate<D>
+  from_revision?: number
+}
+
+export interface DraftUpdateParams<D = G.RecordData> {
+  data: RecordDataUpdate<D>
+}
+
+export interface DraftGetParams {
+  /** Relation or asset fields to embed under `expanded` (at most 5). */
+  expand?: string[]
+}
+
+export interface DraftListParams extends ListParams {
+  /** One record's draft, or several records' (up to 100). */
+  record_id?: string | string[]
+  sort?: "updated_at" | "-updated_at"
+}
+
 export interface RecordCountParams {
   filter?: RecordFilter
 }

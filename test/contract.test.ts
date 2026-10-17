@@ -69,6 +69,13 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.migrations.list("posts", page),
   (nohead) => nohead.assets.list({ content_type: ["image/*"], ...page }),
   (nohead) => nohead.records.scheduledChanges("posts", page),
+  (nohead) => nohead.records.drafts("rec_01J9ZQ3F8X", page),
+  (nohead) =>
+    nohead.drafts.list("posts", {
+      record_id: "rec_01J9ZQ3F8X",
+      sort: "updated_at",
+      ...page,
+    }),
   (nohead) => nohead.webhooks.secrets.list("wh_01J9ZQ3F8X", page),
   (nohead) =>
     nohead.assets.imageUrl("ast_01J9ZQ3F8X", {

@@ -36,6 +36,7 @@ export type * from "./types.ts"
 export {
   unwrapWebhook,
   type AssetEvent,
+  type DraftEvent,
   type RecordEvent,
   type SchemaEvent,
   type FieldAliasRemovedEvent,

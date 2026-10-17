@@ -120,6 +120,19 @@ try {
     publication.revision === published.revision,
     "the publication says which revision is live"
   )
+  const draft = await nohead.drafts.create(first.id, {
+    data: { title: "Uno, revised" },
+  })
+  expect(
+    (await nohead.records.get<Post>(first.id)).data.title === "Uno",
+    "a draft leaves the live record as it is"
+  )
+  const merged = await nohead.drafts.merge<Post>(draft.id, { ifMatch: draft })
+  expect(
+    merged.data.title === "Uno, revised" &&
+      merged.published_at === published.published_at,
+    "merging a draft changes the content, not the publication"
+  )
   const unpublished = await nohead.records.unpublish<Post>(first.id)
   expect(unpublished.published_at === null, "unpublish takes it back")
 
