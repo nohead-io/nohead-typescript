@@ -8,7 +8,7 @@ import { Nohead } from "@nohead/sdk"
 const nohead = new Nohead() // reads NOHEAD_API_KEY
 
 for await (const post of nohead.records.list("posts", {
-  filter: { status: "published" },
+  filter: { published_at: { exists: true } },
 })) {
   console.log(post.data.title)
 }
@@ -67,12 +67,13 @@ API keys belong to a project, so methods like `collections.list()` need no proje
 ## Records
 
 ```ts
-const draft = await nohead.records.create("posts", {
+const created = await nohead.records.create("posts", {
   data: { title: "Hello", author: "rec_01J9…" },
 })
-const post = await nohead.records.get(draft.id, { expand: ["author"] })
+const post = await nohead.records.get(created.id, { expand: ["author"] })
 await nohead.records.update(post.id, { data: { title: "Hello again" } })
 await nohead.records.publish(post.id)
+await nohead.records.publication(post.id) // since when, by whom, which revision
 await nohead.records.schedule(post.id, { unpublish_at: new Date("2027-01-01") })
 await nohead.records.delete(post.id) // soft delete; records.restore() undoes it
 ```
@@ -117,7 +118,11 @@ Filters take a value to equal, or operators: `eq`, `ne`, `gt`, `gte`, `lt`, `lte
 
 ```ts
 nohead.records.list("posts", {
-  filter: { status: "published", featured: true, author: "rec_01J9…" },
+  filter: {
+    published_at: { exists: true },
+    featured: true,
+    author: "rec_01J9…",
+  },
   sort: "-published_at",
   expand: ["author", "tags"],
 })
@@ -248,7 +253,7 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 
-**Deleting:** `delete` keeps a deleted asset for 30 days, and `restore` brings it back. To remove it for good now, `purge` it after the delete. Records that use it keep an ID that no longer resolves, so check `usage` first:
+**Deleting:** `delete` keeps a deleted asset until its `purge_after` (30 days), and `restore` brings it back. To remove it for good now, `purge` it after the delete. Records that use it keep an ID that no longer resolves, so check `usage` first:
 
 ```ts
 const usage = await nohead.assets.usage(asset.id)
@@ -315,7 +320,7 @@ export async function POST(request: Request) {
 }
 ```
 
-`unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. Pass the raw body: parsing and re-serializing JSON changes the bytes.
+Event types are the activity log's actions (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
 
 A receiver that never calls the API can use `unwrapWebhook` from `@nohead/sdk/webhooks` without a client. Events can arrive more than once, so deduplicate by the `webhook-id` header.
 
@@ -330,23 +335,24 @@ response.headers.get("RateLimit-Remaining")
 
 ## Reference
 
-| Resource                    | Methods                                                                                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `records`                   | `list`, `get`, `create`, `update`, `delete`, `restore`, `publish`, `unpublish`, `schedule`, `unschedule`, `count`, `bulk`, `diff`, `search` |
-| `records.revisions`         | `list`, `get`, `revert`                                                                                                                     |
-| `search`                    | across the project                                                                                                                          |
-| `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                            |
-| `collections.schemaChanges` | `list`, `get`                                                                                                                               |
-| `collections.searchIndex`   | `get`, `rebuild`                                                                                                                            |
-| `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `reorder`, `removeAlias`, `migrate`                                                        |
-| `migrations`                | `list`, `get`, `cancel`                                                                                                                     |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                       |
-| `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `rotateSecret`, `test`, `unwrap`                                                               |
-| `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                      |
-| `auditEvents`               | `list`                                                                                                                                      |
-| `featureFlags`              | `list`                                                                                                                                      |
-| `me`                        | `get`                                                                                                                                       |
-| `health`                    | `check`                                                                                                                                     |
+| Resource                    | Methods                                                                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `records`                   | `list`, `get`, `create`, `update`, `delete`, `restore`, `publish`, `unpublish`, `publication`, `getSchedule`, `schedule`, `unschedule`, `scheduledChanges`, `count`, `bulk`, `diff`, `search` |
+| `records.revisions`         | `list`, `get`, `revert`                                                                                                                                                                       |
+| `search`                    | across the project                                                                                                                                                                            |
+| `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                              |
+| `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                 |
+| `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                              |
+| `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                 |
+| `migrations`                | `list`, `get`, `cancel`                                                                                                                                                                       |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                         |
+| `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                      |
+| `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                              |
+| `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                        |
+| `auditEvents`               | `list`                                                                                                                                                                                        |
+| `featureFlags`              | `list`                                                                                                                                                                                        |
+| `me`                        | `get`                                                                                                                                                                                         |
+| `health`                    | `check`                                                                                                                                                                                       |
 
 The SDK covers every operation an API key can call. Organizations, projects, members and API keys are managed in the web app. The full API is documented at [docs.nohead.io](https://docs.nohead.io).
 

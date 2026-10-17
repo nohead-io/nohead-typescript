@@ -10,8 +10,7 @@ const asset = (status: string) => ({
   status,
 })
 const created = json(201, {
-  object: "asset_upload",
-  asset: asset("pending"),
+  ...asset("pending"),
   upload: {
     method: "PUT",
     url: "https://storage.test/uploads/prj_1/ast_1?signature=x",
@@ -35,9 +34,9 @@ describe("assets.upload", () => {
     expect(
       calls.map((c) => `${c.method} ${c.url.host}${c.url.pathname}`)
     ).toEqual([
-      "POST api.test/v1/projects/prj_1/assets/uploads",
+      "POST api.test/v1/projects/prj_1/assets",
       "PUT storage.test/uploads/prj_1/ast_1",
-      "POST api.test/v1/assets/ast_1/complete",
+      "POST api.test/v1/assets/ast_1/completion",
     ])
     expect(calls[0]!.body).toEqual({
       filename: "a.png",
@@ -61,10 +60,10 @@ describe("assets.upload", () => {
     ])
     await nohead.assets.upload(new Blob(["x"]), {}, { idempotencyKey: "k1" })
     expect(calls.map((c) => `${c.method} ${c.url.pathname}`)).toEqual([
-      "POST /v1/projects/prj_1/assets/uploads",
+      "POST /v1/projects/prj_1/assets",
       "GET /v1/assets/ast_1",
       "PUT /uploads/prj_1/ast_1",
-      "POST /v1/assets/ast_1/complete",
+      "POST /v1/assets/ast_1/completion",
     ])
     const keys = calls.map((c) => c.headers.get("idempotency-key"))
     expect(keys[0]).toBe("k1")

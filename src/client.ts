@@ -58,9 +58,19 @@ export class Nohead {
     params: ProjectSearchParams = {},
     options?: RequestOptions
   ): PagePromise<NoheadRecord<D>, SearchMeta> {
+    const { collections, filter, ...rest } = params
     return this.#core.paginate(
       "projects_search",
-      { query: { q: query, ...params } },
+      {
+        query: {
+          q: query,
+          ...rest,
+          filter: {
+            ...filter,
+            ...(collections ? { collection: { in: collections } } : {}),
+          },
+        },
+      },
       options
     )
   }

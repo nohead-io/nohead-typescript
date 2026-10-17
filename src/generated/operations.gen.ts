@@ -2,7 +2,7 @@
 import type * as T from "./types.gen.ts"
 
 export const OPERATIONS = {
-  assets_complete: { method: "POST", path: "/v1/assets/{asset_id}/complete" },
+  assets_complete: { method: "POST", path: "/v1/assets/{asset_id}/completion" },
   assets_delete: { method: "DELETE", path: "/v1/assets/{asset_id}" },
   assets_download_url: { method: "GET", path: "/v1/assets/{asset_id}/download-url" },
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
@@ -10,7 +10,7 @@ export const OPERATIONS = {
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
   assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
-  assets_upload: { method: "POST", path: "/v1/projects/{project_id}/assets/uploads" },
+  assets_upload: { method: "POST", path: "/v1/projects/{project_id}/assets" },
   assets_usage: { method: "GET", path: "/v1/assets/{asset_id}/usage" },
   audit_events_list_for_project: { method: "GET", path: "/v1/projects/{project_id}/audit-events" },
   collections_create: { method: "POST", path: "/v1/projects/{project_id}/collections" },
@@ -24,46 +24,53 @@ export const OPERATIONS = {
   feature_flags_list: { method: "GET", path: "/v1/feature-flags" },
   fields_create: { method: "POST", path: "/v1/collections/{collection_id}/fields" },
   fields_delete: { method: "DELETE", path: "/v1/fields/{field_id}" },
+  fields_get_order: { method: "GET", path: "/v1/collections/{collection_id}/field-order" },
   fields_list: { method: "GET", path: "/v1/collections/{collection_id}/fields" },
   fields_migrate: { method: "POST", path: "/v1/fields/{field_id}/migrations" },
   fields_remove_alias: { method: "DELETE", path: "/v1/fields/{field_id}/aliases/{alias}" },
-  fields_reorder: { method: "POST", path: "/v1/collections/{collection_id}/fields/reorder" },
+  fields_reorder: { method: "PUT", path: "/v1/collections/{collection_id}/field-order" },
   fields_restore: { method: "POST", path: "/v1/fields/{field_id}/restore" },
   fields_update: { method: "PATCH", path: "/v1/fields/{field_id}" },
   health_check: { method: "GET", path: "/v1/health" },
   me_get: { method: "GET", path: "/v1/me" },
-  migrations_cancel: { method: "POST", path: "/v1/migrations/{migration_id}/cancel" },
+  migrations_cancel: { method: "POST", path: "/v1/migrations/{migration_id}/cancellation" },
   migrations_get: { method: "GET", path: "/v1/migrations/{migration_id}" },
   migrations_list: { method: "GET", path: "/v1/collections/{collection_id}/migrations" },
   projects_search: { method: "GET", path: "/v1/projects/{project_id}/search" },
   record_revisions_get: { method: "GET", path: "/v1/records/{record_id}/revisions/{revision}" },
   record_revisions_list: { method: "GET", path: "/v1/records/{record_id}/revisions" },
   record_revisions_revert: { method: "POST", path: "/v1/records/{record_id}/revisions/{revision}/revert" },
-  records_bulk: { method: "POST", path: "/v1/collections/{collection_id}/records/bulk" },
+  records_bulk: { method: "POST", path: "/v1/collections/{collection_id}/record-batches" },
   records_count: { method: "GET", path: "/v1/collections/{collection_id}/records/count" },
   records_create: { method: "POST", path: "/v1/collections/{collection_id}/records" },
   records_delete: { method: "DELETE", path: "/v1/records/{record_id}" },
   records_diff: { method: "GET", path: "/v1/records/{record_id}/diff" },
   records_get: { method: "GET", path: "/v1/records/{record_id}" },
+  records_get_publication: { method: "GET", path: "/v1/records/{record_id}/publication" },
+  records_get_schedule: { method: "GET", path: "/v1/records/{record_id}/schedule" },
   records_list: { method: "GET", path: "/v1/collections/{collection_id}/records" },
-  records_publish: { method: "POST", path: "/v1/records/{record_id}/publish" },
+  records_publish: { method: "POST", path: "/v1/records/{record_id}/publication" },
   records_restore: { method: "POST", path: "/v1/records/{record_id}/restore" },
   records_schedule: { method: "PUT", path: "/v1/records/{record_id}/schedule" },
-  records_unpublish: { method: "POST", path: "/v1/records/{record_id}/unpublish" },
+  records_unpublish: { method: "DELETE", path: "/v1/records/{record_id}/publication" },
   records_unschedule: { method: "DELETE", path: "/v1/records/{record_id}/schedule" },
   records_update: { method: "PATCH", path: "/v1/records/{record_id}" },
+  scheduled_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/scheduled-changes" },
   schema_changes_get: { method: "GET", path: "/v1/collections/{collection_id}/schema-changes/{schema_change_id}" },
   schema_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/schema-changes" },
   search_index_get: { method: "GET", path: "/v1/collections/{collection_id}/search-index" },
   search_index_rebuild: { method: "POST", path: "/v1/collections/{collection_id}/search-index/rebuild" },
   webhook_deliveries_get: { method: "GET", path: "/v1/webhook-deliveries/{delivery_id}" },
   webhook_deliveries_list: { method: "GET", path: "/v1/webhooks/{webhook_id}/deliveries" },
-  webhook_deliveries_retry: { method: "POST", path: "/v1/webhook-deliveries/{delivery_id}/retry" },
+  webhook_deliveries_retry: { method: "POST", path: "/v1/webhook-deliveries/{delivery_id}/attempts" },
+  webhook_secrets_list: { method: "GET", path: "/v1/webhooks/{webhook_id}/secrets" },
+  webhook_secrets_retire: { method: "DELETE", path: "/v1/webhook-secrets/{secret_id}" },
   webhooks_create: { method: "POST", path: "/v1/projects/{project_id}/webhooks" },
   webhooks_delete: { method: "DELETE", path: "/v1/webhooks/{webhook_id}" },
   webhooks_get: { method: "GET", path: "/v1/webhooks/{webhook_id}" },
   webhooks_list: { method: "GET", path: "/v1/projects/{project_id}/webhooks" },
-  webhooks_rotate_secret: { method: "POST", path: "/v1/webhooks/{webhook_id}/rotate-secret" },
+  webhooks_restore: { method: "POST", path: "/v1/webhooks/{webhook_id}/restore" },
+  webhooks_rotate_secret: { method: "POST", path: "/v1/webhooks/{webhook_id}/secrets" },
   webhooks_test: { method: "POST", path: "/v1/webhooks/{webhook_id}/test" },
   webhooks_update: { method: "PATCH", path: "/v1/webhooks/{webhook_id}" },
 } as const
@@ -93,6 +100,7 @@ export interface Operations {
   feature_flags_list: { data: T.FeatureFlagsListData; response: T.FeatureFlagsListResponse }
   fields_create: { data: T.FieldsCreateData; response: T.FieldsCreateResponse }
   fields_delete: { data: T.FieldsDeleteData; response: T.FieldsDeleteResponse }
+  fields_get_order: { data: T.FieldsGetOrderData; response: T.FieldsGetOrderResponse }
   fields_list: { data: T.FieldsListData; response: T.FieldsListResponse }
   fields_migrate: { data: T.FieldsMigrateData; response: T.FieldsMigrateResponse }
   fields_remove_alias: { data: T.FieldsRemoveAliasData; response: T.FieldsRemoveAliasResponse }
@@ -114,6 +122,8 @@ export interface Operations {
   records_delete: { data: T.RecordsDeleteData; response: T.RecordsDeleteResponse }
   records_diff: { data: T.RecordsDiffData; response: T.RecordsDiffResponse }
   records_get: { data: T.RecordsGetData; response: T.RecordsGetResponse }
+  records_get_publication: { data: T.RecordsGetPublicationData; response: T.RecordsGetPublicationResponse }
+  records_get_schedule: { data: T.RecordsGetScheduleData; response: T.RecordsGetScheduleResponse }
   records_list: { data: T.RecordsListData; response: T.RecordsListResponse }
   records_publish: { data: T.RecordsPublishData; response: T.RecordsPublishResponse }
   records_restore: { data: T.RecordsRestoreData; response: T.RecordsRestoreResponse }
@@ -121,6 +131,7 @@ export interface Operations {
   records_unpublish: { data: T.RecordsUnpublishData; response: T.RecordsUnpublishResponse }
   records_unschedule: { data: T.RecordsUnscheduleData; response: T.RecordsUnscheduleResponse }
   records_update: { data: T.RecordsUpdateData; response: T.RecordsUpdateResponse }
+  scheduled_changes_list: { data: T.ScheduledChangesListData; response: T.ScheduledChangesListResponse }
   schema_changes_get: { data: T.SchemaChangesGetData; response: T.SchemaChangesGetResponse }
   schema_changes_list: { data: T.SchemaChangesListData; response: T.SchemaChangesListResponse }
   search_index_get: { data: T.SearchIndexGetData; response: T.SearchIndexGetResponse }
@@ -128,10 +139,13 @@ export interface Operations {
   webhook_deliveries_get: { data: T.WebhookDeliveriesGetData; response: T.WebhookDeliveriesGetResponse }
   webhook_deliveries_list: { data: T.WebhookDeliveriesListData; response: T.WebhookDeliveriesListResponse }
   webhook_deliveries_retry: { data: T.WebhookDeliveriesRetryData; response: T.WebhookDeliveriesRetryResponse }
+  webhook_secrets_list: { data: T.WebhookSecretsListData; response: T.WebhookSecretsListResponse }
+  webhook_secrets_retire: { data: T.WebhookSecretsRetireData; response: T.WebhookSecretsRetireResponse }
   webhooks_create: { data: T.WebhooksCreateData; response: T.WebhooksCreateResponse }
   webhooks_delete: { data: T.WebhooksDeleteData; response: T.WebhooksDeleteResponse }
   webhooks_get: { data: T.WebhooksGetData; response: T.WebhooksGetResponse }
   webhooks_list: { data: T.WebhooksListData; response: T.WebhooksListResponse }
+  webhooks_restore: { data: T.WebhooksRestoreData; response: T.WebhooksRestoreResponse }
   webhooks_rotate_secret: { data: T.WebhooksRotateSecretData; response: T.WebhooksRotateSecretResponse }
   webhooks_test: { data: T.WebhooksTestData; response: T.WebhooksTestResponse }
   webhooks_update: { data: T.WebhooksUpdateData; response: T.WebhooksUpdateResponse }

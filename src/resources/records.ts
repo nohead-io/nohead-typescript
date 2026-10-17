@@ -6,8 +6,11 @@ import type {
   RecordRevision,
   RecordRevisionDetail,
   RevertPreview,
-  BulkRecordsResult,
+  RecordBatch,
   RecordCount,
+  RecordPublication,
+  RecordSchedule,
+  ScheduledChange,
 } from "../generated/types.gen.ts"
 import type {
   DryRunParams,
@@ -21,6 +24,7 @@ import type {
   RecordScheduleParams,
   RecordSearchParams,
   RecordUpdateParams,
+  ListParams,
   RevisionListParams,
   SearchMeta,
 } from "../types.ts"
@@ -58,7 +62,7 @@ export class Records extends Resource {
     ) as APIPromise<NoheadRecord<D>>
   }
 
-  /** Creates a draft. */
+  /** Creates an unpublished record. */
   create<D = RecordData>(
     collection: string,
     params: RecordCreateParams<D>,
@@ -84,7 +88,10 @@ export class Records extends Resource {
     ) as APIPromise<NoheadRecord<D>>
   }
 
-  /** Soft-deletes the record: `restore` brings it back within 30 days. */
+  /**
+   * Soft-deletes the record: `restore` brings it back until its
+   * `purge_after`. Deleting a deleted record changes nothing.
+   */
   delete<D = RecordData>(
     record: string,
     options?: ConditionalRequestOptions
@@ -129,29 +136,76 @@ export class Records extends Resource {
     ) as APIPromise<NoheadRecord<D>>
   }
 
+  /**
+   * What is live: since when, by whom, and the revision. A record that
+   * isn't published is a `NotFoundError` (detail code `not_published`).
+   */
+  publication(
+    record: string,
+    options?: RequestOptions
+  ): APIPromise<RecordPublication> {
+    return this.core.request(
+      "records_get_publication",
+      { path: { record_id: record } },
+      options
+    )
+  }
+
+  /**
+   * When the record publishes or unpublishes on its own. One with no
+   * schedule is a `NotFoundError` (detail code `not_scheduled`).
+   */
+  getSchedule(
+    record: string,
+    options?: RequestOptions
+  ): APIPromise<RecordSchedule> {
+    return this.core.request(
+      "records_get_schedule",
+      { path: { record_id: record } },
+      options
+    )
+  }
+
   /** Publishes and/or unpublishes the record later. */
-  schedule<D = RecordData>(
+  schedule(
     record: string,
     params: RecordScheduleParams,
     options?: RequestOptions
-  ): APIPromise<NoheadRecord<D>> {
+  ): APIPromise<RecordSchedule> {
     return this.core.request(
       "records_schedule",
       { path: { record_id: record }, body: params },
       options
-    ) as APIPromise<NoheadRecord<D>>
+    )
   }
 
   /** Clears both scheduled times. */
-  unschedule<D = RecordData>(
+  unschedule(
     record: string,
     options?: RequestOptions
-  ): APIPromise<NoheadRecord<D>> {
+  ): APIPromise<RecordSchedule> {
     return this.core.request(
       "records_unschedule",
       { path: { record_id: record } },
       options
-    ) as APIPromise<NoheadRecord<D>>
+    )
+  }
+
+  /**
+   * A collection's pending scheduled publishes and unpublishes, soonest
+   * first: one per change, so a record due to publish and later unpublish
+   * appears twice.
+   */
+  scheduledChanges(
+    collection: string,
+    params: ListParams & { sort?: "at" | "-at" } = {},
+    options?: RequestOptions
+  ): PagePromise<ScheduledChange> {
+    return this.core.paginate(
+      "scheduled_changes_list",
+      { path: { collection_id: collection }, query: params },
+      options
+    )
   }
 
   count(
@@ -174,7 +228,7 @@ export class Records extends Resource {
     collection: string,
     params: RecordBulkParams,
     options?: RequestOptions
-  ): APIPromise<BulkRecordsResult> {
+  ): APIPromise<RecordBatch> {
     return this.core.request(
       "records_bulk",
       { path: { collection_id: collection }, body: params },

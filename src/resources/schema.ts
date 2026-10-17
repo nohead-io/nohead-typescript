@@ -2,6 +2,7 @@ import type { APIPromise, PagePromise } from "../api-promise.ts"
 import type { RequestOptions } from "../core.ts"
 import type {
   Collection,
+  FieldOrder,
   CollectionCreate,
   CollectionUpdate,
   Field,
@@ -21,7 +22,7 @@ import type {
   ListParams,
   SchemaParams,
 } from "../types.ts"
-import { Resource } from "./resource.ts"
+import { listQuery, Resource } from "./resource.ts"
 
 /** Collections of the key's project. `collection` is an ID or slug. */
 export class Collections extends Resource {
@@ -32,7 +33,11 @@ export class Collections extends Resource {
     params: DeletedListParams = {},
     options?: RequestOptions
   ): PagePromise<Collection> {
-    return this.core.paginate("collections_list", { query: params }, options)
+    return this.core.paginate(
+      "collections_list",
+      { query: listQuery(params, ["deleted"]) },
+      options
+    )
   }
 
   get(collection: string, options?: RequestOptions): APIPromise<Collection> {
@@ -158,7 +163,10 @@ export class Fields extends Resource {
   ): PagePromise<Field> {
     return this.core.paginate(
       "fields_list",
-      { path: { collection_id: collection }, query: params },
+      {
+        path: { collection_id: collection },
+        query: listQuery(params, ["deleted"]),
+      },
       options
     )
   }
@@ -208,12 +216,21 @@ export class Fields extends Resource {
     )
   }
 
-  /** Puts the collection's fields in this order. */
+  /** The collection's active fields, in order. */
+  order(collection: string, options?: RequestOptions): APIPromise<FieldOrder> {
+    return this.core.request(
+      "fields_get_order",
+      { path: { collection_id: collection } },
+      options
+    )
+  }
+
+  /** Puts the collection's fields in this order; lists every active field once. */
   reorder(
     collection: string,
     params: { field_ids: string[] },
     options?: RequestOptions
-  ): APIPromise<Collection> {
+  ): APIPromise<FieldOrder> {
     return this.core.request(
       "fields_reorder",
       { path: { collection_id: collection }, body: params },
