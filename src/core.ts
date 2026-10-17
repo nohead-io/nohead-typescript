@@ -89,6 +89,17 @@ export interface RequestInput {
 
 type AllOptions = ConditionalRequestOptions
 
+/**
+ * The string with lone surrogates (half an emoji, from cutting a string)
+ * replaced by U+FFFD, as `String.prototype.toWellFormed` does, so
+ * `encodeURIComponent` can encode it.
+ */
+const wellFormed = (text: string) =>
+  text.replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    "\uFFFD"
+  )
+
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504])
 const MAX_RETRY_AFTER_SECONDS = 60
 
@@ -232,7 +243,12 @@ export class Core {
           : options.ifMatch
       headers["If-Match"] = `"${revision}"`
     }
-    if (options.changeNote) headers["Nohead-Change-Note"] = options.changeNote
+    // Percent-encoded UTF-8: header values are bytes, and fetch refuses
+    // anything past Latin-1 (the API decodes it).
+    if (options.changeNote)
+      headers["Nohead-Change-Note"] = encodeURIComponent(
+        wellFormed(options.changeNote)
+      )
     Object.assign(headers, options.headers)
 
     const init: RequestInit = {

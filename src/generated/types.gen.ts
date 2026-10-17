@@ -1793,7 +1793,12 @@ export type IdempotencyKey = string;
 export type NoheadClient = string;
 
 /**
- * Optional reason for the change, shown in history (max 500 characters).
+ * Optional reason for the change, shown in history (at most 500
+ * characters once decoded). Percent-encoded UTF-8, as
+ * `encodeURIComponent` encodes it, so any language fits in a header:
+ * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+ * as is. Other bytes are `400`.
+ *
  */
 export type ChangeNote = string;
 
@@ -1916,7 +1921,12 @@ export type RecordsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2004,7 +2014,12 @@ export type RecordsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2137,7 +2152,12 @@ export type RecordsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2222,7 +2242,12 @@ export type RecordsUnpublishData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2350,7 +2375,12 @@ export type RecordsPublishData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2616,7 +2646,12 @@ export type RecordsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -2822,7 +2857,12 @@ export type RecordRevisionsRevertData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -3132,7 +3172,12 @@ export type RecordsBulkData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -3679,7 +3724,12 @@ export type DraftsMergeData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -3960,7 +4010,12 @@ export type CollectionsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4041,7 +4096,12 @@ export type CollectionsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4165,7 +4225,12 @@ export type CollectionsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4243,7 +4308,12 @@ export type CollectionsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4557,7 +4627,12 @@ export type FieldsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4635,7 +4710,12 @@ export type FieldsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4706,7 +4786,12 @@ export type FieldsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4781,7 +4866,12 @@ export type FieldsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -4979,7 +5069,12 @@ export type FieldsReorderData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5116,7 +5211,12 @@ export type FieldsMigrateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5374,7 +5474,12 @@ export type AssetsUploadData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5455,7 +5560,12 @@ export type AssetsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5573,7 +5683,12 @@ export type AssetsCompleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5814,7 +5929,12 @@ export type AssetsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -5885,7 +6005,12 @@ export type AssetsPurgeData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6112,7 +6237,12 @@ export type SearchIndexRebuildData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6325,7 +6455,12 @@ export type WebhooksCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6406,7 +6541,12 @@ export type WebhooksDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6524,7 +6664,12 @@ export type WebhooksUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6599,7 +6744,12 @@ export type WebhooksRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6732,7 +6882,12 @@ export type WebhooksRotateSecretData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6803,7 +6958,12 @@ export type WebhookSecretsRetireData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -6874,7 +7034,12 @@ export type WebhooksTestData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
@@ -7051,7 +7216,12 @@ export type WebhookDeliveriesRetryData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (max 500 characters).
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
          */
         'Nohead-Change-Note'?: string;
     };
