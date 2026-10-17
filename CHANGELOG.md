@@ -17,10 +17,8 @@ section is its GitHub release's notes.
     `records.getSchedule`, `records.publication` and
     `records.scheduledChanges` are new. `records.bulk` returns a
     `record_batch`.
-  - Lists take `filter: { deleted: true }` (and assets
-    `filter: { content_type }`, deliveries `filter: { status }`) instead of
-    top-level parameters; project search takes
-    `filter: { collection, published_at }` instead of `collections`.
+  - Project search takes `filter: { published_at: { exists: true } }`
+    instead of `filter: { status }`.
   - Collections, fields, assets and webhooks have `deleted_at` and
     `purge_after` instead of `deleted`, and migrations
     `cancel_requested_at`.

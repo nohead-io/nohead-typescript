@@ -10,7 +10,7 @@ import type {
   ImageUrl,
 } from "../generated/types.gen.ts"
 import type { AssetListParams, ImageUrlParams } from "../types.ts"
-import { Resource } from "./resource.ts"
+import { listQuery, Resource } from "./resource.ts"
 
 /** What `assets.upload` accepts. A stream needs `byte_size`. */
 export type Uploadable = Blob | ArrayBuffer | Uint8Array | ReadableStream
@@ -128,7 +128,11 @@ export class Assets extends Resource {
     params: AssetListParams = {},
     options?: RequestOptions
   ): PagePromise<Asset> {
-    return this.core.paginate("assets_list", { query: params }, options)
+    return this.core.paginate(
+      "assets_list",
+      { query: listQuery(params, ["deleted", "content_type"]) },
+      options
+    )
   }
 
   get(asset: string, options?: RequestOptions): APIPromise<Asset> {

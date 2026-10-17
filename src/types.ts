@@ -106,12 +106,10 @@ export interface RecordSearchParams extends ListParams {
 }
 
 export interface ProjectSearchParams extends ListParams {
-  filter?: {
-    /** Collection slugs or IDs to search in; every searchable one otherwise. */
-    collection?: string | { in: string[] }
-    /** Published records only (`true`), or unpublished ones. */
-    published_at?: { exists: boolean }
-  }
+  /** Collection slugs or IDs to search in; every searchable one otherwise. */
+  collections?: string[]
+  /** `{ published_at: { exists: true } }`: published records only (or unpublished, `false`). */
+  filter?: { published_at?: { exists: boolean } }
 }
 
 export interface RevisionListParams extends ListParams {
@@ -124,22 +122,17 @@ export interface DryRunParams {
 }
 
 export interface DeletedListParams extends ListParams {
-  filter?: {
-    /** List deleted items instead (they can be restored until `purge_after`). */
-    deleted?: boolean
-  }
+  /** List deleted items instead (they can be restored until `purge_after`). */
+  deleted?: boolean
 }
 
-export interface AssetListParams extends ListParams {
-  filter?: {
-    deleted?: boolean
-    /**
-     * Only assets of these MIME types or `type/*` wildcards, e.g.
-     * `["image/*", "application/pdf"]`, such as an asset field's
-     * `accepted_types`.
-     */
-    content_type?: string | string[]
-  }
+export interface AssetListParams extends DeletedListParams {
+  /**
+   * Only assets of these MIME types or `type/*` wildcards, e.g.
+   * `["image/*", "application/pdf"]`, such as an asset field's
+   * `accepted_types`.
+   */
+  content_type?: string | string[]
 }
 
 export interface SchemaParams {
@@ -152,7 +145,7 @@ export type FieldMigrateParams = G.FieldMigrationRequest
 export type ImageUrlParams = NonNullable<G.AssetsImageUrlData["query"]>
 
 export interface DeliveryListParams extends ListParams {
-  filter?: { status?: "pending" | "succeeded" | "failed" }
+  status?: "pending" | "succeeded" | "failed"
 }
 
 export interface AuditEventListParams extends ListParams {

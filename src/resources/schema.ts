@@ -22,7 +22,7 @@ import type {
   ListParams,
   SchemaParams,
 } from "../types.ts"
-import { Resource } from "./resource.ts"
+import { listQuery, Resource } from "./resource.ts"
 
 /** Collections of the key's project. `collection` is an ID or slug. */
 export class Collections extends Resource {
@@ -33,7 +33,11 @@ export class Collections extends Resource {
     params: DeletedListParams = {},
     options?: RequestOptions
   ): PagePromise<Collection> {
-    return this.core.paginate("collections_list", { query: params }, options)
+    return this.core.paginate(
+      "collections_list",
+      { query: listQuery(params, ["deleted"]) },
+      options
+    )
   }
 
   get(collection: string, options?: RequestOptions): APIPromise<Collection> {
@@ -159,7 +163,10 @@ export class Fields extends Resource {
   ): PagePromise<Field> {
     return this.core.paginate(
       "fields_list",
-      { path: { collection_id: collection }, query: params },
+      {
+        path: { collection_id: collection },
+        query: listQuery(params, ["deleted"]),
+      },
       options
     )
   }

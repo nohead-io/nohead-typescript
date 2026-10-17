@@ -59,9 +59,10 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
     nohead.records.revisions.revert("rec_01J9ZQ3F8X", 1, { dry_run: true }),
   (nohead) =>
     nohead.search("hello", {
-      filter: { collection: { in: ["posts"] }, published_at: { exists: true } },
+      collections: ["posts"],
+      filter: { published_at: { exists: true } },
     }),
-  (nohead) => nohead.collections.list({ filter: { deleted: true } }),
+  (nohead) => nohead.collections.list({ deleted: true }),
   (nohead) => nohead.collections.get("posts"),
   (nohead) => nohead.collections.create({ name: "Posts", slug: "posts" }),
   (nohead) => nohead.collections.update("posts", { name: "Articles" }),
@@ -72,7 +73,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.collections.schemaChanges.get("posts", "sch_01J9ZQ3F8X"),
   (nohead) => nohead.collections.searchIndex.get("posts"),
   (nohead) => nohead.collections.searchIndex.rebuild("posts"),
-  (nohead) => nohead.fields.list("posts", { filter: { deleted: true } }),
+  (nohead) => nohead.fields.list("posts", { deleted: true }),
   (nohead) =>
     nohead.fields.create("posts", {
       name: "Title",
@@ -104,7 +105,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       byte_size: 5,
     }),
   (nohead) => nohead.assets.complete("ast_01J9ZQ3F8X"),
-  (nohead) => nohead.assets.list({ filter: { deleted: true } }),
+  (nohead) => nohead.assets.list({ deleted: true }),
   (nohead) => nohead.assets.get("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.delete("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.restore("ast_01J9ZQ3F8X"),
@@ -113,7 +114,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
     nohead.assets.imageUrl("ast_01J9ZQ3F8X", { width: 100, format: "webp" }),
   (nohead) => nohead.assets.downloadUrl("ast_01J9ZQ3F8X"),
-  (nohead) => nohead.webhooks.list({ filter: { deleted: true } }),
+  (nohead) => nohead.webhooks.list({ deleted: true }),
   (nohead) => nohead.webhooks.get("wh_01J9ZQ3F8X"),
   (nohead) =>
     nohead.webhooks.create({
@@ -128,9 +129,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.webhooks.secrets.retire("whs_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.test("wh_01J9ZQ3F8X"),
   (nohead) =>
-    nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", {
-      filter: { status: "failed" },
-    }),
+    nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", { status: "failed" }),
   (nohead) => nohead.webhooks.deliveries.get("whd_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.deliveries.retry("whd_01J9ZQ3F8X"),
   (nohead) =>

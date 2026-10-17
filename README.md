@@ -268,9 +268,7 @@ usage.uses // the 10 most recently updated, with the fields that use it
 for await (const hit of nohead.records.search("posts", "content model")) { … }
 
 // Across the project
-const results = await nohead.search("content model", {
-  filter: { collection: { in: ["posts", "pages"] } },
-})
+const results = await nohead.search("content model", { collections: ["posts", "pages"] })
 results.meta.total_estimate
 ```
 

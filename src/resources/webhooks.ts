@@ -22,7 +22,7 @@ import {
   type WebhookEvent,
   type WebhookHeaders,
 } from "../webhooks.ts"
-import { Resource } from "./resource.ts"
+import { listQuery, Resource } from "./resource.ts"
 
 /** Webhooks of the key's project. `webhook` is a webhook ID (`wh_…`). */
 export class Webhooks extends Resource {
@@ -33,7 +33,11 @@ export class Webhooks extends Resource {
     params: DeletedListParams = {},
     options?: RequestOptions
   ): PagePromise<Webhook> {
-    return this.core.paginate("webhooks_list", { query: params }, options)
+    return this.core.paginate(
+      "webhooks_list",
+      { query: listQuery(params, ["deleted"]) },
+      options
+    )
   }
 
   get(webhook: string, options?: RequestOptions): APIPromise<Webhook> {
@@ -128,7 +132,7 @@ export class Deliveries extends Resource {
   ): PagePromise<WebhookDelivery> {
     return this.core.paginate(
       "webhook_deliveries_list",
-      { path: { webhook_id: webhook }, query: params },
+      { path: { webhook_id: webhook }, query: listQuery(params, ["status"]) },
       options
     )
   }
