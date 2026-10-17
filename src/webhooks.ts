@@ -5,6 +5,7 @@ import { WebhookVerificationError } from "./errors.ts"
 import type {
   Actor,
   Asset,
+  Draft,
   Field,
   Via,
   Webhook,
@@ -47,6 +48,24 @@ export type RecordEvent<D = RecordData> = EventBase<
     record: NoheadRecord<D> | null
     revision: number | null
     revision_id: string | null
+    /** On the `record.updated` of a merged draft: the draft it merged. */
+    draft_id?: string
+  }
+>
+/** A change to a draft. */
+export type DraftEvent = EventBase<
+  | "draft.created"
+  | "draft.updated"
+  | "draft.discarded"
+  | "draft.scheduled"
+  | "draft.unscheduled"
+  | "draft.schedule_failed",
+  {
+    /** As it is now; `null` once merged or discarded, and while its record is deleted. */
+    draft: Draft | null
+    /** The draft's ID, also once it is gone. */
+    draft_id: string
+    record_id: string
   }
 >
 /** An asset as it is now; only its ID once it is purged. */
@@ -94,6 +113,7 @@ export type WebhookTestEvent = EventBase<"webhook.test", { webhook: Webhook }>
 /** A webhook request's body, narrowed by `type`. */
 export type WebhookEvent<D = RecordData> =
   | RecordEvent<D>
+  | DraftEvent
   | AssetEvent
   | SchemaEvent
   | FieldAliasRemovedEvent

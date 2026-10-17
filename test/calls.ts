@@ -34,6 +34,24 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
     }),
   (nohead) => nohead.records.unschedule("rec_01J9ZQ3F8X"),
   (nohead) => nohead.records.scheduledChanges("posts", { sort: "-at" }),
+  (nohead) => nohead.records.drafts("rec_01J9ZQ3F8X"),
+  (nohead) =>
+    nohead.drafts.create("rec_01J9ZQ3F8X", { data: { title: "Hey" } }),
+  (nohead) => nohead.drafts.list("posts", { record_id: ["rec_01J9ZQ3F8X"] }),
+  (nohead) => nohead.drafts.get("drf_01J9ZQ3F8X", { expand: ["author"] }),
+  (nohead) =>
+    nohead.drafts.update(
+      "drf_01J9ZQ3F8X",
+      { data: { title: "Hey there" } },
+      { ifMatch: 1 }
+    ),
+  (nohead) => nohead.drafts.merge("drf_01J9ZQ3F8X"),
+  (nohead) =>
+    nohead.drafts.schedule("drf_01J9ZQ3F8X", {
+      merge_at: "2027-01-01T09:00:00Z",
+    }),
+  (nohead) => nohead.drafts.unschedule("drf_01J9ZQ3F8X"),
+  (nohead) => nohead.drafts.discard("drf_01J9ZQ3F8X"),
   (nohead) =>
     nohead.records.count("posts", {
       filter: { published_at: { exists: false } },

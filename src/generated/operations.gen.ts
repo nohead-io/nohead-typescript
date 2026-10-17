@@ -21,6 +21,14 @@ export const OPERATIONS = {
   collections_restore: { method: "POST", path: "/v1/collections/{collection_id}/restore" },
   collections_search: { method: "GET", path: "/v1/collections/{collection_id}/search" },
   collections_update: { method: "PATCH", path: "/v1/collections/{collection_id}" },
+  drafts_create: { method: "POST", path: "/v1/records/{record_id}/drafts" },
+  drafts_discard: { method: "DELETE", path: "/v1/drafts/{draft_id}" },
+  drafts_get: { method: "GET", path: "/v1/drafts/{draft_id}" },
+  drafts_list: { method: "GET", path: "/v1/collections/{collection_id}/drafts" },
+  drafts_merge: { method: "POST", path: "/v1/drafts/{draft_id}/merge" },
+  drafts_schedule: { method: "PUT", path: "/v1/drafts/{draft_id}/schedule" },
+  drafts_unschedule: { method: "DELETE", path: "/v1/drafts/{draft_id}/schedule" },
+  drafts_update: { method: "PATCH", path: "/v1/drafts/{draft_id}" },
   feature_flags_list: { method: "GET", path: "/v1/feature-flags" },
   fields_create: { method: "POST", path: "/v1/collections/{collection_id}/fields" },
   fields_delete: { method: "DELETE", path: "/v1/fields/{field_id}" },
@@ -37,6 +45,7 @@ export const OPERATIONS = {
   migrations_get: { method: "GET", path: "/v1/migrations/{migration_id}" },
   migrations_list: { method: "GET", path: "/v1/collections/{collection_id}/migrations" },
   projects_search: { method: "GET", path: "/v1/projects/{project_id}/search" },
+  record_drafts_list: { method: "GET", path: "/v1/records/{record_id}/drafts" },
   record_revisions_get: { method: "GET", path: "/v1/records/{record_id}/revisions/{revision}" },
   record_revisions_list: { method: "GET", path: "/v1/records/{record_id}/revisions" },
   record_revisions_revert: { method: "POST", path: "/v1/records/{record_id}/revisions/{revision}/revert" },
@@ -97,6 +106,14 @@ export interface Operations {
   collections_restore: { data: T.CollectionsRestoreData; response: T.CollectionsRestoreResponse }
   collections_search: { data: T.CollectionsSearchData; response: T.CollectionsSearchResponse }
   collections_update: { data: T.CollectionsUpdateData; response: T.CollectionsUpdateResponse }
+  drafts_create: { data: T.DraftsCreateData; response: T.DraftsCreateResponse }
+  drafts_discard: { data: T.DraftsDiscardData; response: T.DraftsDiscardResponse }
+  drafts_get: { data: T.DraftsGetData; response: T.DraftsGetResponse }
+  drafts_list: { data: T.DraftsListData; response: T.DraftsListResponse }
+  drafts_merge: { data: T.DraftsMergeData; response: T.DraftsMergeResponse }
+  drafts_schedule: { data: T.DraftsScheduleData; response: T.DraftsScheduleResponse }
+  drafts_unschedule: { data: T.DraftsUnscheduleData; response: T.DraftsUnscheduleResponse }
+  drafts_update: { data: T.DraftsUpdateData; response: T.DraftsUpdateResponse }
   feature_flags_list: { data: T.FeatureFlagsListData; response: T.FeatureFlagsListResponse }
   fields_create: { data: T.FieldsCreateData; response: T.FieldsCreateResponse }
   fields_delete: { data: T.FieldsDeleteData; response: T.FieldsDeleteResponse }
@@ -113,6 +130,7 @@ export interface Operations {
   migrations_get: { data: T.MigrationsGetData; response: T.MigrationsGetResponse }
   migrations_list: { data: T.MigrationsListData; response: T.MigrationsListResponse }
   projects_search: { data: T.ProjectsSearchData; response: T.ProjectsSearchResponse }
+  record_drafts_list: { data: T.RecordDraftsListData; response: T.RecordDraftsListResponse }
   record_revisions_get: { data: T.RecordRevisionsGetData; response: T.RecordRevisionsGetResponse }
   record_revisions_list: { data: T.RecordRevisionsListData; response: T.RecordRevisionsListResponse }
   record_revisions_revert: { data: T.RecordRevisionsRevertData; response: T.RecordRevisionsRevertResponse }

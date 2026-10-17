@@ -21,6 +21,7 @@ for await (const post of nohead.records.list("posts", {
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Records](#records)
+- [Drafts](#drafts)
 - [Pagination](#pagination)
 - [Errors](#errors)
 - [Retries and idempotency](#retries-and-idempotency)
@@ -95,6 +96,28 @@ await nohead.records.update<Post>(id, { data: { title: null } }) // null clears
 The type is a promise you make; nothing is checked at runtime. The record type itself is `Nohead.Record<Post>` (also exported as `NoheadRecord`).
 
 **More:** `count`, `bulk` (up to 100 records at once), `diff`, `revisions.list`, `revisions.get` and `revisions.revert` (with `{ dry_run: true }` for a preview).
+
+## Drafts
+
+A draft holds changes to a record until they are merged, now or at a set time, while the record keeps its current content: changes to review before they go live, or changes due later.
+
+```ts
+const draft = await nohead.drafts.create(post.id, {
+  data: { title: "Hello, revised" },
+})
+await nohead.drafts.update(
+  draft.id,
+  { data: { summary: "…" } },
+  { ifMatch: draft }
+)
+const preview = await nohead.drafts.get(draft.id, { expand: ["author"] }) // data as it would read
+await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at })
+```
+
+- A record has at most one draft; starting a second is a `ConflictError` (detail code `draft_exists`, with its `draft_id`).
+- A merge changes content only: a live record stays live, an unpublished one unpublished. Publishing a live record with a pending draft is a `ConflictError` (`draft_pending`).
+- `records.drafts(id)` lists a record's draft, and `drafts.list(collection, { record_id })` a collection's (`record_id` takes up to 100 IDs).
+- `drafts.discard` deletes one for good.
 
 ## Pagination
 
@@ -335,24 +358,25 @@ response.headers.get("RateLimit-Remaining")
 
 ## Reference
 
-| Resource                    | Methods                                                                                                                                                                                       |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `records`                   | `list`, `get`, `create`, `update`, `delete`, `restore`, `publish`, `unpublish`, `publication`, `getSchedule`, `schedule`, `unschedule`, `scheduledChanges`, `count`, `bulk`, `diff`, `search` |
-| `records.revisions`         | `list`, `get`, `revert`                                                                                                                                                                       |
-| `search`                    | across the project                                                                                                                                                                            |
-| `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                              |
-| `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                 |
-| `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                              |
-| `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                 |
-| `migrations`                | `list`, `get`, `cancel`                                                                                                                                                                       |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                         |
-| `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                      |
-| `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                              |
-| `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                        |
-| `auditEvents`               | `list`                                                                                                                                                                                        |
-| `featureFlags`              | `list`                                                                                                                                                                                        |
-| `me`                        | `get`                                                                                                                                                                                         |
-| `health`                    | `check`                                                                                                                                                                                       |
+| Resource                    | Methods                                                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `records`                   | `list`, `get`, `create`, `update`, `delete`, `restore`, `publish`, `unpublish`, `publication`, `getSchedule`, `schedule`, `unschedule`, `scheduledChanges`, `drafts`, `count`, `bulk`, `diff`, `search` |
+| `drafts`                    | `create`, `list`, `get`, `update`, `discard`, `merge`, `schedule`, `unschedule`                                                                                                                         |
+| `records.revisions`         | `list`, `get`, `revert`                                                                                                                                                                                 |
+| `search`                    | across the project                                                                                                                                                                                      |
+| `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                                        |
+| `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                           |
+| `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
+| `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                           |
+| `migrations`                | `list`, `get`, `cancel`                                                                                                                                                                                 |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                                   |
+| `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |
+| `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                                        |
+| `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                                  |
+| `auditEvents`               | `list`                                                                                                                                                                                                  |
+| `featureFlags`              | `list`                                                                                                                                                                                                  |
+| `me`                        | `get`                                                                                                                                                                                                   |
+| `health`                    | `check`                                                                                                                                                                                                 |
 
 The SDK covers every operation an API key can call. Organizations, projects, members and API keys are managed in the web app. The full API is documented at [docs.nohead.io](https://docs.nohead.io).
 

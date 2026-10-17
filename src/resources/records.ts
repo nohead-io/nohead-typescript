@@ -8,6 +8,7 @@ import type {
   RevertPreview,
   RecordBatch,
   RecordCount,
+  Draft,
   RecordPublication,
   RecordSchedule,
   ScheduledChange,
@@ -114,6 +115,10 @@ export class Records extends Resource {
     ) as APIPromise<NoheadRecord<D>>
   }
 
+  /**
+   * A live record with a pending draft is a `ConflictError` (detail code
+   * `draft_pending`): publishing never merges a draft (`drafts.merge` does).
+   */
   publish<D = RecordData>(
     record: string,
     options?: ConditionalRequestOptions
@@ -162,6 +167,19 @@ export class Records extends Resource {
     return this.core.request(
       "records_get_schedule",
       { path: { record_id: record } },
+      options
+    )
+  }
+
+  /** The record's drafts: at most one for now. */
+  drafts(
+    record: string,
+    params: ListParams = {},
+    options?: RequestOptions
+  ): PagePromise<Draft> {
+    return this.core.paginate(
+      "record_drafts_list",
+      { path: { record_id: record }, query: params },
       options
     )
   }

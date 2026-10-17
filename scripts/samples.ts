@@ -22,6 +22,7 @@ const ITEMS: Record<string, string> = {
   schema_changes: "change",
   webhook_deliveries: "delivery",
   webhook_secrets: "secret",
+  record_drafts: "draft",
   scheduled_changes: "change",
   audit_events: "event",
   collections_search: "record",

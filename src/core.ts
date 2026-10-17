@@ -74,8 +74,9 @@ export interface RequestOptions {
 /** Options of record writes that accept `If-Match`. */
 export interface ConditionalRequestOptions extends RequestOptions {
   /**
-   * Only write if the record is still at this revision; otherwise the API
-   * answers `412` (`PreconditionFailedError`). A record works too.
+   * Only write if the record (or the draft) is still at this revision;
+   * otherwise the API answers `412` (`PreconditionFailedError`). A record
+   * or a draft works too.
    */
   ifMatch?: number | { revision: number }
 }
