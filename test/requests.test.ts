@@ -134,6 +134,7 @@ describe("requests", () => {
     const { nohead, calls } = mockClient([
       json(200, record("rec_1")),
       json(200, record("rec_1")),
+      json(200, record("rec_1")),
     ])
     await nohead.records.delete("rec_1", { changeNote: "Duplicate" })
     await nohead.records.delete("rec_1", { changeNote: "Rettet på forsiden ✓" })
@@ -141,6 +142,9 @@ describe("requests", () => {
     expect(calls[1]!.headers.get("nohead-change-note")).toBe(
       "Rettet%20p%C3%A5%20forsiden%20%E2%9C%93"
     )
+    // Half an emoji (a string cut in the middle) is sent as U+FFFD.
+    await nohead.records.delete("rec_1", { changeNote: "Cut \uD83D" })
+    expect(calls[2]!.headers.get("nohead-change-note")).toBe("Cut%20%EF%BF%BD")
   })
 
   it("sends dry runs as a query parameter", async () => {
