@@ -33,7 +33,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       publish_at: "2027-01-01T00:00:00Z",
     }),
   (nohead) => nohead.records.unschedule("rec_01J9ZQ3F8X"),
-  (nohead) => nohead.records.scheduledChanges("posts", { sort: "at" }),
+  (nohead) => nohead.records.scheduledChanges("posts", { sort: "-at" }),
   (nohead) =>
     nohead.records.count("posts", {
       filter: { published_at: { exists: false } },
