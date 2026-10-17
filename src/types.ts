@@ -41,15 +41,13 @@ export interface FilterOperators<V = FilterValue> {
 
 /**
  * Filters, combined with AND: a value to equal, or operators, e.g.
- * `{ status: "published", price: { lt: 50 }, category: { in: ["shoes", "bags"] } }`.
- * Record lists and counts also filter `created_at`, `updated_at` and
- * `published_at`.
+ * `{ published_at: { exists: true }, price: { lt: 50 }, category: { in: ["shoes", "bags"] } }`.
+ * `published_at: { exists }` says whether records are published; record
+ * lists and counts also filter `created_at`, `updated_at` and `published_at`
+ * by range. `deleted: true` lists deleted records instead.
  */
 export interface RecordFilter {
-  status?:
-    | "draft"
-    | "published"
-    | Pick<FilterOperators<"draft" | "published">, "eq" | "ne" | "in">
+  published_at?: FilterOperators<string | Date>
   deleted?: boolean
   [apiKey: string]: FilterValue | FilterOperators | undefined
 }
@@ -72,9 +70,9 @@ export interface RecordListParams extends ListParams {
   expand?: string[]
 }
 
+/** A deleted record is returned too, with `deleted_at` and `purge_after`. */
 export interface RecordGetParams {
   expand?: string[]
-  include_deleted?: boolean
 }
 
 export interface RecordCreateParams<D = G.RecordData> {
@@ -95,12 +93,12 @@ export interface RecordScheduleParams {
   unpublish_at?: string | Date | null
 }
 
-export type RecordBulkParams = G.BulkRecordsRequest
+export type RecordBulkParams = G.RecordBatchRequest
 
 export type RecordDiffParams = NonNullable<G.RecordsDiffData["query"]>
 
 export interface RecordSearchParams extends ListParams {
-  /** Needs `filterable` fields (status always works). */
+  /** Needs `filterable` fields (`published_at: { exists }` always works). */
   filter?: RecordFilter
   /** Needs a `sortable` field, e.g. `-published_at`; relevance otherwise. */
   sort?: string
@@ -108,9 +106,12 @@ export interface RecordSearchParams extends ListParams {
 }
 
 export interface ProjectSearchParams extends ListParams {
-  /** Collection slugs or IDs to search in; every searchable one otherwise. */
-  collections?: string[]
-  filter?: { status?: "draft" | "published" }
+  filter?: {
+    /** Collection slugs or IDs to search in; every searchable one otherwise. */
+    collection?: string | { in: string[] }
+    /** Published records only (`true`), or unpublished ones. */
+    published_at?: { exists: boolean }
+  }
 }
 
 export interface RevisionListParams extends ListParams {
@@ -123,17 +124,22 @@ export interface DryRunParams {
 }
 
 export interface DeletedListParams extends ListParams {
-  /** List deleted items instead (they can be restored for 30 days). */
-  deleted?: boolean
+  filter?: {
+    /** List deleted items instead (they can be restored until `purge_after`). */
+    deleted?: boolean
+  }
 }
 
-export interface AssetListParams extends DeletedListParams {
-  /**
-   * Only assets of these MIME types or `type/*` wildcards, e.g.
-   * `["image/*", "application/pdf"]`, such as an asset field's
-   * `accepted_types`.
-   */
-  content_type?: string | string[]
+export interface AssetListParams extends ListParams {
+  filter?: {
+    deleted?: boolean
+    /**
+     * Only assets of these MIME types or `type/*` wildcards, e.g.
+     * `["image/*", "application/pdf"]`, such as an asset field's
+     * `accepted_types`.
+     */
+    content_type?: string | string[]
+  }
 }
 
 export interface SchemaParams {
@@ -146,7 +152,7 @@ export type FieldMigrateParams = G.FieldMigrationRequest
 export type ImageUrlParams = NonNullable<G.AssetsImageUrlData["query"]>
 
 export interface DeliveryListParams extends ListParams {
-  status?: "pending" | "succeeded" | "failed"
+  filter?: { status?: "pending" | "succeeded" | "failed" }
 }
 
 export interface AuditEventListParams extends ListParams {

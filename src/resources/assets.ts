@@ -3,8 +3,8 @@ import type { RequestOptions } from "../core.ts"
 import { AbortError, UploadError } from "../errors.ts"
 import type {
   Asset,
-  AssetUpload,
   AssetUploadCreate,
+  AssetWithUpload,
   AssetUsage,
   DownloadUrl,
   ImageUrl,
@@ -48,7 +48,7 @@ export class Assets extends Resource {
     if (byteSize === undefined) {
       throw new UploadError("Uploading a stream needs `byte_size`")
     }
-    const { asset, upload } = await this.createUpload(
+    const { upload, ...asset } = await this.createUpload(
       {
         filename:
           params.filename ??
@@ -104,13 +104,14 @@ export class Assets extends Resource {
   }
 
   /**
-   * The first step of an upload: a `pending` asset and a presigned URL to
-   * `PUT` the bytes to (for example from a browser). Then `complete` it.
+   * The first step of an upload: a `pending` asset with its `upload`, a
+   * presigned URL to `PUT` the bytes to (for example from a browser). Then
+   * `complete` it.
    */
   createUpload(
     params: AssetUploadCreate,
     options?: RequestOptions
-  ): APIPromise<AssetUpload> {
+  ): APIPromise<AssetWithUpload> {
     return this.core.request("assets_upload", { body: params }, options)
   }
 
@@ -159,8 +160,8 @@ export class Assets extends Resource {
   }
 
   /**
-   * Permanently deletes a deleted asset now, instead of 30 days after the
-   * delete, and frees its storage. It can't be restored, records that use
+   * Permanently deletes a deleted asset now, instead of at its
+   * `purge_after`, and frees its storage. It can't be restored, records that use
    * it keep an ID that no longer resolves, and its image URLs stop working
    * within a minute or so. Returns the asset as it was. An asset that isn't
    * deleted is a `ConflictError`: delete it first.

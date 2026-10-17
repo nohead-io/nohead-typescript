@@ -54,9 +54,9 @@ export type Organization = {
      */
     grantable_scopes: Array<ApiKeyScope>;
     /**
-     * Scheduled for deletion (see `DELETE /v1/organizations/{id}`).
+     * When it was scheduled for deletion (`DELETE /v1/organizations/{id}`); null unless it is.
      */
-    deleted: boolean;
+    deleted_at: NullableTimestamp;
     /**
      * When a scheduled deletion becomes permanent; null otherwise.
      */
@@ -67,7 +67,7 @@ export type Organization = {
 
 export type Role = 'owner' | 'admin' | 'developer' | 'editor' | 'viewer';
 
-export type Permission = 'organization.read' | 'organization.update' | 'organization.delete' | 'billing.manage' | 'members.read' | 'members.manage' | 'projects.read' | 'projects.create' | 'projects.update' | 'projects.delete' | 'schema.read' | 'schema.write' | 'records.read' | 'records.write' | 'records.publish' | 'search.read' | 'assets.read' | 'assets.write' | 'api_keys.read' | 'api_keys.manage' | 'webhooks.read' | 'webhooks.manage' | 'audit.read' | 'history.redact';
+export type Permission = 'organization:read' | 'organization:write' | 'organization:delete' | 'billing:write' | 'members:read' | 'members:write' | 'projects:read' | 'projects:create' | 'projects:write' | 'projects:delete' | 'schema:read' | 'schema:write' | 'records:read' | 'records:write' | 'records:publish' | 'search:read' | 'assets:read' | 'assets:write' | 'api_keys:read' | 'api_keys:write' | 'webhooks:read' | 'webhooks:write' | 'audit:read' | 'records:redact';
 
 export type Membership = {
     id: string;
@@ -161,9 +161,9 @@ export type Project = {
         [key: string]: unknown;
     };
     /**
-     * Scheduled for deletion (see `DELETE /v1/projects/{id}`).
+     * When it was scheduled for deletion (`DELETE /v1/projects/{id}`); null unless it is.
      */
-    deleted: boolean;
+    deleted_at: NullableTimestamp;
     /**
      * When a scheduled deletion becomes permanent; null otherwise.
      */
@@ -238,7 +238,7 @@ export type Field = {
      */
     multiple: boolean;
     /**
-     * Where the field sorts in the collection's order, lowest first. New fields are added last; `POST /v1/collections/{collection_id}/fields/reorder` changes the order, numbering the fields from 0.
+     * Where the field sorts in the collection's order, lowest first. New fields are added last; `PUT /v1/collections/{collection_id}/field-order` changes the order, numbering the fields from 0.
      */
     position: number;
     /**
@@ -282,7 +282,14 @@ export type Field = {
     configuration: {
         [key: string]: unknown;
     };
-    deleted: boolean;
+    /**
+     * When the field was deleted; null unless it is. Its values stay hidden in records until it is restored or purged.
+     */
+    deleted_at: NullableTimestamp;
+    /**
+     * When a deleted field and its values are removed for good, unless restored first.
+     */
+    purge_after: NullableTimestamp;
     /**
      * Old API keys of a renamed field that still work until `expires_at`:
      * record data also carries the value under them, and writes, filters,
@@ -351,7 +358,14 @@ export type Collection = {
     slug: string;
     description: string | null;
     schema_version: number;
-    deleted: boolean;
+    /**
+     * When the collection was deleted; null unless it is.
+     */
+    deleted_at: NullableTimestamp;
+    /**
+     * When a deleted collection is removed for good, with its fields and records, unless restored first.
+     */
+    purge_after: NullableTimestamp;
     /**
      * Whether API keys can search the collection (`GET /v1/collections/{collection_id}/search`).
      * Every collection is indexed; members can search it in the web app either way.
@@ -394,7 +408,7 @@ export type SchemaDefinition = {
     name: string;
     slug: string;
     description: string | null;
-    deleted: boolean;
+    deleted_at: NullableTimestamp;
     search_enabled?: boolean;
     fields: Array<{
         id: string;
@@ -407,7 +421,7 @@ export type SchemaDefinition = {
         configuration: {
             [key: string]: unknown;
         };
-        deleted: boolean;
+        deleted_at: NullableTimestamp;
     }>;
 };
 
@@ -449,7 +463,7 @@ export type SchemaChangeProperties = {
         [key: string]: unknown;
     };
     actor: Actor;
-    via: ChangeVia;
+    via: Via;
     note: string | null;
     request_id: string | null;
     status: 'pending' | 'validating' | 'migrating' | 'reindexing' | 'complete' | 'failed';
@@ -538,7 +552,7 @@ export type FieldMigrationPreview = {
      */
     samples: Array<{
         record_id: string;
-        deleted: boolean;
+        deleted_at: NullableTimestamp;
         outcome: 'converted' | 'backfilled' | 'cleared' | 'invalid';
         /**
          * The stored value before the migration, or null.
@@ -585,9 +599,12 @@ export type FieldMigration = {
      * The `migrate_field` schema change, once complete.
      */
     schema_change_id: string | null;
-    cancel_requested: boolean;
+    /**
+     * When cancelling was asked for, while a running migration rolls back.
+     */
+    cancel_requested_at: NullableTimestamp;
     actor: Actor;
-    via: ChangeVia;
+    via: Via;
     note: string | null;
     request_id: string | null;
     created_at: Timestamp;
@@ -608,6 +625,8 @@ export type FieldMigrationList = {
  *
  */
 export type RecordSchedule = {
+    object: 'schedule';
+    record_id: string;
     publish_at: NullableTimestamp;
     unpublish_at: NullableTimestamp;
     last_error: string | null;
@@ -622,14 +641,42 @@ export type RecordScheduleUpdate = {
 };
 
 /**
- * The client a record change came through; `scheduler` for scheduled publishing.
+ * A published record's live state.
  */
-export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
+export type RecordPublication = {
+    object: 'publication';
+    record_id: string;
+    published_at: Timestamp;
+    /**
+     * The revision that is live.
+     */
+    revision: number;
+    /**
+     * Who published it last; null when that revision is no longer kept.
+     */
+    published_by: Actor | null;
+};
+
+export type ScheduledChange = {
+    object: 'scheduled_change';
+    action: 'publish' | 'unpublish';
+    at: Timestamp;
+    record_id: string;
+    /**
+     * Why the record's last scheduled change could not be made, as in its schedule.
+     */
+    last_error: string | null;
+};
+
+export type ScheduledChangeList = {
+    data: Array<ScheduledChange>;
+    meta: ListMeta;
+};
 
 /**
- * The client a schema change or field migration came through.
+ * The client a change came through; `scheduler` for scheduled changes.
  */
-export type ChangeVia = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system';
+export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
 
 /**
  * Field values keyed by field `api_key`. A rich text value is a
@@ -654,9 +701,10 @@ export type Record = {
      * The collection slug.
      */
     collection: string;
-    status: 'draft' | 'published';
+    /**
+     * When the record was published; null while it is unpublished.
+     */
     published_at: NullableTimestamp;
-    schedule: RecordSchedule;
     /**
      * Current revision number; also returned as the ETag.
      */
@@ -666,7 +714,14 @@ export type Record = {
      * Revisions up to this number (except revision 1) were removed by the plan's history retention.
      */
     history_pruned_through: number | null;
-    deleted: boolean;
+    /**
+     * When the record was soft-deleted; null unless it is.
+     */
+    deleted_at: NullableTimestamp;
+    /**
+     * When a soft-deleted record is removed for good, unless restored first.
+     */
+    purge_after: NullableTimestamp;
     data: RecordData;
     /**
      * Only with `expand`: what each requested relation, asset or rich
@@ -696,15 +751,15 @@ export type RecordList = {
 
 /**
  * One change between two states. Field changes carry `field` (current API
- * key) and the stable `field_id`; attribute changes (`status`,
- * `published_at`, `deleted`) carry `attribute`.
+ * key) and the stable `field_id`; attribute changes (`published_at`,
+ * `deleted_at`) carry `attribute`.
  *
  */
 export type Change = {
     field?: string | null;
     field_id?: string;
     field_deleted?: boolean;
-    attribute?: 'status' | 'published_at' | 'deleted';
+    attribute?: 'published_at' | 'deleted_at';
     kind: 'added' | 'changed' | 'removed';
     before?: unknown;
     after?: unknown;
@@ -729,7 +784,7 @@ export type RecordRevisionProperties = {
     changed_fields: Array<string>;
     /**
      * API keys of fields whose values in this revision were redacted
-     * (`POST /v1/records/{id}/redact`); those values read `{"$redacted": true}`.
+     * (`POST /v1/records/{id}/redactions`); those values read `{"$redacted": true}`.
      *
      */
     redacted_fields: Array<string>;
@@ -756,7 +811,6 @@ export type Redaction = {
 };
 
 export type RecordRevisionDetail = RecordRevisionProperties & {
-    status: 'draft' | 'published';
     published_at: NullableTimestamp;
     data: RecordData;
     changes: Array<Change>;
@@ -854,7 +908,15 @@ export type SearchIndex = {
     rebuild_requested_at: NullableTimestamp;
 };
 
-export type WebhookEventType = 'record.created' | 'record.updated' | 'record.deleted' | 'record.published' | 'record.unpublished' | 'asset.created' | 'asset.deleted' | 'schema.changed';
+/**
+ * An event webhooks can subscribe to: the same names as the activity
+ * log's actions. A subscription can also be every type of a resource
+ * (`record.*`, `collection.*`, `field.*`, `asset.*`) or `*` for all.
+ *
+ */
+export type WebhookEventType = 'record.created' | 'record.imported' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
+
+export type WebhookSubscription = WebhookEventType | 'record.*' | 'collection.*' | 'field.*' | 'asset.*' | '*';
 
 export type Webhook = WebhookProperties;
 
@@ -865,11 +927,18 @@ export type WebhookProperties = {
     url: string;
     description: string | null;
     /**
-     * The subscribed event types, or `["*"]` for all.
+     * The subscribed event types and wildcards (`record.*`, or `*` for all).
      */
     event_types: Array<string>;
     enabled: boolean;
-    deleted: boolean;
+    /**
+     * When the webhook was deleted; null unless it is.
+     */
+    deleted_at: NullableTimestamp;
+    /**
+     * When a deleted webhook is removed for good, with its delivery log, unless restored first.
+     */
+    purge_after: NullableTimestamp;
     created_at: Timestamp;
     updated_at: Timestamp;
 };
@@ -881,7 +950,32 @@ export type WebhookWithSecret = WebhookProperties & {
     secret: string;
 };
 
-export type BulkRecordsRequest = {
+export type WebhookSecret = WebhookSecretProperties;
+
+export type WebhookSecretProperties = {
+    id: string;
+    object: 'webhook_secret';
+    webhook_id: string;
+    /**
+     * When it stops signing deliveries; null for the newest secret.
+     */
+    expires_at: NullableTimestamp;
+    created_at: Timestamp;
+};
+
+export type WebhookSecretWithValue = WebhookSecretProperties & {
+    /**
+     * The signing secret (`whsec_...`), shown only when it is added. Keep it private.
+     */
+    secret: string;
+};
+
+export type WebhookSecretList = {
+    data: Array<WebhookSecret>;
+    meta: ListMeta;
+};
+
+export type RecordBatchRequest = {
     action: 'publish' | 'unpublish' | 'delete' | 'restore' | 'update';
     record_ids: Array<string>;
     /**
@@ -892,8 +986,8 @@ export type BulkRecordsRequest = {
     };
 };
 
-export type BulkRecordsResult = {
-    object: 'bulk_result';
+export type RecordBatch = {
+    object: 'record_batch';
     action: 'publish' | 'unpublish' | 'delete' | 'restore' | 'update';
     succeeded: number;
     failed: number;
@@ -1125,14 +1219,14 @@ export type WebhookCreate = {
      */
     url: string;
     description?: string | null;
-    event_types: Array<WebhookEventType | '*'>;
+    event_types: Array<WebhookSubscription>;
     enabled?: boolean;
 };
 
 export type WebhookUpdate = {
     url?: string;
     description?: string | null;
-    event_types?: Array<WebhookEventType | '*'>;
+    event_types?: Array<WebhookSubscription>;
     enabled?: boolean;
 };
 
@@ -1184,21 +1278,41 @@ export type WebhookDeliveryList = {
 };
 
 /**
- * The JSON body of every webhook request.
+ * The JSON body of every webhook request. It is rendered from the event's
+ * history each time it is sent or shown, so redacted values are redacted
+ * in it too.
+ *
  */
 export type WebhookEventPayload = {
+    /**
+     * The event's ID, also sent as `webhook-id`; dedupe by it.
+     */
     id: string;
     object: 'event';
     /**
-     * One of the event types, or `webhook.test`.
+     * One of the event types (`WebhookEventType`), or `webhook.test`.
      */
     type: string;
     created_at: Timestamp;
     project_id: string;
     /**
-     * `record.*`: `record` (the record after the change), `revision` and
-     * `revision_id`. `asset.*`: `asset`. `schema.changed`: `collection` and
-     * `schema_change`. `webhook.test`: `webhook`.
+     * Who made the change. Always sent.
+     */
+    actor?: Actor;
+    /**
+     * The client the change came through (null when not known). Always
+     * sent. An integration that writes back can skip changes made with
+     * its own API key (`actor`).
+     *
+     */
+    via?: null | Via;
+    /**
+     * `record.*`: `record` (as the change's revision left it, or as it is
+     * now for events without a revision such as `record.scheduled`; null
+     * once it is purged), `revision` and `revision_id`. `asset.*`:
+     * `asset` (as it is now). `collection.*` and `field.*`: `collection`
+     * and `schema_change`, except `field.alias_removed`: `field`.
+     * `webhook.test`: `webhook`.
      *
      */
     data: {
@@ -1206,7 +1320,9 @@ export type WebhookEventPayload = {
     };
 };
 
-export type Asset = {
+export type Asset = AssetProperties;
+
+export type AssetProperties = {
     id: string;
     object: 'asset';
     project_id: string;
@@ -1225,7 +1341,14 @@ export type Asset = {
      * `pending` until the upload is completed; only `ready` assets can be used in records.
      */
     status: 'pending' | 'ready' | 'failed';
-    deleted: boolean;
+    /**
+     * When the asset was deleted; null unless it is.
+     */
+    deleted_at: NullableTimestamp;
+    /**
+     * When a deleted asset and its file are removed for good, unless restored or purged first.
+     */
+    purge_after: NullableTimestamp;
     /**
      * A signed URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
      */
@@ -1290,24 +1413,36 @@ export type AssetUploadCreate = {
     byte_size: number;
 };
 
-export type AssetUpload = {
-    object: 'asset_upload';
-    asset: Asset;
-    upload: {
-        method: 'PUT';
-        url: string;
-        /**
-         * Headers to send with the upload.
-         */
-        headers: {
-            [key: string]: string;
-        };
-        expires_at: Timestamp;
-    };
+export type FieldOrder = {
+    object: 'field_order';
+    collection_id: string;
+    /**
+     * The collection's active fields, first to last.
+     */
+    field_ids: Array<string>;
 };
 
 /**
- * What a project API key may do. `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, drafts included; published-only keys cannot have them.
+ * A new asset with where to upload its file, returned only when it is created.
+ */
+export type AssetWithUpload = AssetProperties & {
+    upload: AssetUploadTarget;
+};
+
+export type AssetUploadTarget = {
+    method: 'PUT';
+    url: string;
+    /**
+     * Headers to send with the upload.
+     */
+    headers: {
+        [key: string]: string;
+    };
+    expires_at: Timestamp;
+};
+
+/**
+ * What a project API key may do. `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, unpublished records included; published-only keys cannot have them.
  */
 export type ApiKeyScope = 'records:read' | 'records:write' | 'schema:read' | 'schema:write' | 'assets:read' | 'assets:write' | 'search:read' | 'webhooks:read' | 'webhooks:write' | 'audit:read';
 
@@ -1332,7 +1467,7 @@ export type ApiKeyProperties = {
 };
 
 /**
- * The key sees published records only, for sites and apps: lists, reads, search and expanded relations leave out drafts and deleted records, and history is not available. Only read scopes (records:read, schema:read, assets:read, search:read) are allowed.
+ * The key sees published records only, for sites and apps: lists, reads, search and expanded relations leave out unpublished and deleted records, and history is not available. Only read scopes (records:read, schema:read, assets:read, search:read) are allowed.
  */
 export type PublishedOnly = boolean;
 
@@ -1413,6 +1548,8 @@ export type MigrationId = string;
 
 export type AssetId = string;
 
+export type WebhookSecretId = string;
+
 export type WebhookId = string;
 
 export type DeliveryId = string;
@@ -1431,9 +1568,10 @@ export type Expand = string;
 
 /**
  * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
- * filters combine with AND. Keys are field API keys, `status`,
+ * filters combine with AND. Keys are field API keys, `published_at`,
  * `deleted` (`true` lists soft-deleted records instead) and, in record
- * lists and counts, `created_at`, `updated_at` and `published_at`.
+ * lists and counts, `created_at` and `updated_at`. In search,
+ * `published_at` takes only `exists`.
  *
  * - `eq`, `ne`: equal, not equal. For fields with several values,
  * "contains" and "does not contain". `ne` matches records with no value.
@@ -1443,7 +1581,7 @@ export type Expand = string;
  * inside a value, `\\` a backslash); for fields with several values,
  * "contains any of".
  * - `exists`: `true` for records with a value, `false` for those without
- * (and `published_at`: ever published).
+ * (and `published_at`: published or not).
  *
  * Values are parsed per field type (`"5"` is not the integer 5), but
  * not held to the field's limits or format (`price[lt]=10` works when
@@ -1507,9 +1645,23 @@ export type Limit = number;
 export type Cursor = string;
 
 /**
- * List soft-deleted items instead of active ones.
+ * `filter[deleted]=true` lists soft-deleted items instead of active ones.
  */
-export type Deleted = boolean;
+export type DeletedFilter = {
+    deleted?: 'true' | 'false';
+};
+
+/**
+ * `filter[deleted]=true` lists deleted assets instead.
+ * `filter[content_type]` lists only assets of those types: comma-separated
+ * MIME types or `type*` wildcards, for example the ones an asset field
+ * accepts (its `accepted_types`).
+ *
+ */
+export type AssetFilter = {
+    deleted?: 'true' | 'false';
+    content_type?: string;
+};
 
 /**
  * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
@@ -1548,9 +1700,10 @@ export type RecordsListData = {
     query?: {
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `status`,
+         * filters combine with AND. Keys are field API keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         * lists and counts, `created_at` and `updated_at`. In search,
+         * `published_at` takes only `exists`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
@@ -1560,7 +1713,7 @@ export type RecordsListData = {
          * inside a value, `\\` a backslash); for fields with several values,
          * "contains any of".
          * - `exists`: `true` for records with a value, `false` for those without
-         * (and `published_at`: ever published).
+         * (and `published_at`: published or not).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
          * not held to the field's limits or format (`price[lt]=10` works when
@@ -1812,10 +1965,6 @@ export type RecordsGetData = {
          * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
-        /**
-         * Also return the record if it is soft-deleted (to review it before restoring).
-         */
-        include_deleted?: boolean;
     };
     url: '/v1/records/{record_id}';
 };
@@ -1943,87 +2092,6 @@ export type RecordsUpdateResponses = {
 
 export type RecordsUpdateResponse = RecordsUpdateResponses[keyof RecordsUpdateResponses];
 
-export type RecordsPublishData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
-         */
-        'If-Match'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (max 500 characters).
-         */
-        'Nohead-Change-Note'?: string;
-    };
-    path: {
-        record_id: string;
-    };
-    query?: never;
-    url: '/v1/records/{record_id}/publish';
-};
-
-export type RecordsPublishErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The resource changed since the revision given in `If-Match`. Nothing was
-     * written; `details` includes the current revision.
-     *
-     */
-    412: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type RecordsPublishError = RecordsPublishErrors[keyof RecordsPublishErrors];
-
-export type RecordsPublishResponses = {
-    /**
-     * The record.
-     */
-    200: Record;
-};
-
-export type RecordsPublishResponse = RecordsPublishResponses[keyof RecordsPublishResponses];
-
 export type RecordsUnpublishData = {
     body?: never;
     headers?: {
@@ -2054,7 +2122,7 @@ export type RecordsUnpublishData = {
         record_id: string;
     };
     query?: never;
-    url: '/v1/records/{record_id}/unpublish';
+    url: '/v1/records/{record_id}/publication';
 };
 
 export type RecordsUnpublishErrors = {
@@ -2104,6 +2172,134 @@ export type RecordsUnpublishResponses = {
 };
 
 export type RecordsUnpublishResponse = RecordsUnpublishResponses[keyof RecordsUnpublishResponses];
+
+export type RecordsGetPublicationData = {
+    body?: never;
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/publication';
+};
+
+export type RecordsGetPublicationErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsGetPublicationError = RecordsGetPublicationErrors[keyof RecordsGetPublicationErrors];
+
+export type RecordsGetPublicationResponses = {
+    /**
+     * The record's publication.
+     */
+    200: RecordPublication;
+};
+
+export type RecordsGetPublicationResponse = RecordsGetPublicationResponses[keyof RecordsGetPublicationResponses];
+
+export type RecordsPublishData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (max 500 characters).
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/publication';
+};
+
+export type RecordsPublishErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsPublishError = RecordsPublishErrors[keyof RecordsPublishErrors];
+
+export type RecordsPublishResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
+};
+
+export type RecordsPublishResponse = RecordsPublishResponses[keyof RecordsPublishResponses];
 
 export type RecordsUnscheduleData = {
     body?: never;
@@ -2165,12 +2361,59 @@ export type RecordsUnscheduleError = RecordsUnscheduleErrors[keyof RecordsUnsche
 
 export type RecordsUnscheduleResponses = {
     /**
-     * The record.
+     * The record's schedule.
      */
-    200: Record;
+    200: RecordSchedule;
 };
 
 export type RecordsUnscheduleResponse = RecordsUnscheduleResponses[keyof RecordsUnscheduleResponses];
+
+export type RecordsGetScheduleData = {
+    body?: never;
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/schedule';
+};
+
+export type RecordsGetScheduleErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsGetScheduleError = RecordsGetScheduleErrors[keyof RecordsGetScheduleErrors];
+
+export type RecordsGetScheduleResponses = {
+    /**
+     * The record's schedule.
+     */
+    200: RecordSchedule;
+};
+
+export type RecordsGetScheduleResponse = RecordsGetScheduleResponses[keyof RecordsGetScheduleResponses];
 
 export type RecordsScheduleData = {
     body: RecordScheduleUpdate;
@@ -2236,9 +2479,9 @@ export type RecordsScheduleError = RecordsScheduleErrors[keyof RecordsScheduleEr
 
 export type RecordsScheduleResponses = {
     /**
-     * The record.
+     * The record's schedule.
      */
-    200: Record;
+    200: RecordSchedule;
 };
 
 export type RecordsScheduleResponse = RecordsScheduleResponses[keyof RecordsScheduleResponses];
@@ -2256,6 +2499,10 @@ export type RecordsRestoreData = {
          *
          */
         'Idempotency-Key'?: string;
+        /**
+         * The record revision you last read, e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
         /**
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
@@ -2299,6 +2546,12 @@ export type RecordsRestoreErrors = {
      * The request conflicts with current state.
      */
     409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
     /**
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
@@ -2623,7 +2876,7 @@ export type RecordsRedactData = {
          */
         dry_run?: boolean;
     };
-    url: '/v1/records/{record_id}/redact';
+    url: '/v1/records/{record_id}/redactions';
 };
 
 export type RecordsRedactErrors = {
@@ -2683,9 +2936,10 @@ export type RecordsCountData = {
     query?: {
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `status`,
+         * filters combine with AND. Keys are field API keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         * lists and counts, `created_at` and `updated_at`. In search,
+         * `published_at` takes only `exists`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
@@ -2695,7 +2949,7 @@ export type RecordsCountData = {
          * inside a value, `\\` a backslash); for fields with several values,
          * "contains any of".
          * - `exists`: `true` for records with a value, `false` for those without
-         * (and `published_at`: ever published).
+         * (and `published_at`: published or not).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
          * not held to the field's limits or format (`price[lt]=10` works when
@@ -2753,7 +3007,7 @@ export type RecordsCountResponses = {
 export type RecordsCountResponse = RecordsCountResponses[keyof RecordsCountResponses];
 
 export type RecordsBulkData = {
-    body: BulkRecordsRequest;
+    body: RecordBatchRequest;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -2781,7 +3035,7 @@ export type RecordsBulkData = {
         collection_id: string;
     };
     query?: never;
-    url: '/v1/collections/{collection_id}/records/bulk';
+    url: '/v1/collections/{collection_id}/record-batches';
 };
 
 export type RecordsBulkErrors = {
@@ -2825,10 +3079,70 @@ export type RecordsBulkResponses = {
     /**
      * What happened to each record, in request order.
      */
-    200: BulkRecordsResult;
+    200: RecordBatch;
 };
 
 export type RecordsBulkResponse = RecordsBulkResponses[keyof RecordsBulkResponses];
+
+export type ScheduledChangesListData = {
+    body?: never;
+    path: {
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
+    };
+    query?: {
+        sort?: 'at' | '-at';
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+    };
+    url: '/v1/collections/{collection_id}/scheduled-changes';
+};
+
+export type ScheduledChangesListErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type ScheduledChangesListError = ScheduledChangesListErrors[keyof ScheduledChangesListErrors];
+
+export type ScheduledChangesListResponses = {
+    /**
+     * A page of scheduled changes.
+     */
+    200: ScheduledChangeList;
+};
+
+export type ScheduledChangesListResponse = ScheduledChangesListResponses[keyof ScheduledChangesListResponses];
 
 export type CollectionsListData = {
     body?: never;
@@ -2837,9 +3151,11 @@ export type CollectionsListData = {
     };
     query?: {
         /**
-         * List soft-deleted items instead of active ones.
+         * `filter[deleted]=true` lists soft-deleted items instead of active ones.
          */
-        deleted?: boolean;
+        filter?: {
+            deleted?: 'true' | 'false';
+        };
         /**
          * Page size.
          */
@@ -3432,9 +3748,11 @@ export type FieldsListData = {
     };
     query?: {
         /**
-         * List soft-deleted items instead of active ones.
+         * `filter[deleted]=true` lists soft-deleted items instead of active ones.
          */
-        deleted?: boolean;
+        filter?: {
+            deleted?: 'true' | 'false';
+        };
         /**
          * Page size.
          */
@@ -3855,6 +4173,56 @@ export type FieldsRemoveAliasResponses = {
 
 export type FieldsRemoveAliasResponse = FieldsRemoveAliasResponses[keyof FieldsRemoveAliasResponses];
 
+export type FieldsGetOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
+    };
+    query?: never;
+    url: '/v1/collections/{collection_id}/field-order';
+};
+
+export type FieldsGetOrderErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type FieldsGetOrderError = FieldsGetOrderErrors[keyof FieldsGetOrderErrors];
+
+export type FieldsGetOrderResponses = {
+    /**
+     * The collection's active fields, in order.
+     */
+    200: FieldOrder;
+};
+
+export type FieldsGetOrderResponse = FieldsGetOrderResponses[keyof FieldsGetOrderResponses];
+
 export type FieldsReorderData = {
     body: {
         field_ids: Array<string>;
@@ -3886,7 +4254,7 @@ export type FieldsReorderData = {
         collection_id: string;
     };
     query?: never;
-    url: '/v1/collections/{collection_id}/fields/reorder';
+    url: '/v1/collections/{collection_id}/field-order';
 };
 
 export type FieldsReorderErrors = {
@@ -3928,9 +4296,9 @@ export type FieldsReorderError = FieldsReorderErrors[keyof FieldsReorderErrors];
 
 export type FieldsReorderResponses = {
     /**
-     * The collection with its fields in the new order.
+     * The collection's active fields, in order.
      */
-    200: Collection;
+    200: FieldOrder;
 };
 
 export type FieldsReorderResponse = FieldsReorderResponses[keyof FieldsReorderResponses];
@@ -4140,7 +4508,7 @@ export type MigrationsCancelData = {
         migration_id: string;
     };
     query?: never;
-    url: '/v1/migrations/{migration_id}/cancel';
+    url: '/v1/migrations/{migration_id}/cancellation';
 };
 
 export type MigrationsCancelErrors = {
@@ -4200,13 +4568,16 @@ export type AssetsListData = {
          */
         cursor?: string;
         /**
-         * List soft-deleted items instead of active ones.
+         * `filter[deleted]=true` lists deleted assets instead.
+         * `filter[content_type]` lists only assets of those types: comma-separated
+         * MIME types or `type*` wildcards, for example the ones an asset field
+         * accepts (its `accepted_types`).
+         *
          */
-        deleted?: boolean;
-        /**
-         * Comma-separated MIME types or `type*` wildcards.
-         */
-        content_type?: string;
+        filter?: {
+            deleted?: 'true' | 'false';
+            content_type?: string;
+        };
     };
     url: '/v1/projects/{project_id}/assets';
 };
@@ -4275,7 +4646,7 @@ export type AssetsUploadData = {
         project_id: string;
     };
     query?: never;
-    url: '/v1/projects/{project_id}/assets/uploads';
+    url: '/v1/projects/{project_id}/assets';
 };
 
 export type AssetsUploadErrors = {
@@ -4323,9 +4694,9 @@ export type AssetsUploadError = AssetsUploadErrors[keyof AssetsUploadErrors];
 
 export type AssetsUploadResponses = {
     /**
-     * The pending asset and where to upload it.
+     * The pending asset, with where to upload it.
      */
-    201: AssetUpload;
+    201: AssetWithUpload;
 };
 
 export type AssetsUploadResponse = AssetsUploadResponses[keyof AssetsUploadResponses];
@@ -4474,7 +4845,7 @@ export type AssetsCompleteData = {
         asset_id: string;
     };
     query?: never;
-    url: '/v1/assets/{asset_id}/complete';
+    url: '/v1/assets/{asset_id}/completion';
 };
 
 export type AssetsCompleteErrors = {
@@ -4854,9 +5225,10 @@ export type CollectionsSearchData = {
         cursor?: string;
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `status`,
+         * filters combine with AND. Keys are field API keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at`, `updated_at` and `published_at`.
+         * lists and counts, `created_at` and `updated_at`. In search,
+         * `published_at` takes only `exists`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
@@ -4866,7 +5238,7 @@ export type CollectionsSearchData = {
          * inside a value, `\\` a backslash); for fields with several values,
          * "contains any of".
          * - `exists`: `true` for records with a value, `false` for those without
-         * (and `published_at`: ever published).
+         * (and `published_at`: published or not).
          *
          * Values are parsed per field type (`"5"` is not the integer 5), but
          * not held to the field's limits or format (`price[lt]=10` works when
@@ -5078,12 +5450,18 @@ export type ProjectsSearchData = {
          * The `next_cursor` from the previous page.
          */
         cursor?: string;
-        /**
-         * Comma-separated collection slugs or IDs to search in.
-         */
-        collections?: string;
         filter?: {
-            status?: 'draft' | 'published';
+            /**
+             * A collection slug or ID (`filter[collection]=posts`), or up
+             * to 100 of them (`filter[collection][in]=posts,pages`).
+             *
+             */
+            collection?: string | {
+                in: string;
+            };
+            published_at?: {
+                exists: 'true' | 'false';
+            };
         };
     };
     url: '/v1/projects/{project_id}/search';
@@ -5137,6 +5515,12 @@ export type WebhooksListData = {
         project_id: string;
     };
     query?: {
+        /**
+         * `filter[deleted]=true` lists soft-deleted items instead of active ones.
+         */
+        filter?: {
+            deleted?: 'true' | 'false';
+        };
         /**
          * Page size.
          */
@@ -5461,6 +5845,139 @@ export type WebhooksUpdateResponses = {
 
 export type WebhooksUpdateResponse = WebhooksUpdateResponses[keyof WebhooksUpdateResponses];
 
+export type WebhooksRestoreData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (max 500 characters).
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        webhook_id: string;
+    };
+    query?: never;
+    url: '/v1/webhooks/{webhook_id}/restore';
+};
+
+export type WebhooksRestoreErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type WebhooksRestoreError = WebhooksRestoreErrors[keyof WebhooksRestoreErrors];
+
+export type WebhooksRestoreResponses = {
+    /**
+     * The restored webhook.
+     */
+    200: Webhook;
+};
+
+export type WebhooksRestoreResponse = WebhooksRestoreResponses[keyof WebhooksRestoreResponses];
+
+export type WebhookSecretsListData = {
+    body?: never;
+    path: {
+        webhook_id: string;
+    };
+    query?: {
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+    };
+    url: '/v1/webhooks/{webhook_id}/secrets';
+};
+
+export type WebhookSecretsListErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type WebhookSecretsListError = WebhookSecretsListErrors[keyof WebhookSecretsListErrors];
+
+export type WebhookSecretsListResponses = {
+    /**
+     * A page of secrets.
+     */
+    200: WebhookSecretList;
+};
+
+export type WebhookSecretsListResponse = WebhookSecretsListResponses[keyof WebhookSecretsListResponses];
+
 export type WebhooksRotateSecretData = {
     body?: never;
     headers?: {
@@ -5487,7 +6004,7 @@ export type WebhooksRotateSecretData = {
         webhook_id: string;
     };
     query?: never;
-    url: '/v1/webhooks/{webhook_id}/rotate-secret';
+    url: '/v1/webhooks/{webhook_id}/secrets';
 };
 
 export type WebhooksRotateSecretErrors = {
@@ -5525,12 +6042,83 @@ export type WebhooksRotateSecretError = WebhooksRotateSecretErrors[keyof Webhook
 
 export type WebhooksRotateSecretResponses = {
     /**
-     * The webhook, with its new secret.
+     * The new secret, with its value.
      */
-    200: WebhookWithSecret;
+    201: WebhookSecretWithValue;
 };
 
 export type WebhooksRotateSecretResponse = WebhooksRotateSecretResponses[keyof WebhooksRotateSecretResponses];
+
+export type WebhookSecretsRetireData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (max 500 characters).
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        secret_id: string;
+    };
+    query?: never;
+    url: '/v1/webhook-secrets/{secret_id}';
+};
+
+export type WebhookSecretsRetireErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type WebhookSecretsRetireError = WebhookSecretsRetireErrors[keyof WebhookSecretsRetireErrors];
+
+export type WebhookSecretsRetireResponses = {
+    /**
+     * The retired secret.
+     */
+    200: WebhookSecret;
+};
+
+export type WebhookSecretsRetireResponse = WebhookSecretsRetireResponses[keyof WebhookSecretsRetireResponses];
 
 export type WebhooksTestData = {
     body?: never;
@@ -5617,7 +6205,9 @@ export type WebhookDeliveriesListData = {
          * The `next_cursor` from the previous page.
          */
         cursor?: string;
-        status?: 'pending' | 'succeeded' | 'failed';
+        filter?: {
+            status?: 'pending' | 'succeeded' | 'failed';
+        };
     };
     url: '/v1/webhooks/{webhook_id}/deliveries';
 };
@@ -5733,7 +6323,7 @@ export type WebhookDeliveriesRetryData = {
         delivery_id: string;
     };
     query?: never;
-    url: '/v1/webhook-deliveries/{delivery_id}/retry';
+    url: '/v1/webhook-deliveries/{delivery_id}/attempts';
 };
 
 export type WebhookDeliveriesRetryErrors = {
@@ -5969,14 +6559,14 @@ export type ProjectsListData = {
     path?: never;
     query?: {
         /**
-         * List those scheduled for deletion instead (to restore them).
-         */
-        deleted?: boolean;
-        /**
-         * `filter[organization_id]=org_...` limits the list to one organization.
+         * `filter[organization_id]=org_...` limits the list to one
+         * organization; `filter[deleted]=true` lists those scheduled for
+         * deletion instead (to restore them).
+         *
          */
         filter?: {
             organization_id?: string;
+            deleted?: 'true' | 'false';
         };
         /**
          * Page size.
@@ -6100,12 +6690,7 @@ export type ProjectsCreateResponses = {
 export type ProjectsCreateResponse = ProjectsCreateResponses[keyof ProjectsCreateResponses];
 
 export type ProjectsDeleteData = {
-    body: {
-        /**
-         * Must equal the project's slug.
-         */
-        confirm: string;
-    };
+    body?: never;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -6146,10 +6731,6 @@ export type ProjectsDeleteErrors = {
      * The request conflicts with current state.
      */
     409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
@@ -6359,6 +6940,12 @@ export type OrganizationsListData = {
     path?: never;
     query?: {
         /**
+         * `filter[deleted]=true` lists soft-deleted items instead of active ones.
+         */
+        filter?: {
+            deleted?: 'true' | 'false';
+        };
+        /**
          * Page size.
          */
         limit?: number;
@@ -6366,10 +6953,6 @@ export type OrganizationsListData = {
          * The `next_cursor` from the previous page.
          */
         cursor?: string;
-        /**
-         * List those scheduled for deletion instead (to restore them).
-         */
-        deleted?: boolean;
     };
     url: '/v1/organizations';
 };
@@ -6470,12 +7053,7 @@ export type OrganizationsCreateResponses = {
 export type OrganizationsCreateResponse = OrganizationsCreateResponses[keyof OrganizationsCreateResponses];
 
 export type OrganizationsDeleteData = {
-    body: {
-        /**
-         * Must equal the organization's slug.
-         */
-        confirm: string;
-    };
+    body?: never;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -6516,10 +7094,6 @@ export type OrganizationsDeleteErrors = {
      * The request conflicts with current state.
      */
     409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
     /**
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
@@ -7262,7 +7836,7 @@ export type MeInvitationsAcceptData = {
         invitation_id: string;
     };
     query?: never;
-    url: '/v1/me/invitations/{invitation_id}/accept';
+    url: '/v1/me/invitations/{invitation_id}/acceptance';
 };
 
 export type MeInvitationsAcceptErrors = {
@@ -7325,7 +7899,7 @@ export type MeInvitationsDeclineData = {
         invitation_id: string;
     };
     query?: never;
-    url: '/v1/me/invitations/{invitation_id}/decline';
+    url: '/v1/me/invitations/{invitation_id}';
 };
 
 export type MeInvitationsDeclineErrors = {

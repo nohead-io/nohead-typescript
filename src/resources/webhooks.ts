@@ -5,10 +5,17 @@ import type {
   WebhookCreate,
   WebhookDelivery,
   WebhookDeliveryDetail,
+  WebhookSecret,
+  WebhookSecretWithValue,
   WebhookUpdate,
   WebhookWithSecret,
 } from "../generated/types.gen.ts"
-import type { DeliveryListParams, ListParams, RecordData } from "../types.ts"
+import type {
+  DeletedListParams,
+  DeliveryListParams,
+  ListParams,
+  RecordData,
+} from "../types.ts"
 import {
   unwrapWebhook,
   type UnwrapOptions,
@@ -20,9 +27,10 @@ import { Resource } from "./resource.ts"
 /** Webhooks of the key's project. `webhook` is a webhook ID (`wh_…`). */
 export class Webhooks extends Resource {
   readonly deliveries = new Deliveries(this.core)
+  readonly secrets = new Secrets(this.core)
 
   list(
-    params: ListParams = {},
+    params: DeletedListParams = {},
     options?: RequestOptions
   ): PagePromise<Webhook> {
     return this.core.paginate("webhooks_list", { query: params }, options)
@@ -56,6 +64,7 @@ export class Webhooks extends Resource {
     )
   }
 
+  /** Soft-deletes the webhook: `restore` brings it back until its `purge_after`. */
   delete(webhook: string, options?: RequestOptions): APIPromise<Webhook> {
     return this.core.request(
       "webhooks_delete",
@@ -64,11 +73,23 @@ export class Webhooks extends Resource {
     )
   }
 
-  /** A new signing secret; the old one stops working at once. */
+  restore(webhook: string, options?: RequestOptions): APIPromise<Webhook> {
+    return this.core.request(
+      "webhooks_restore",
+      { path: { webhook_id: webhook } },
+      options
+    )
+  }
+
+  /**
+   * A new signing secret (`secret`, shown only here). The ones before it
+   * keep signing for 24 hours, so receivers can switch without rejecting
+   * deliveries; `secrets.retire` ends one sooner.
+   */
   rotateSecret(
     webhook: string,
     options?: RequestOptions
-  ): APIPromise<WebhookWithSecret> {
+  ): APIPromise<WebhookSecretWithValue> {
     return this.core.request(
       "webhooks_rotate_secret",
       { path: { webhook_id: webhook } },
@@ -123,7 +144,7 @@ export class Deliveries extends Resource {
     )
   }
 
-  /** Sends the event again. */
+  /** Sends the event again now, as a new attempt. */
   retry(
     delivery: string,
     options?: RequestOptions
@@ -131,6 +152,31 @@ export class Deliveries extends Resource {
     return this.core.request(
       "webhook_deliveries_retry",
       { path: { delivery_id: delivery } },
+      options
+    )
+  }
+}
+
+/** A webhook's signing secrets. `secret` is a secret ID (`whs_…`). */
+export class Secrets extends Resource {
+  /** Those signing deliveries now, oldest first, without their values. */
+  list(
+    webhook: string,
+    params: ListParams = {},
+    options?: RequestOptions
+  ): PagePromise<WebhookSecret> {
+    return this.core.paginate(
+      "webhook_secrets_list",
+      { path: { webhook_id: webhook }, query: params },
+      options
+    )
+  }
+
+  /** Stops signing with it now. The newest can't be retired: rotate first. */
+  retire(secret: string, options?: RequestOptions): APIPromise<WebhookSecret> {
+    return this.core.request(
+      "webhook_secrets_retire",
+      { path: { secret_id: secret } },
       options
     )
   }

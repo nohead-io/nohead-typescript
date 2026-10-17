@@ -65,11 +65,13 @@ describe("pagination", () => {
       }),
     ])
     const hits = await nohead.search("hello", {
-      collections: ["posts", "pages"],
+      filter: { collection: { in: ["posts", "pages"] } },
     })
     expect(hits.meta.total_estimate).toBe(1)
     expect(calls[0]!.url.pathname).toBe("/v1/projects/prj_1/search")
     expect(calls[0]!.url.searchParams.get("q")).toBe("hello")
-    expect(calls[0]!.url.searchParams.get("collections")).toBe("posts,pages")
+    expect(calls[0]!.url.searchParams.get("filter[collection][in]")).toBe(
+      "posts,pages"
+    )
   })
 })

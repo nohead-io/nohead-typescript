@@ -3,9 +3,10 @@
 //   import { unwrapWebhook } from "@nohead/sdk/webhooks"
 import { WebhookVerificationError } from "./errors.ts"
 import type {
+  Actor,
   Asset,
-  Collection,
-  SchemaChange,
+  Field,
+  Via,
   Webhook,
 } from "./generated/types.gen.ts"
 import type { NoheadRecord, RecordData } from "./types.ts"
@@ -16,38 +17,96 @@ interface EventBase<Type extends string, Data> {
   type: Type
   created_at: string
   project_id: string
+  /** Who made the change. An integration that writes back can skip its own. */
+  actor: Actor
+  /** The client the change came through, when known. */
+  via: Via | null
   data: Data
 }
 
+/**
+ * A change to a record. `record` is the record as the change's revision left
+ * it, or as it is now for events without a revision (`record.scheduled`,
+ * `record.unscheduled`, `record.schedule_failed`, `record.redacted`); `null`
+ * once the record is purged.
+ */
 export type RecordEvent<D = RecordData> = EventBase<
   | "record.created"
+  | "record.imported"
   | "record.updated"
-  | "record.deleted"
   | "record.published"
-  | "record.unpublished",
-  { record: NoheadRecord<D>; revision: number; revision_id: string }
+  | "record.unpublished"
+  | "record.deleted"
+  | "record.restored"
+  | "record.reverted"
+  | "record.redacted"
+  | "record.scheduled"
+  | "record.unscheduled"
+  | "record.schedule_failed",
+  {
+    record: NoheadRecord<D> | null
+    revision: number | null
+    revision_id: string | null
+  }
 >
+/** An asset as it is now; only its ID once it is purged. */
 export type AssetEvent = EventBase<
-  "asset.created" | "asset.deleted",
-  { asset: Asset }
+  "asset.created" | "asset.deleted" | "asset.restored" | "asset.purged",
+  { asset: Asset | { id: string; object: "asset" } }
 >
-export type SchemaChangedEvent = EventBase<
-  "schema.changed",
-  { collection: Collection; schema_change: SchemaChange }
+/** A schema change: the collection as it left it, and the change. */
+export type SchemaEvent = EventBase<
+  | "collection.created"
+  | "collection.updated"
+  | "collection.deleted"
+  | "collection.restored"
+  | "collection.fields_reordered"
+  | "field.created"
+  | "field.updated"
+  | "field.deleted"
+  | "field.restored"
+  | "field.migrated",
+  {
+    collection: {
+      id: string
+      slug: string
+      name: string
+      schema_version: number
+      deleted_at: string | null
+    }
+    schema_change: {
+      id: string
+      operation: string
+      from_version: number
+      to_version: number
+    } | null
+  }
+>
+/** A renamed field's old API key stopped answering before it expired. */
+export type FieldAliasRemovedEvent = EventBase<
+  "field.alias_removed",
+  { field: Field | null }
 >
 /** Sent by `webhooks.test`. */
 export type WebhookTestEvent = EventBase<"webhook.test", { webhook: Webhook }>
 
 /** A webhook request's body, narrowed by `type`. */
 export type WebhookEvent<D = RecordData> =
-  RecordEvent<D> | AssetEvent | SchemaChangedEvent | WebhookTestEvent
+  | RecordEvent<D>
+  | AssetEvent
+  | SchemaEvent
+  | FieldAliasRemovedEvent
+  | WebhookTestEvent
 
 /** Request headers: a `Headers` object or a plain object (e.g. Node's). */
 export type WebhookHeaders =
   Headers | Record<string, string | string[] | undefined>
 
 export interface UnwrapOptions {
-  /** The webhook's signing secret (`whsec_…`). */
+  /**
+   * The webhook's signing secret (`whsec_…`). While a rotation overlaps,
+   * requests carry a signature for each secret, so either one verifies.
+   */
   secret: string
   /** Seconds a timestamp may be off from now. Default 300. */
   tolerance?: number

@@ -2,6 +2,7 @@ import type { APIPromise, PagePromise } from "../api-promise.ts"
 import type { RequestOptions } from "../core.ts"
 import type {
   Collection,
+  FieldOrder,
   CollectionCreate,
   CollectionUpdate,
   Field,
@@ -208,12 +209,21 @@ export class Fields extends Resource {
     )
   }
 
-  /** Puts the collection's fields in this order. */
+  /** The collection's active fields, in order. */
+  order(collection: string, options?: RequestOptions): APIPromise<FieldOrder> {
+    return this.core.request(
+      "fields_get_order",
+      { path: { collection_id: collection } },
+      options
+    )
+  }
+
+  /** Puts the collection's fields in this order; lists every active field once. */
   reorder(
     collection: string,
     params: { field_ids: string[] },
     options?: RequestOptions
-  ): APIPromise<Collection> {
+  ): APIPromise<FieldOrder> {
     return this.core.request(
       "fields_reorder",
       { path: { collection_id: collection }, body: params },

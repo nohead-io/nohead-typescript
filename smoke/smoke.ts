@@ -114,12 +114,14 @@ try {
   )
 
   const published = await nohead.records.publish<Post>(first.id)
+  expect(published.published_at, "publish publishes")
+  const publication = await nohead.records.publication(first.id)
   expect(
-    published.status === "published" && published.published_at,
-    "publish publishes"
+    publication.revision === published.revision,
+    "the publication says which revision is live"
   )
   const unpublished = await nohead.records.unpublish<Post>(first.id)
-  expect(unpublished.status === "draft", "unpublish takes it back")
+  expect(unpublished.published_at === null, "unpublish takes it back")
 
   const invalid = await rejection(
     nohead.records.create(collection.slug, { data: {} })
@@ -151,7 +153,7 @@ try {
   )
 
   const deletedAsset = await nohead.assets.delete(asset.id)
-  expect(deletedAsset.deleted, "assets soft-delete")
+  expect(deletedAsset.deleted_at, "assets soft-delete")
   await nohead.assets.purge(asset.id)
   delete left.assets
 
@@ -163,13 +165,21 @@ try {
   const rotated = await nohead.webhooks.rotateSecret(webhook.id)
   expect(
     webhook.secret.startsWith("whsec_") && rotated.secret !== webhook.secret,
-    "rotating a webhook's secret replaces it"
+    "rotating a webhook's secret adds one"
   )
-  expect((await nohead.webhooks.delete(webhook.id)).deleted, "webhooks delete")
+  const secrets = await nohead.webhooks.secrets.list(webhook.id)
+  expect(
+    secrets.data.length === 2,
+    "the old secret signs alongside the new one"
+  )
+  expect(
+    (await nohead.webhooks.delete(webhook.id)).deleted_at,
+    "webhooks delete"
+  )
   delete left.webhooks
 
   const deleted = await nohead.records.delete(first.id)
-  expect(deleted.deleted, "delete soft-deletes")
+  expect(deleted.deleted_at, "delete soft-deletes")
   await nohead.collections.delete(collection.id)
   delete left.collections
 } finally {

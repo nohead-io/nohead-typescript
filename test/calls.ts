@@ -9,16 +9,12 @@ import { example, routeOf, type Route } from "./spec.ts"
 export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
     nohead.records.list("posts", {
-      filter: { status: "published" },
+      filter: { published_at: { exists: true } },
       sort: "-created_at",
       expand: ["author"],
       limit: 5,
     }),
-  (nohead) =>
-    nohead.records.get("rec_01J9ZQ3F8X", {
-      expand: ["author"],
-      include_deleted: true,
-    }),
+  (nohead) => nohead.records.get("rec_01J9ZQ3F8X", { expand: ["author"] }),
   (nohead) => nohead.records.create("posts", { data: { title: "Hi" } }),
   (nohead) =>
     nohead.records.update(
@@ -30,12 +26,18 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.records.restore("rec_01J9ZQ3F8X"),
   (nohead) => nohead.records.publish("rec_01J9ZQ3F8X"),
   (nohead) => nohead.records.unpublish("rec_01J9ZQ3F8X"),
+  (nohead) => nohead.records.publication("rec_01J9ZQ3F8X"),
+  (nohead) => nohead.records.getSchedule("rec_01J9ZQ3F8X"),
   (nohead) =>
     nohead.records.schedule("rec_01J9ZQ3F8X", {
       publish_at: "2027-01-01T00:00:00Z",
     }),
   (nohead) => nohead.records.unschedule("rec_01J9ZQ3F8X"),
-  (nohead) => nohead.records.count("posts", { filter: { status: "draft" } }),
+  (nohead) => nohead.records.scheduledChanges("posts", { sort: "at" }),
+  (nohead) =>
+    nohead.records.count("posts", {
+      filter: { published_at: { exists: false } },
+    }),
   (nohead) =>
     nohead.records.bulk("posts", {
       action: "publish",
@@ -44,7 +46,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.records.diff("rec_01J9ZQ3F8X", { from: 1, to: 2 }),
   (nohead) =>
     nohead.records.search("posts", "hello", {
-      filter: { status: "published" },
+      filter: { published_at: { exists: true } },
       sort: "-published_at",
       expand: ["author"],
     }),
@@ -57,10 +59,9 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
     nohead.records.revisions.revert("rec_01J9ZQ3F8X", 1, { dry_run: true }),
   (nohead) =>
     nohead.search("hello", {
-      collections: ["posts"],
-      filter: { status: "published" },
+      filter: { collection: { in: ["posts"] }, published_at: { exists: true } },
     }),
-  (nohead) => nohead.collections.list({ deleted: true }),
+  (nohead) => nohead.collections.list({ filter: { deleted: true } }),
   (nohead) => nohead.collections.get("posts"),
   (nohead) => nohead.collections.create({ name: "Posts", slug: "posts" }),
   (nohead) => nohead.collections.update("posts", { name: "Articles" }),
@@ -71,7 +72,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.collections.schemaChanges.get("posts", "sch_01J9ZQ3F8X"),
   (nohead) => nohead.collections.searchIndex.get("posts"),
   (nohead) => nohead.collections.searchIndex.rebuild("posts"),
-  (nohead) => nohead.fields.list("posts", { deleted: true }),
+  (nohead) => nohead.fields.list("posts", { filter: { deleted: true } }),
   (nohead) =>
     nohead.fields.create("posts", {
       name: "Title",
@@ -81,6 +82,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.fields.update("fld_01J9ZQ3F8X", { name: "Heading" }),
   (nohead) => nohead.fields.delete("fld_01J9ZQ3F8X"),
   (nohead) => nohead.fields.restore("fld_01J9ZQ3F8X"),
+  (nohead) => nohead.fields.order("posts"),
   (nohead) => nohead.fields.reorder("posts", { field_ids: ["fld_01J9ZQ3F8X"] }),
   (nohead) => nohead.fields.removeAlias("fld_01J9ZQ3F8X", "old_title"),
   (nohead) =>
@@ -102,7 +104,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       byte_size: 5,
     }),
   (nohead) => nohead.assets.complete("ast_01J9ZQ3F8X"),
-  (nohead) => nohead.assets.list({ deleted: true }),
+  (nohead) => nohead.assets.list({ filter: { deleted: true } }),
   (nohead) => nohead.assets.get("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.delete("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.restore("ast_01J9ZQ3F8X"),
@@ -111,7 +113,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
     nohead.assets.imageUrl("ast_01J9ZQ3F8X", { width: 100, format: "webp" }),
   (nohead) => nohead.assets.downloadUrl("ast_01J9ZQ3F8X"),
-  (nohead) => nohead.webhooks.list(),
+  (nohead) => nohead.webhooks.list({ filter: { deleted: true } }),
   (nohead) => nohead.webhooks.get("wh_01J9ZQ3F8X"),
   (nohead) =>
     nohead.webhooks.create({
@@ -120,10 +122,15 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
     }),
   (nohead) => nohead.webhooks.update("wh_01J9ZQ3F8X", { enabled: false }),
   (nohead) => nohead.webhooks.delete("wh_01J9ZQ3F8X"),
+  (nohead) => nohead.webhooks.restore("wh_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.rotateSecret("wh_01J9ZQ3F8X"),
+  (nohead) => nohead.webhooks.secrets.list("wh_01J9ZQ3F8X"),
+  (nohead) => nohead.webhooks.secrets.retire("whs_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.test("wh_01J9ZQ3F8X"),
   (nohead) =>
-    nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", { status: "failed" }),
+    nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", {
+      filter: { status: "failed" },
+    }),
   (nohead) => nohead.webhooks.deliveries.get("whd_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.deliveries.retry("whd_01J9ZQ3F8X"),
   (nohead) =>
