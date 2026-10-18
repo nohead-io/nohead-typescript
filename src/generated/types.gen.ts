@@ -1844,98 +1844,6 @@ export type RecordsUpdateResponses = {
 
 export type RecordsUpdateResponse = RecordsUpdateResponses[keyof RecordsUpdateResponses];
 
-export type RecordsRestoreData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
-         */
-        'If-Match'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
-    };
-    path: {
-        record_id: string;
-    };
-    query?: never;
-    url: '/v1/records/{record_id}/restore';
-};
-
-export type RecordsRestoreErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The resource changed since the revision given in `If-Match`. Nothing was
-     * written; `details` includes the current revision.
-     *
-     */
-    412: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type RecordsRestoreError = RecordsRestoreErrors[keyof RecordsRestoreErrors];
-
-export type RecordsRestoreResponses = {
-    /**
-     * The record.
-     */
-    200: Record;
-};
-
-export type RecordsRestoreResponse = RecordsRestoreResponses[keyof RecordsRestoreResponses];
-
 export type RecordsCountData = {
     body?: never;
     path: {
@@ -2099,6 +2007,98 @@ export type RecordsBulkResponses = {
 };
 
 export type RecordsBulkResponse = RecordsBulkResponses[keyof RecordsBulkResponses];
+
+export type RecordsRestoreData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/restore';
+};
+
+export type RecordsRestoreErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsRestoreError = RecordsRestoreErrors[keyof RecordsRestoreErrors];
+
+export type RecordsRestoreResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
+};
+
+export type RecordsRestoreResponse = RecordsRestoreResponses[keyof RecordsRestoreResponses];
 
 export type RecordsUnpublishData = {
     body?: never;
@@ -4380,157 +4380,6 @@ export type FieldsUpdateResponses = {
 
 export type FieldsUpdateResponse = FieldsUpdateResponses[keyof FieldsUpdateResponses];
 
-export type FieldsRestoreData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
-    };
-    path: {
-        field_id: string;
-    };
-    query?: never;
-    url: '/v1/fields/{field_id}/restore';
-};
-
-export type FieldsRestoreErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type FieldsRestoreError = FieldsRestoreErrors[keyof FieldsRestoreErrors];
-
-export type FieldsRestoreResponses = {
-    /**
-     * The restored field.
-     */
-    200: Field;
-};
-
-export type FieldsRestoreResponse = FieldsRestoreResponses[keyof FieldsRestoreResponses];
-
-export type FieldsRemoveAliasData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-    };
-    path: {
-        field_id: string;
-        /**
-         * The old API key.
-         */
-        alias: string;
-    };
-    query?: never;
-    url: '/v1/fields/{field_id}/aliases/{alias}';
-};
-
-export type FieldsRemoveAliasErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type FieldsRemoveAliasError = FieldsRemoveAliasErrors[keyof FieldsRemoveAliasErrors];
-
-export type FieldsRemoveAliasResponses = {
-    /**
-     * The field.
-     */
-    200: Field;
-};
-
-export type FieldsRemoveAliasResponse = FieldsRemoveAliasResponses[keyof FieldsRemoveAliasResponses];
-
 export type FieldsGetOrderData = {
     body?: never;
     path: {
@@ -4665,6 +4514,157 @@ export type FieldsReorderResponses = {
 };
 
 export type FieldsReorderResponse = FieldsReorderResponses[keyof FieldsReorderResponses];
+
+export type FieldsRemoveAliasData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        field_id: string;
+        /**
+         * The old API key.
+         */
+        alias: string;
+    };
+    query?: never;
+    url: '/v1/fields/{field_id}/aliases/{alias}';
+};
+
+export type FieldsRemoveAliasErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type FieldsRemoveAliasError = FieldsRemoveAliasErrors[keyof FieldsRemoveAliasErrors];
+
+export type FieldsRemoveAliasResponses = {
+    /**
+     * The field.
+     */
+    200: Field;
+};
+
+export type FieldsRemoveAliasResponse = FieldsRemoveAliasResponses[keyof FieldsRemoveAliasResponses];
+
+export type FieldsRestoreData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        field_id: string;
+    };
+    query?: never;
+    url: '/v1/fields/{field_id}/restore';
+};
+
+export type FieldsRestoreErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type FieldsRestoreError = FieldsRestoreErrors[keyof FieldsRestoreErrors];
+
+export type FieldsRestoreResponses = {
+    /**
+     * The restored field.
+     */
+    200: Field;
+};
+
+export type FieldsRestoreResponse = FieldsRestoreResponses[keyof FieldsRestoreResponses];
 
 export type MigrationsListData = {
     body?: never;
@@ -5074,6 +5074,86 @@ export type AssetsUploadResponses = {
 
 export type AssetsUploadResponse = AssetsUploadResponses[keyof AssetsUploadResponses];
 
+export type AssetsCompleteData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/v1/assets/{asset_id}/complete';
+};
+
+export type AssetsCompleteErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type AssetsCompleteError = AssetsCompleteErrors[keyof AssetsCompleteErrors];
+
+export type AssetsCompleteResponses = {
+    /**
+     * The ready asset.
+     */
+    200: Asset;
+};
+
+export type AssetsCompleteResponse = AssetsCompleteResponses[keyof AssetsCompleteResponses];
+
 export type AssetsDeleteData = {
     body?: never;
     headers?: {
@@ -5196,86 +5276,6 @@ export type AssetsGetResponses = {
 };
 
 export type AssetsGetResponse = AssetsGetResponses[keyof AssetsGetResponses];
-
-export type AssetsCompleteData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
-    };
-    path: {
-        asset_id: string;
-    };
-    query?: never;
-    url: '/v1/assets/{asset_id}/complete';
-};
-
-export type AssetsCompleteErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type AssetsCompleteError = AssetsCompleteErrors[keyof AssetsCompleteErrors];
-
-export type AssetsCompleteResponses = {
-    /**
-     * The ready asset.
-     */
-    200: Asset;
-};
-
-export type AssetsCompleteResponse = AssetsCompleteResponses[keyof AssetsCompleteResponses];
 
 export type AssetsImageUrlData = {
     body?: never;
@@ -5701,6 +5701,83 @@ export type CollectionsSearchResponses = {
 
 export type CollectionsSearchResponse = CollectionsSearchResponses[keyof CollectionsSearchResponses];
 
+export type ProjectsSearchData = {
+    body?: never;
+    path: {
+        project_id: string;
+    };
+    query?: {
+        /**
+         * The words to search for; empty matches everything.
+         */
+        q?: string;
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+        filter?: {
+            /**
+             * A collection slug or ID (`filter[collection]=posts`), or up
+             * to 100 of them (`filter[collection][in]=posts,pages`).
+             *
+             */
+            collection?: string | {
+                in: string;
+            };
+            published_at?: {
+                exists: 'true' | 'false';
+            };
+        };
+    };
+    url: '/v1/projects/{project_id}/search';
+};
+
+export type ProjectsSearchErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+    /**
+     * The service is temporarily unavailable.
+     */
+    503: Error;
+};
+
+export type ProjectsSearchError = ProjectsSearchErrors[keyof ProjectsSearchErrors];
+
+export type ProjectsSearchResponses = {
+    /**
+     * A page of matching records.
+     */
+    200: SearchResults;
+};
+
+export type ProjectsSearchResponse = ProjectsSearchResponses[keyof ProjectsSearchResponses];
+
 export type SearchIndexGetData = {
     body?: never;
     path: {
@@ -5829,83 +5906,6 @@ export type SearchIndexRebuildResponses = {
 };
 
 export type SearchIndexRebuildResponse = SearchIndexRebuildResponses[keyof SearchIndexRebuildResponses];
-
-export type ProjectsSearchData = {
-    body?: never;
-    path: {
-        project_id: string;
-    };
-    query?: {
-        /**
-         * The words to search for; empty matches everything.
-         */
-        q?: string;
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-        filter?: {
-            /**
-             * A collection slug or ID (`filter[collection]=posts`), or up
-             * to 100 of them (`filter[collection][in]=posts,pages`).
-             *
-             */
-            collection?: string | {
-                in: string;
-            };
-            published_at?: {
-                exists: 'true' | 'false';
-            };
-        };
-    };
-    url: '/v1/projects/{project_id}/search';
-};
-
-export type ProjectsSearchErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-    /**
-     * The service is temporarily unavailable.
-     */
-    503: Error;
-};
-
-export type ProjectsSearchError = ProjectsSearchErrors[keyof ProjectsSearchErrors];
-
-export type ProjectsSearchResponses = {
-    /**
-     * A page of matching records.
-     */
-    200: SearchResults;
-};
-
-export type ProjectsSearchResponse = ProjectsSearchResponses[keyof ProjectsSearchResponses];
 
 export type WebhooksListData = {
     body?: never;
@@ -6258,7 +6258,7 @@ export type WebhooksUpdateResponses = {
 
 export type WebhooksUpdateResponse = WebhooksUpdateResponses[keyof WebhooksUpdateResponses];
 
-export type WebhooksRestoreData = {
+export type WebhooksTestData = {
     body?: never;
     headers?: {
         /**
@@ -6289,10 +6289,10 @@ export type WebhooksRestoreData = {
         webhook_id: string;
     };
     query?: never;
-    url: '/v1/webhooks/{webhook_id}/restore';
+    url: '/v1/webhooks/{webhook_id}/test';
 };
 
-export type WebhooksRestoreErrors = {
+export type WebhooksTestErrors = {
     /**
      * The request was malformed.
      */
@@ -6301,12 +6301,6 @@ export type WebhooksRestoreErrors = {
      * Authentication is missing or invalid.
      */
     401: Error;
-    /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
     /**
      * The caller is not allowed to perform this action.
      */
@@ -6329,16 +6323,16 @@ export type WebhooksRestoreErrors = {
     429: Error;
 };
 
-export type WebhooksRestoreError = WebhooksRestoreErrors[keyof WebhooksRestoreErrors];
+export type WebhooksTestError = WebhooksTestErrors[keyof WebhooksTestErrors];
 
-export type WebhooksRestoreResponses = {
+export type WebhooksTestResponses = {
     /**
-     * The restored webhook.
+     * The queued delivery.
      */
-    200: Webhook;
+    202: WebhookDelivery;
 };
 
-export type WebhooksRestoreResponse = WebhooksRestoreResponses[keyof WebhooksRestoreResponses];
+export type WebhooksTestResponse = WebhooksTestResponses[keyof WebhooksTestResponses];
 
 export type WebhookSecretsListData = {
     body?: never;
@@ -6548,7 +6542,7 @@ export type WebhookSecretsRetireResponses = {
 
 export type WebhookSecretsRetireResponse = WebhookSecretsRetireResponses[keyof WebhookSecretsRetireResponses];
 
-export type WebhooksTestData = {
+export type WebhooksRestoreData = {
     body?: never;
     headers?: {
         /**
@@ -6579,10 +6573,10 @@ export type WebhooksTestData = {
         webhook_id: string;
     };
     query?: never;
-    url: '/v1/webhooks/{webhook_id}/test';
+    url: '/v1/webhooks/{webhook_id}/restore';
 };
 
-export type WebhooksTestErrors = {
+export type WebhooksRestoreErrors = {
     /**
      * The request was malformed.
      */
@@ -6591,6 +6585,12 @@ export type WebhooksTestErrors = {
      * Authentication is missing or invalid.
      */
     401: Error;
+    /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
     /**
      * The caller is not allowed to perform this action.
      */
@@ -6613,16 +6613,16 @@ export type WebhooksTestErrors = {
     429: Error;
 };
 
-export type WebhooksTestError = WebhooksTestErrors[keyof WebhooksTestErrors];
+export type WebhooksRestoreError = WebhooksRestoreErrors[keyof WebhooksRestoreErrors];
 
-export type WebhooksTestResponses = {
+export type WebhooksRestoreResponses = {
     /**
-     * The queued delivery.
+     * The restored webhook.
      */
-    202: WebhookDelivery;
+    200: Webhook;
 };
 
-export type WebhooksTestResponse = WebhooksTestResponses[keyof WebhooksTestResponses];
+export type WebhooksRestoreResponse = WebhooksRestoreResponses[keyof WebhooksRestoreResponses];
 
 export type WebhookDeliveriesListData = {
     body?: never;
