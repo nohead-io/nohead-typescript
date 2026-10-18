@@ -64,7 +64,8 @@ jobs:
           fi
       # Also builds dist/ (prepare).
       - run: npm ci
-      - run: npm pack --pack-destination release
+      # npm pack doesn't create its destination.
+      - run: mkdir release && npm pack --pack-destination release
       - run: mv notes.md release/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
