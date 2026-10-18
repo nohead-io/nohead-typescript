@@ -154,6 +154,9 @@ export type RecordCount = {
 
 export type FieldCreate = {
     name: string;
+    /**
+     * The field's key in records' `data`, filters and sorts. Reserved for records' own attributes, and a few kept for later: `id`, `object`, `collection`, `data`, `status`, `published_at`, `created_at`, `updated_at`, `deleted`, `deleted_at`, `purge_after`, `revision` and `schema_version`.
+     */
     api_key: string;
     type: FieldType;
     /**
@@ -171,6 +174,9 @@ export type FieldCreate = {
 
 export type FieldUpdate = {
     name?: string;
+    /**
+     * The field's key in records' `data`, filters and sorts. Reserved for records' own attributes, and a few kept for later: `id`, `object`, `collection`, `data`, `status`, `published_at`, `created_at`, `updated_at`, `deleted`, `deleted_at`, `purge_after`, `revision` and `schema_version`.
+     */
     api_key?: string;
     type?: FieldType;
     /**
@@ -307,7 +313,6 @@ export type SchemaChangeProperties = {
     via: Via;
     note: string | null;
     request_id: string | null;
-    status: 'pending' | 'validating' | 'migrating' | 'reindexing' | 'complete' | 'failed';
     created_at: Timestamp;
 };
 
@@ -461,8 +466,10 @@ export type FieldMigrationList = {
 /**
  * When the record publishes or unpublishes on its own (within a minute of
  * the time), set with `PUT /v1/records/{record_id}/schedule`. A time is
- * cleared once it has run. `last_error` explains the last scheduled change
- * that could not be made, until a new schedule is set.
+ * cleared once it has run, or once the record is published or
+ * unpublished by hand or deleted. `last_error` explains the last
+ * scheduled change that could not be made, until a new schedule is set
+ * or a scheduled change is made.
  *
  */
 export type RecordSchedule = {
@@ -474,7 +481,7 @@ export type RecordSchedule = {
 };
 
 /**
- * A time in the future, or null for none. Omitted keys keep their value.
+ * The whole schedule. A time in the future, or null for none; a time left out is none too.
  */
 export type RecordScheduleUpdate = {
     publish_at?: NullableTimestamp;
@@ -489,7 +496,7 @@ export type RecordPublication = {
     record_id: string;
     published_at: Timestamp;
     /**
-     * The revision that is live.
+     * The revision that is live, the record's current one (a live record's edits are live; a draft keeps changes back).
      */
     revision: number;
     /**
@@ -510,10 +517,6 @@ export type ScheduledChange = {
      * The draft that merges, for `merge`.
      */
     draft_id: string | null;
-    /**
-     * Why the last scheduled change could not be made, as in the record's (or the draft's) schedule.
-     */
-    last_error: string | null;
 };
 
 export type ScheduledChangeList = {
@@ -522,7 +525,22 @@ export type ScheduledChangeList = {
 };
 
 /**
- * The client a change came through; `scheduler` for scheduled changes.
+ * What made the revision; `merge` is a draft's changes.
+ */
+export type RecordRevisionOperation = 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'merge';
+
+/**
+ * A time range, as record lists filter times (`filter[created_at][gte]=2026-10-01T00:00:00Z`).
+ */
+export type TimeFilter = {
+    gte?: string;
+    gt?: string;
+    lte?: string;
+    lt?: string;
+};
+
+/**
+ * The client a change came through; `scheduler` for scheduled changes. `import` and `migration` are not sent yet.
  */
 export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
 
@@ -708,7 +726,7 @@ export type RecordRevisionProperties = {
     object: 'record_revision';
     record_id: string;
     revision: number;
-    operation: 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'import' | 'merge';
+    operation: RecordRevisionOperation;
     actor: Actor;
     via: Via;
     note: string | null;
@@ -827,7 +845,7 @@ export type SearchIndex = {
  * (`record.*`, `draft.*`, `collection.*`, `field.*`, `asset.*`) or `*` for all.
  *
  */
-export type WebhookEventType = 'record.created' | 'record.imported' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'draft.created' | 'draft.updated' | 'draft.discarded' | 'draft.scheduled' | 'draft.unscheduled' | 'draft.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
+export type WebhookEventType = 'record.created' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'draft.created' | 'draft.updated' | 'draft.discarded' | 'draft.scheduled' | 'draft.unscheduled' | 'draft.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
 
 export type WebhookSubscription = WebhookEventType | 'record.*' | 'draft.*' | 'collection.*' | 'field.*' | 'asset.*' | '*';
 
@@ -842,7 +860,7 @@ export type WebhookProperties = {
     /**
      * The subscribed event types and wildcards (`record.*`, or `*` for all).
      */
-    event_types: Array<string>;
+    event_types: Array<WebhookSubscription>;
     enabled: boolean;
     /**
      * When the webhook was deleted; null unless it is.
@@ -925,7 +943,7 @@ export type RecordBatch = {
 
 export type AuditEvent = {
     id: string;
-    object: 'audit_event';
+    object: 'event';
     organization_id: string;
     /**
      * The project the event belongs to, or null for organization-level events.
@@ -936,11 +954,15 @@ export type AuditEvent = {
     };
     /**
      * `<resource>.<verb>`, e.g. `record.published`, `field.updated`,
-     * `api_key.created`, `member.role_changed`.
+     * `api_key.created`, `member.role_changed`: a webhook event's type
+     * too, for the events webhooks get.
      *
      */
-    action: string;
+    type: string;
     resource: {
+        /**
+         * What the event is about, such as `record`, `draft`, `collection`, `field`, `asset` or `webhook`; a field's change names its collection in `metadata.collection_id`.
+         */
         type: string;
         /**
          * The resource's public ID (or key, for feature flags).
@@ -951,7 +973,7 @@ export type AuditEvent = {
     /**
      * The client the change came through, when known.
      */
-    via: null | 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
+    via: null | Via;
     /**
      * Small, action-specific references, e.g. `revision_id` and
      * `collection_id` for record events, `schema_change_id` for schema
@@ -1042,7 +1064,7 @@ export type WebhookDeliveryList = {
 /**
  * The JSON body of every webhook request. It is rendered from the event's
  * history each time it is sent or shown, so redacted values are redacted
- * in it too.
+ * in it too. `data` depends on the `type`.
  *
  */
 export type WebhookEventPayload = {
@@ -1051,10 +1073,7 @@ export type WebhookEventPayload = {
      */
     id: string;
     object: 'event';
-    /**
-     * One of the event types (`WebhookEventType`), or `webhook.test`.
-     */
-    type: string;
+    type: WebhookEventType | 'webhook.test';
     created_at: Timestamp;
     project_id: string;
     /**
@@ -1063,26 +1082,97 @@ export type WebhookEventPayload = {
     actor?: Actor;
     /**
      * The client the change came through (null when not known). Always
-     * sent. An integration that writes back can skip changes made with
-     * its own API key (`actor`).
+     * sent. An integration that writes back can skip changes made with its own
+     * API key (`actor`).
      *
      */
     via?: null | Via;
+    data: RecordEventData | DraftEventData | AssetEventData | SchemaEventData | FieldAliasEventData | WebhookTestEventData;
+};
+
+/**
+ * `record.*`: the record as the change's revision left it, or as it is now for events without a revision (`record.scheduled`, `record.unscheduled`, `record.schedule_failed`, `record.redacted`).
+ */
+export type RecordEventData = {
     /**
-     * `record.*`: `record` (as the change's revision left it, or as it is
-     * now for events without a revision such as `record.scheduled`; null
-     * once it is purged), `revision` and `revision_id`; a merged draft's
-     * `record.updated` adds its `draft_id`. `draft.*`: `draft` (as it is
-     * now; null once merged or discarded, and while its record is
-     * deleted), `draft_id` and `record_id`. `asset.*`:
-     * `asset` (as it is now). `collection.*` and `field.*`: `collection`
-     * and `schema_change`, except `field.alias_removed`: `field`.
-     * `webhook.test`: `webhook`.
-     *
+     * Null once the record is purged.
      */
-    data: {
-        [key: string]: unknown;
+    record: null | Record;
+    revision: number | null;
+    /**
+     * Null for events without a revision.
+     */
+    revision_id: string | null;
+    /**
+     * On the `record.updated` of a merged draft, the draft it merged.
+     */
+    draft_id?: string;
+};
+
+/**
+ * `draft.*`: the draft as it is now.
+ */
+export type DraftEventData = {
+    /**
+     * Null once merged or discarded, and while its record is deleted.
+     */
+    draft: null | Draft;
+    /**
+     * The draft's ID, also once it is gone.
+     */
+    draft_id: string;
+    record_id: string;
+};
+
+/**
+ * `asset.*`: the asset as it is now.
+ */
+export type AssetEventData = {
+    asset: Asset | {
+        id: string;
+        object: 'asset';
     };
+};
+
+/**
+ * `collection.*` and `field.*` (but `field.alias_removed`): the collection as the change left it, and the change.
+ */
+export type SchemaEventData = {
+    /**
+     * Only `id` and `object` are known once the schema change is gone (the collection was purged).
+     */
+    collection: {
+        id: string;
+        object: 'collection';
+        slug: string | null;
+        name: string | null;
+        schema_version: number | null;
+        deleted_at: NullableTimestamp;
+    };
+    /**
+     * `field.*`: the field that changed.
+     */
+    field_id?: string;
+    schema_change: null | {
+        id: string;
+        operation: string;
+        from_version: number;
+        to_version: number;
+    };
+};
+
+/**
+ * `field.alias_removed`: the field.
+ */
+export type FieldAliasEventData = {
+    field: null | Field;
+};
+
+/**
+ * `webhook.test`: the webhook it was sent to.
+ */
+export type WebhookTestEventData = {
+    webhook: null | Webhook;
 };
 
 export type Asset = AssetProperties;
@@ -1143,11 +1233,11 @@ export type AssetUsage = {
     object: 'asset_usage';
     asset_id: string;
     /**
-     * Undeleted records that use the asset.
+     * Undeleted records that use the asset, in their content or their draft.
      */
     records: number;
     /**
-     * Of those, the published ones (what sites show).
+     * Of those, the published ones whose content uses it (what sites show).
      */
     published: number;
     /**
@@ -1156,7 +1246,7 @@ export type AssetUsage = {
     uses: Array<{
         record: Record;
         /**
-         * API keys of the record's fields that use the asset.
+         * API keys of the record's fields that use the asset, in its content or its draft.
          */
         fields: Array<string>;
     }>;
@@ -1207,7 +1297,7 @@ export type AssetUploadTarget = {
 };
 
 /**
- * What a project API key may do. `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, unpublished records included; published-only keys cannot have them.
+ * What a project API key may do. `records:write` also publishes, unpublishes and schedules records (the `records:publish` permission). `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, unpublished records included; published-only keys cannot have them.
  */
 export type ApiKeyScope = 'records:read' | 'records:write' | 'schema:read' | 'schema:write' | 'assets:read' | 'assets:write' | 'search:read' | 'webhooks:read' | 'webhooks:write' | 'audit:read';
 
@@ -1258,12 +1348,6 @@ export type Error = {
         details?: Array<ErrorDetail>;
     };
 };
-
-export type OrganizationId = string;
-
-export type MembershipId = string;
-
-export type InvitationId = string;
 
 export type ProjectId = string;
 
@@ -1330,38 +1414,39 @@ export type RecordFilter = {
 };
 
 /**
- * `action` matches exactly, or by prefix with a trailing `.*`
- * (`filter[action]=record.*`). `since` is inclusive and `until` exclusive.
+ * `type` matches exactly, or by prefix with a trailing `.*`
+ * (`filter[type]=record.*`). `resource_type` takes one type, or several
+ * with `[in]` (`filter[resource_type][in]=collection,field`). Unknown
+ * filters are `400`.
  *
  */
 export type AuditEventFilter = {
-    /**
-     * Organization list only.
-     */
-    project_id?: string;
-    action?: string;
-    resource_type?: string;
+    type?: string;
+    resource_type?: string | {
+        /**
+         * Comma-separated types.
+         */
+        in: string;
+    };
     resource_id?: string;
     actor_type?: 'user' | 'api_key' | 'system';
     /**
      * A user (`usr_...`) or API key (`key_...`).
      */
     actor_id?: string;
-    since?: string;
-    until?: string;
+    created_at?: TimeFilter;
 };
 
 /**
- * `since` is inclusive and `until` exclusive.
+ * Unknown filters are `400`.
  */
 export type RecordRevisionFilter = {
-    operation?: 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'import';
+    operation?: RecordRevisionOperation;
     /**
      * A user (`usr_...`) or API key (`key_...`).
      */
     actor_id?: string;
-    since?: string;
-    until?: string;
+    created_at?: TimeFilter;
 };
 
 export type AuditEventSort = 'id' | '-id';
@@ -1417,8 +1502,9 @@ export type IdempotencyKey = string;
 export type NoheadClient = string;
 
 /**
- * Optional reason for the change, shown in history (at most 500
- * characters once decoded). Percent-encoded UTF-8, as
+ * Optional reason for the change, kept with the record revision, schema
+ * change or field migration it makes (at most 500 characters once
+ * decoded). Percent-encoded UTF-8, as
  * `encodeURIComponent` encodes it, so any language fits in a header:
  * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
  * as is. Other bytes are `400`.
@@ -1545,8 +1631,9 @@ export type RecordsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -1638,8 +1725,9 @@ export type RecordsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -1776,8 +1864,9 @@ export type RecordsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -1943,8 +2032,9 @@ export type RecordsBulkData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -2030,8 +2120,9 @@ export type RecordsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -2122,8 +2213,9 @@ export type RecordsUnpublishData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -2255,8 +2347,9 @@ export type RecordsPublishData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -2579,16 +2672,15 @@ export type RecordRevisionsListData = {
          */
         cursor?: string;
         /**
-         * `since` is inclusive and `until` exclusive.
+         * Unknown filters are `400`.
          */
         filter?: {
-            operation?: 'create' | 'update' | 'publish' | 'unpublish' | 'delete' | 'restore' | 'revert' | 'migrate' | 'import';
+            operation?: RecordRevisionOperation;
             /**
              * A user (`usr_...`) or API key (`key_...`).
              */
             actor_id?: string;
-            since?: string;
-            until?: string;
+            created_at?: TimeFilter;
         };
     };
     url: '/v1/records/{record_id}/revisions';
@@ -2705,8 +2797,9 @@ export type RecordRevisionsRevertData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -3256,8 +3349,9 @@ export type DraftsMergeData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -3542,8 +3636,9 @@ export type CollectionsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -3628,8 +3723,9 @@ export type CollectionsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -3757,8 +3853,9 @@ export type CollectionsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -3840,8 +3937,9 @@ export type CollectionsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4159,8 +4257,9 @@ export type FieldsCreateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4242,8 +4341,9 @@ export type FieldsDeleteData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4300,6 +4400,53 @@ export type FieldsDeleteResponses = {
 
 export type FieldsDeleteResponse = FieldsDeleteResponses[keyof FieldsDeleteResponses];
 
+export type FieldsGetData = {
+    body?: never;
+    path: {
+        field_id: string;
+    };
+    query?: never;
+    url: '/v1/fields/{field_id}';
+};
+
+export type FieldsGetErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type FieldsGetError = FieldsGetErrors[keyof FieldsGetErrors];
+
+export type FieldsGetResponses = {
+    /**
+     * The field.
+     */
+    200: Field;
+};
+
+export type FieldsGetResponse = FieldsGetResponses[keyof FieldsGetResponses];
+
 export type FieldsUpdateData = {
     body: FieldUpdate;
     headers?: {
@@ -4318,8 +4465,9 @@ export type FieldsUpdateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4450,8 +4598,9 @@ export type FieldsReorderData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4604,8 +4753,9 @@ export type FieldsRestoreData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4743,8 +4893,9 @@ export type FieldsMigrateData = {
          */
         'Nohead-Client'?: string;
         /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
+         * Optional reason for the change, kept with the record revision, schema
+         * change or field migration it makes (at most 500 characters once
+         * decoded). Percent-encoded UTF-8, as
          * `encodeURIComponent` encodes it, so any language fits in a header:
          * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
          * as is. Other bytes are `400`.
@@ -4871,6 +5022,10 @@ export type MigrationsCancelData = {
          *
          */
         'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
     };
     path: {
         migration_id: string;
@@ -5005,15 +5160,6 @@ export type AssetsUploadData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         project_id: string;
@@ -5091,15 +5237,6 @@ export type AssetsCompleteData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         asset_id: string;
@@ -5171,15 +5308,6 @@ export type AssetsDeleteData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         asset_id: string;
@@ -5460,15 +5588,6 @@ export type AssetsRestoreData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         asset_id: string;
@@ -5536,15 +5655,6 @@ export type AssetsPurgeData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         asset_id: string;
@@ -5845,15 +5955,6 @@ export type SearchIndexRebuildData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         /**
@@ -5986,15 +6087,6 @@ export type WebhooksCreateData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         project_id: string;
@@ -6072,15 +6164,6 @@ export type WebhooksDeleteData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         webhook_id: string;
@@ -6195,15 +6278,6 @@ export type WebhooksUpdateData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         webhook_id: string;
@@ -6275,15 +6349,6 @@ export type WebhooksTestData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         webhook_id: string;
@@ -6407,15 +6472,6 @@ export type WebhooksRotateSecretData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         webhook_id: string;
@@ -6483,15 +6539,6 @@ export type WebhookSecretsRetireData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         secret_id: string;
@@ -6559,15 +6606,6 @@ export type WebhooksRestoreData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         webhook_id: string;
@@ -6747,21 +6785,12 @@ export type WebhookDeliveriesRetryData = {
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
         'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
     };
     path: {
         delivery_id: string;
     };
     query?: never;
-    url: '/v1/webhook-deliveries/{delivery_id}/attempts';
+    url: '/v1/webhook-deliveries/{delivery_id}/retry';
 };
 
 export type WebhookDeliveriesRetryErrors = {
@@ -6806,7 +6835,7 @@ export type WebhookDeliveriesRetryResponses = {
 
 export type WebhookDeliveriesRetryResponse = WebhookDeliveriesRetryResponses[keyof WebhookDeliveriesRetryResponses];
 
-export type AuditEventsListForProjectData = {
+export type AuditEventsListData = {
     body?: never;
     path: {
         project_id: string;
@@ -6821,32 +6850,34 @@ export type AuditEventsListForProjectData = {
          */
         cursor?: string;
         /**
-         * `action` matches exactly, or by prefix with a trailing `.*`
-         * (`filter[action]=record.*`). `since` is inclusive and `until` exclusive.
+         * `type` matches exactly, or by prefix with a trailing `.*`
+         * (`filter[type]=record.*`). `resource_type` takes one type, or several
+         * with `[in]` (`filter[resource_type][in]=collection,field`). Unknown
+         * filters are `400`.
          *
          */
         filter?: {
-            /**
-             * Organization list only.
-             */
-            project_id?: string;
-            action?: string;
-            resource_type?: string;
+            type?: string;
+            resource_type?: string | {
+                /**
+                 * Comma-separated types.
+                 */
+                in: string;
+            };
             resource_id?: string;
             actor_type?: 'user' | 'api_key' | 'system';
             /**
              * A user (`usr_...`) or API key (`key_...`).
              */
             actor_id?: string;
-            since?: string;
-            until?: string;
+            created_at?: TimeFilter;
         };
         sort?: 'id' | '-id';
     };
     url: '/v1/projects/{project_id}/audit-events';
 };
 
-export type AuditEventsListForProjectErrors = {
+export type AuditEventsListErrors = {
     /**
      * The request was malformed.
      */
@@ -6873,16 +6904,16 @@ export type AuditEventsListForProjectErrors = {
     429: Error;
 };
 
-export type AuditEventsListForProjectError = AuditEventsListForProjectErrors[keyof AuditEventsListForProjectErrors];
+export type AuditEventsListError = AuditEventsListErrors[keyof AuditEventsListErrors];
 
-export type AuditEventsListForProjectResponses = {
+export type AuditEventsListResponses = {
     /**
      * A page of audit events.
      */
     200: AuditEventList;
 };
 
-export type AuditEventsListForProjectResponse = AuditEventsListForProjectResponses[keyof AuditEventsListForProjectResponses];
+export type AuditEventsListResponse = AuditEventsListResponses[keyof AuditEventsListResponses];
 
 export type HealthCheckData = {
     body?: never;
@@ -6945,16 +6976,7 @@ export type MeGetResponse = MeGetResponses[keyof MeGetResponses];
 export type FeatureFlagsListData = {
     body?: never;
     path?: never;
-    query?: {
-        /**
-         * Organization context (sessions only).
-         */
-        organization_id?: string;
-        /**
-         * Project context; implies its organization.
-         */
-        project_id?: string;
-    };
+    query?: never;
     url: '/v1/feature-flags';
 };
 

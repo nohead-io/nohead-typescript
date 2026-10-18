@@ -1,5 +1,9 @@
 import type { APIPromise, PagePromise } from "../api-promise.ts"
-import type { ConditionalRequestOptions, RequestOptions } from "../core.ts"
+import type {
+  ConditionalWriteOptions,
+  RequestOptions,
+  WriteOptions,
+} from "../core.ts"
 import type {
   RecordData,
   RecordDiff,
@@ -8,13 +12,13 @@ import type {
   RevertPreview,
   RecordBatch,
   RecordCount,
-  Draft,
   RecordPublication,
   RecordSchedule,
   ScheduledChange,
 } from "../generated/types.gen.ts"
 import type {
   DryRunParams,
+  NoheadDraft,
   NoheadRecord,
   RecordBulkParams,
   RecordCountParams,
@@ -27,6 +31,7 @@ import type {
   RecordUpdateParams,
   ListParams,
   RevisionListParams,
+  ScheduledChangeListParams,
   SearchMeta,
 } from "../types.ts"
 import { Resource } from "./resource.ts"
@@ -67,7 +72,7 @@ export class Records extends Resource {
   create<D = RecordData>(
     collection: string,
     params: RecordCreateParams<D>,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_create",
@@ -80,7 +85,7 @@ export class Records extends Resource {
   update<D = RecordData>(
     record: string,
     params: RecordUpdateParams<D>,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_update",
@@ -95,7 +100,7 @@ export class Records extends Resource {
    */
   delete<D = RecordData>(
     record: string,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_delete",
@@ -106,7 +111,7 @@ export class Records extends Resource {
 
   restore<D = RecordData>(
     record: string,
-    options?: RequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_restore",
@@ -121,7 +126,7 @@ export class Records extends Resource {
    */
   publish<D = RecordData>(
     record: string,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_publish",
@@ -132,7 +137,7 @@ export class Records extends Resource {
 
   unpublish<D = RecordData>(
     record: string,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_unpublish",
@@ -172,11 +177,11 @@ export class Records extends Resource {
   }
 
   /** The record's drafts: at most one for now. */
-  drafts(
+  drafts<D = RecordData>(
     record: string,
     params: ListParams = {},
     options?: RequestOptions
-  ): PagePromise<Draft> {
+  ): PagePromise<NoheadDraft<D>> {
     return this.core.paginate(
       "record_drafts_list",
       { path: { record_id: record }, query: params },
@@ -184,7 +189,11 @@ export class Records extends Resource {
     )
   }
 
-  /** Publishes and/or unpublishes the record later. */
+  /**
+   * Sets when the record publishes and unpublishes on its own. This is the
+   * whole schedule: a time left out is cleared (`{}` clears both, as
+   * `unschedule` does).
+   */
   schedule(
     record: string,
     params: RecordScheduleParams,
@@ -216,7 +225,7 @@ export class Records extends Resource {
    */
   scheduledChanges(
     collection: string,
-    params: ListParams & { sort?: "at" | "-at" } = {},
+    params: ScheduledChangeListParams = {},
     options?: RequestOptions
   ): PagePromise<ScheduledChange> {
     return this.core.paginate(
@@ -245,7 +254,7 @@ export class Records extends Resource {
   bulk(
     collection: string,
     params: RecordBulkParams,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<RecordBatch> {
     return this.core.request(
       "records_bulk",
@@ -317,19 +326,19 @@ export class Revisions extends Resource {
     record: string,
     revision: number,
     params: { dry_run: true },
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<RevertPreview>
   revert<D = RecordData>(
     record: string,
     revision: number,
     params?: DryRunParams,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>>
   revert(
     record: string,
     revision: number,
     params: DryRunParams = {},
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<unknown> {
     return this.core.request(
       "record_revisions_revert",

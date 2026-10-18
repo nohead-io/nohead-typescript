@@ -1,11 +1,17 @@
 import type { APIPromise, PagePromise } from "../api-promise.ts"
-import type { ConditionalRequestOptions, RequestOptions } from "../core.ts"
-import type { Draft, RecordData } from "../generated/types.gen.ts"
+import type {
+  ConditionalRequestOptions,
+  ConditionalWriteOptions,
+  RequestOptions,
+} from "../core.ts"
+import type { RecordData } from "../generated/types.gen.ts"
 import type {
   DraftCreateParams,
   DraftGetParams,
   DraftListParams,
+  DraftScheduleParams,
   DraftUpdateParams,
+  NoheadDraft,
   NoheadRecord,
 } from "../types.ts"
 import { Resource } from "./resource.ts"
@@ -14,23 +20,26 @@ import { Resource } from "./resource.ts"
  * Drafts: changes to a record's content that wait until they are merged into
  * it, now or at a set time, while the record keeps its current content. A
  * record has at most one. `draft` is a draft ID (`drf_…`); `record` a record
- * ID; `collection` a collection ID or slug.
+ * ID; `collection` a collection ID or slug. Like records, drafts take the
+ * type of their data: `drafts.get<Post>(id)`.
  */
 export class Drafts extends Resource {
   /**
-   * Starts the record's draft. A second is a `ConflictError` (detail code
-   * `draft_exists`, with its `draft_id`): update that one instead.
+   * Starts the record's draft, from the record's values (`data` over them),
+   * or from an earlier revision's (`from_revision`). A second is a
+   * `ConflictError` (detail code `draft_exists`, with its `draft_id`): update
+   * that one instead.
    */
   create<D = RecordData>(
     record: string,
-    params: DraftCreateParams<D>,
+    params: DraftCreateParams<D> = {},
     options?: RequestOptions
-  ): APIPromise<Draft> {
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_create",
       { path: { record_id: record }, body: params },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 
   /**
@@ -38,20 +47,18 @@ export class Drafts extends Resource {
    * them to one record, or to several (1 to 100; an empty list is a
    * `TypeError`, since it would match no record).
    */
-  list(
+  list<D = RecordData>(
     collection: string,
     { record_id, ...params }: DraftListParams = {},
     options?: RequestOptions
-  ): PagePromise<Draft> {
+  ): PagePromise<NoheadDraft<D>> {
     if (Array.isArray(record_id) && record_id.length === 0)
       throw new TypeError("record_id needs at least one record ID")
     const filter =
       record_id === undefined
         ? undefined
         : {
-            record_id: Array.isArray(record_id)
-              ? { in: record_id.join(",") }
-              : record_id,
+            record_id: Array.isArray(record_id) ? { in: record_id } : record_id,
           }
     return this.core.paginate(
       "drafts_list",
@@ -64,16 +71,16 @@ export class Drafts extends Resource {
   }
 
   /** With `data` as the record reads after the merge, for previews. */
-  get(
+  get<D = RecordData>(
     draft: string,
     params: DraftGetParams = {},
     options?: RequestOptions
-  ): APIPromise<Draft> {
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_get",
       { path: { draft_id: draft }, query: params },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 
   /** Sets the given fields (`null` clears one), as a record update does. */
@@ -81,24 +88,24 @@ export class Drafts extends Resource {
     draft: string,
     params: DraftUpdateParams<D>,
     options?: ConditionalRequestOptions
-  ): APIPromise<Draft> {
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_update",
       { path: { draft_id: draft }, body: params },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 
   /** Deletes the draft for good; returns it as it was. */
-  discard(
+  discard<D = RecordData>(
     draft: string,
     options?: ConditionalRequestOptions
-  ): APIPromise<Draft> {
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_discard",
       { path: { draft_id: draft } },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 
   /**
@@ -107,7 +114,7 @@ export class Drafts extends Resource {
    */
   merge<D = RecordData>(
     draft: string,
-    options?: ConditionalRequestOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "drafts_merge",
@@ -117,23 +124,26 @@ export class Drafts extends Resource {
   }
 
   /** Merges the draft at `merge_at`, a future time; returns the draft. */
-  schedule(
+  schedule<D = RecordData>(
     draft: string,
-    params: { merge_at: string | Date },
+    params: DraftScheduleParams,
     options?: RequestOptions
-  ): APIPromise<Draft> {
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_schedule",
       { path: { draft_id: draft }, body: params },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 
-  unschedule(draft: string, options?: RequestOptions): APIPromise<Draft> {
+  unschedule<D = RecordData>(
+    draft: string,
+    options?: RequestOptions
+  ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_unschedule",
       { path: { draft_id: draft } },
       options
-    )
+    ) as APIPromise<NoheadDraft<D>>
   }
 }

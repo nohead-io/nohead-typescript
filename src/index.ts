@@ -8,8 +8,10 @@ export {
 export type {
   ClientOptions,
   ConditionalRequestOptions,
+  ConditionalWriteOptions,
   RequestOptions,
   RetryEvent,
+  WriteOptions,
 } from "./core.ts"
 export {
   APIError,

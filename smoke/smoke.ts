@@ -120,7 +120,7 @@ try {
     publication.revision === published.revision,
     "the publication says which revision is live"
   )
-  const draft = await nohead.drafts.create(first.id, {
+  const draft = await nohead.drafts.create<Post>(first.id, {
     data: { title: "Uno, revised" },
   })
   expect(

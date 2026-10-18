@@ -68,7 +68,6 @@ export class Assets extends Resource {
       const current = await this.get(asset.id, {
         ...options,
         idempotencyKey: undefined,
-        changeNote: undefined,
       })
       if (current.status === "ready") return current
     }
@@ -144,8 +143,8 @@ export class Assets extends Resource {
   }
 
   /**
-   * Soft-deletes the asset; the file is purged after 30 days, or now with
-   * `purge`.
+   * Soft-deletes the asset: `restore` brings it back until its
+   * `purge_after`, when the file is purged (or now, with `purge`).
    */
   delete(asset: string, options?: RequestOptions): APIPromise<Asset> {
     return this.core.request(

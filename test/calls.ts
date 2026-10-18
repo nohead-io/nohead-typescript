@@ -4,7 +4,7 @@
 // operation it calls (samples.json).
 import type { Nohead } from "../src/index.ts"
 import { json, type Call } from "./helpers.ts"
-import { example, routeOf, type Route } from "./spec.ts"
+import { examples, routeOf, type Route } from "./spec.ts"
 
 export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
@@ -98,6 +98,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       api_key: "title",
       type: "text",
     }),
+  (nohead) => nohead.fields.get("fld_01J9ZQ3F8X"),
   (nohead) => nohead.fields.update("fld_01J9ZQ3F8X", { name: "Heading" }),
   (nohead) => nohead.fields.delete("fld_01J9ZQ3F8X"),
   (nohead) => nohead.fields.restore("fld_01J9ZQ3F8X"),
@@ -151,7 +152,13 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.webhooks.deliveries.get("whd_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.deliveries.retry("whd_01J9ZQ3F8X"),
   (nohead) =>
-    nohead.auditEvents.list({ filter: { action: "record.*" }, sort: "-id" }),
+    nohead.auditEvents.list({
+      filter: {
+        type: "record.*",
+        created_at: { gte: "2026-10-01T00:00:00Z" },
+      },
+      sort: "-id",
+    }),
   (nohead) => nohead.featureFlags.list(),
   (nohead) => nohead.me.get(),
   (nohead) => nohead.health.check(),
@@ -160,24 +167,32 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
 /**
  * The reply to any of the calls above: the contract's example of the
  * operation's success response (spec.ts), with an upload URL on storage.
+ * `variant` picks one of `exampleReplies` (the last, past their end).
  */
-export function mockReply(call: Call): Response {
+export function mockReply(call: Call, variant = 0): Response {
   if (call.url.host === "storage.test") return new Response(null)
   const route = routeOf(call.method, call.url.pathname)
-  return json(route.status, exampleReply(route, call.url))
+  const replies = exampleReplies(route, call.url)
+  return json(route.status, replies[Math.min(variant, replies.length - 1)])
 }
 
-/** The body of `mockReply` for a request of an operation. */
-export function exampleReply(route: Route, url: URL): unknown {
+/**
+ * The bodies `mockReply` can give a request of an operation: one per
+ * `oneOf` variant in its response, the first of each variant first.
+ */
+export function exampleReplies(route: Route, url: URL): unknown[] {
   let schema: unknown = route.response.schema
   const variants = (schema as { oneOf?: unknown[] }).oneOf
-  if (url.searchParams.get("dry_run") === "true" && variants) {
-    schema = variants.at(-1) // the preview (records.revisions.revert)
+  if (variants && route.query.some((p) => p.name === "dry_run")) {
+    // The preview or the change (records.revisions.revert)
+    schema =
+      url.searchParams.get("dry_run") === "true" ? variants.at(-1) : variants[0]
   }
-  const body = structuredClone(example(schema)) // examples are the contract's
+  const bodies = examples(schema) // examples are the contract's
   if (route.id === "assets_upload") {
-    const { upload } = body as { upload: { url: string } }
-    upload.url = "https://storage.test/u"
+    for (const body of bodies as { upload: { url: string } }[]) {
+      body.upload.url = "https://storage.test/u"
+    }
   }
-  return body
+  return bodies
 }

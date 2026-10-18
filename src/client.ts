@@ -8,6 +8,7 @@ import { Records } from "./resources/records.ts"
 import { Collections, Fields, Migrations } from "./resources/schema.ts"
 import { Webhooks } from "./resources/webhooks.ts"
 import type {
+  NoheadDraft,
   NoheadRecord,
   ProjectSearchParams,
   RecordData,
@@ -85,6 +86,7 @@ export class Nohead {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export declare namespace Nohead {
   export type Record<D = RecordData> = NoheadRecord<D>
+  export type Draft<D = RecordData> = NoheadDraft<D>
   export type Collection = G.Collection
   export type Field = G.Field
   export type Asset = G.Asset

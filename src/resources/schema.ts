@@ -1,5 +1,5 @@
 import type { APIPromise, PagePromise } from "../api-promise.ts"
-import type { RequestOptions } from "../core.ts"
+import type { RequestOptions, WriteOptions } from "../core.ts"
 import type {
   Collection,
   FieldOrder,
@@ -19,6 +19,7 @@ import type {
   DeletedListParams,
   DryRunParams,
   FieldMigrateParams,
+  FieldReorderParams,
   ListParams,
   SchemaParams,
 } from "../types.ts"
@@ -51,7 +52,7 @@ export class Collections extends Resource {
   /** Creates a collection, optionally with its fields. */
   create(
     params: CollectionCreate,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<Collection> {
     return this.core.request("collections_create", { body: params }, options)
   }
@@ -59,7 +60,7 @@ export class Collections extends Resource {
   update(
     collection: string,
     params: CollectionUpdate,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<Collection> {
     return this.core.request(
       "collections_update",
@@ -68,8 +69,11 @@ export class Collections extends Resource {
     )
   }
 
-  /** Soft-deletes the collection and its records for 30 days. */
-  delete(collection: string, options?: RequestOptions): APIPromise<Collection> {
+  /**
+   * Soft-deletes the collection and its records: `restore` brings them back
+   * until its `purge_after`.
+   */
+  delete(collection: string, options?: WriteOptions): APIPromise<Collection> {
     return this.core.request(
       "collections_delete",
       { path: { collection_id: collection } },
@@ -77,10 +81,7 @@ export class Collections extends Resource {
     )
   }
 
-  restore(
-    collection: string,
-    options?: RequestOptions
-  ): APIPromise<Collection> {
+  restore(collection: string, options?: WriteOptions): APIPromise<Collection> {
     return this.core.request(
       "collections_restore",
       { path: { collection_id: collection } },
@@ -174,11 +175,19 @@ export class Fields extends Resource {
   create(
     collection: string,
     params: FieldCreate,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<Field> {
     return this.core.request(
       "fields_create",
       { path: { collection_id: collection }, body: params },
+      options
+    )
+  }
+
+  get(field: string, options?: RequestOptions): APIPromise<Field> {
+    return this.core.request(
+      "fields_get",
+      { path: { field_id: field } },
       options
     )
   }
@@ -190,7 +199,7 @@ export class Fields extends Resource {
   update(
     field: string,
     params: FieldUpdate,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<Field> {
     return this.core.request(
       "fields_update",
@@ -199,8 +208,11 @@ export class Fields extends Resource {
     )
   }
 
-  /** Soft-deletes the field: its values return with `restore` for 30 days. */
-  delete(field: string, options?: RequestOptions): APIPromise<Field> {
+  /**
+   * Soft-deletes the field: its values come back with `restore` until its
+   * `purge_after`.
+   */
+  delete(field: string, options?: WriteOptions): APIPromise<Field> {
     return this.core.request(
       "fields_delete",
       { path: { field_id: field } },
@@ -208,7 +220,7 @@ export class Fields extends Resource {
     )
   }
 
-  restore(field: string, options?: RequestOptions): APIPromise<Field> {
+  restore(field: string, options?: WriteOptions): APIPromise<Field> {
     return this.core.request(
       "fields_restore",
       { path: { field_id: field } },
@@ -228,8 +240,8 @@ export class Fields extends Resource {
   /** Puts the collection's fields in this order; lists every active field once. */
   reorder(
     collection: string,
-    params: { field_ids: string[] },
-    options?: RequestOptions
+    params: FieldReorderParams,
+    options?: WriteOptions
   ): APIPromise<FieldOrder> {
     return this.core.request(
       "fields_reorder",
@@ -258,17 +270,17 @@ export class Fields extends Resource {
   migrate(
     field: string,
     params: FieldMigrateParams & { dry_run: true },
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<FieldMigrationPreview>
   migrate(
     field: string,
     params: FieldMigrateParams & DryRunParams,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<FieldMigration>
   migrate(
     field: string,
     { dry_run, ...body }: FieldMigrateParams & DryRunParams,
-    options?: RequestOptions
+    options?: WriteOptions
   ): APIPromise<unknown> {
     return this.core.request(
       "fields_migrate",
