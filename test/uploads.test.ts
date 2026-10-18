@@ -36,7 +36,7 @@ describe("assets.upload", () => {
     ).toEqual([
       "POST api.test/v1/projects/prj_1/assets",
       "PUT storage.test/uploads/prj_1/ast_1",
-      "POST api.test/v1/assets/ast_1/completion",
+      "POST api.test/v1/assets/ast_1/complete",
     ])
     expect(calls[0]!.body).toEqual({
       filename: "a.png",
@@ -63,7 +63,7 @@ describe("assets.upload", () => {
       "POST /v1/projects/prj_1/assets",
       "GET /v1/assets/ast_1",
       "PUT /uploads/prj_1/ast_1",
-      "POST /v1/assets/ast_1/completion",
+      "POST /v1/assets/ast_1/complete",
     ])
     const keys = calls.map((c) => c.headers.get("idempotency-key"))
     expect(keys[0]).toBe("k1")

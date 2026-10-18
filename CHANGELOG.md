@@ -15,6 +15,11 @@ section is its GitHub release's notes.
   `records.drafts`. `records.publish` on a live record with a pending draft
   is a `ConflictError` (`draft_pending`). Webhook events gain `DraftEvent`
   (`draft.*`), and a merge's `record.updated` carries its `draft_id`.
+- **Breaking:** the types for what only the web app can do (organizations,
+  projects, members and invitations, billing, API keys, usage, account
+  changes and redaction, such as `Organization`, `Project`, `ApiKey`, `Billing`) are gone. Those
+  operations need a signed-in person, so an API key could never call them,
+  and the API reference no longer lists them.
 - **Breaking:** the API is resource-oriented. Method names stay; what they
   return and take follows it:
   - Records have no `status`, `schedule` or `deleted`: a record is published

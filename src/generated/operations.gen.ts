@@ -2,7 +2,7 @@
 import type * as T from "./types.gen.ts"
 
 export const OPERATIONS = {
-  assets_complete: { method: "POST", path: "/v1/assets/{asset_id}/completion" },
+  assets_complete: { method: "POST", path: "/v1/assets/{asset_id}/complete" },
   assets_delete: { method: "DELETE", path: "/v1/assets/{asset_id}" },
   assets_download_url: { method: "GET", path: "/v1/assets/{asset_id}/download-url" },
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
@@ -41,7 +41,7 @@ export const OPERATIONS = {
   fields_update: { method: "PATCH", path: "/v1/fields/{field_id}" },
   health_check: { method: "GET", path: "/v1/health" },
   me_get: { method: "GET", path: "/v1/me" },
-  migrations_cancel: { method: "POST", path: "/v1/migrations/{migration_id}/cancellation" },
+  migrations_cancel: { method: "POST", path: "/v1/migrations/{migration_id}/cancel" },
   migrations_get: { method: "GET", path: "/v1/migrations/{migration_id}" },
   migrations_list: { method: "GET", path: "/v1/collections/{collection_id}/migrations" },
   projects_search: { method: "GET", path: "/v1/projects/{project_id}/search" },

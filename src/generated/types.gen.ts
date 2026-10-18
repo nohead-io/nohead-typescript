@@ -35,165 +35,6 @@ export type ListMeta = {
     has_more: boolean;
 };
 
-export type Organization = {
-    id: string;
-    object: 'organization';
-    name: string;
-    slug: string;
-    plan: 'free' | 'pro' | 'business' | 'enterprise';
-    /**
-     * The current user's role in the organization.
-     */
-    role: 'owner' | 'admin' | 'developer' | 'editor' | 'viewer' | null;
-    /**
-     * What the current user's role allows in the organization (empty without a membership). Clients use it to show only the actions that will succeed; the API enforces it either way.
-     */
-    permissions: Array<Permission>;
-    /**
-     * API key scopes the current user may put on new keys: those whose permissions their role holds.
-     */
-    grantable_scopes: Array<ApiKeyScope>;
-    /**
-     * When it was scheduled for deletion (`DELETE /v1/organizations/{id}`); null unless it is.
-     */
-    deleted_at: NullableTimestamp;
-    /**
-     * When a scheduled deletion becomes permanent; null otherwise.
-     */
-    purge_after: NullableTimestamp;
-    created_at: Timestamp;
-    updated_at: Timestamp;
-};
-
-export type Role = 'owner' | 'admin' | 'developer' | 'editor' | 'viewer';
-
-export type Permission = 'organization:read' | 'organization:write' | 'organization:delete' | 'billing:write' | 'members:read' | 'members:write' | 'projects:read' | 'projects:create' | 'projects:write' | 'projects:delete' | 'schema:read' | 'schema:write' | 'records:read' | 'records:write' | 'records:publish' | 'search:read' | 'assets:read' | 'assets:write' | 'api_keys:read' | 'api_keys:write' | 'webhooks:read' | 'webhooks:write' | 'audit:read' | 'records:redact';
-
-export type Membership = {
-    id: string;
-    object: 'membership';
-    organization_id: string;
-    user: {
-        id: string;
-        email: string;
-        name: string | null;
-    };
-    role: Role;
-    created_at: Timestamp;
-    updated_at: Timestamp;
-};
-
-export type MembershipUpdate = {
-    role: Role;
-};
-
-export type MembershipList = {
-    data: Array<Membership>;
-    meta: ListMeta;
-};
-
-export type Invitation = {
-    id: string;
-    object: 'invitation';
-    organization: {
-        id: string;
-        name: string;
-        slug: string;
-    };
-    email: string;
-    role: Role;
-    status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
-    invited_by: {
-        id: string;
-        name: string;
-    };
-    /**
-     * What became of the invitation email, or null while it has not been sent (or when sending is off). `sent`: accepted for delivery. `not_sent`: no email went out, because the address had bounced or been marked as spam before, or had already received several invitation emails that day. `bounced`: the email could not be delivered; check the address. `complained`: the invitee marked it as spam. Either way the invitation still works when the invitee signs in with the address.
-     */
-    email_delivery: null | {
-        status: 'sent' | 'not_sent' | 'bounced' | 'complained';
-        at: Timestamp;
-    };
-    expires_at: Timestamp;
-    responded_at: NullableTimestamp;
-    created_at: Timestamp;
-};
-
-export type InvitationCreate = {
-    email: string;
-    role: Role;
-};
-
-export type InvitationList = {
-    data: Array<Invitation>;
-    meta: ListMeta;
-};
-
-export type OrganizationCreate = {
-    name: string;
-    slug: string;
-};
-
-export type MeUpdate = {
-    /**
-     * Shown to the members of your organizations; `null` removes it.
-     */
-    name: string | null;
-};
-
-export type OrganizationUpdate = {
-    name?: string;
-    slug?: string;
-};
-
-export type OrganizationList = {
-    data: Array<Organization>;
-    meta: ListMeta;
-};
-
-export type Project = {
-    id: string;
-    object: 'project';
-    organization_id: string;
-    name: string;
-    slug: string;
-    settings: {
-        [key: string]: unknown;
-    };
-    /**
-     * When it was scheduled for deletion (`DELETE /v1/projects/{id}`); null unless it is.
-     */
-    deleted_at: NullableTimestamp;
-    /**
-     * When a scheduled deletion becomes permanent; null otherwise.
-     */
-    purge_after: NullableTimestamp;
-    created_at: Timestamp;
-    updated_at: Timestamp;
-};
-
-export type ProjectCreate = {
-    organization_id: string;
-    name: string;
-    slug: string;
-    settings?: {
-        [key: string]: unknown;
-    };
-};
-
-export type ProjectUpdate = {
-    name?: string;
-    slug?: string;
-    settings?: {
-        [key: string]: unknown;
-    };
-};
-
-export type ProjectList = {
-    data: Array<Project>;
-    meta: ListMeta;
-};
-
 /**
  * A value to equal, or operators with their values (see the `filter` parameter).
  */
@@ -878,8 +719,9 @@ export type RecordRevisionProperties = {
      */
     changed_fields: Array<string>;
     /**
-     * API keys of fields whose values in this revision were redacted
-     * (`POST /v1/records/{id}/redactions`); those values read `{"$redacted": true}`.
+     * API keys of fields whose values in this revision were redacted (owners
+     * and admins redact them in the web app); those values read
+     * `{"$redacted": true}`.
      *
      */
     redacted_fields: Array<string>;
@@ -888,25 +730,6 @@ export type RecordRevisionProperties = {
      */
     draft: MergedDraft | null;
     created_at: Timestamp;
-};
-
-export type Redaction = {
-    object: 'redaction';
-    record_id: string;
-    /**
-     * The field's API key.
-     */
-    field: string;
-    field_id: string;
-    /**
-     * Revision numbers whose snapshot or changes were (or would be) rewritten.
-     */
-    revisions: Array<number>;
-    /**
-     * How many distinct past values were (or would be) redacted.
-     */
-    values: number;
-    dry_run: boolean;
 };
 
 export type RecordRevisionDetail = RecordRevisionProperties & {
@@ -946,15 +769,6 @@ export type FeatureFlags = {
     flags: {
         [key: string]: boolean;
     };
-};
-
-export type AccountDeletion = {
-    object: 'account_deletion';
-    /**
-     * The deleted user, as history still refers to it.
-     */
-    user_id: string;
-    deleted_at: string;
 };
 
 export type Principal = {
@@ -1106,157 +920,6 @@ export type RecordBatch = {
             message: string;
             details?: Array<ErrorDetail>;
         };
-    }>;
-};
-
-export type Billing = {
-    object: 'billing';
-    organization_id: string;
-    /**
-     * Whether checkout and the billing portal are available.
-     */
-    enabled: boolean;
-    plan: string;
-    /**
-     * The Stripe subscription behind a paid plan, or null.
-     */
-    subscription: null | BillingSubscription;
-    plans: Array<BillingPlan>;
-};
-
-export type BillingSubscription = {
-    /**
-     * Stripe's subscription status; `past_due` keeps the plan while Stripe retries payment.
-     */
-    status: string;
-    interval: 'month' | 'year' | null;
-    current_period_end: string | null;
-    cancel_at_period_end: boolean;
-};
-
-export type BillingPlan = {
-    key: string;
-    name: string;
-    /**
-     * The plan's limits; null values are unlimited.
-     */
-    limits: {
-        [key: string]: number | null;
-    };
-    /**
-     * Empty for free and custom plans.
-     */
-    prices: Array<{
-        interval: 'month' | 'year';
-        /**
-         * In whole currency units, before tax.
-         */
-        amount: number;
-        currency: string;
-    }>;
-};
-
-export type BillingCheckout = {
-    plan: string;
-    interval?: 'month' | 'year';
-    /**
-     * A path in the web app to come back to, e.g. `/organizations/org_.../usage`.
-     */
-    return_path?: string;
-};
-
-export type BillingPortal = {
-    return_path?: string;
-};
-
-export type BillingSession = {
-    object: 'billing_session';
-    url: string;
-};
-
-export type AccessReview = {
-    object: 'access_review';
-    organization_id: string;
-    api_keys: Array<{
-        api_key: ApiKey;
-        /**
-         * `creator_left`: its creator is no longer a member.
-         * `exceeds_creator_role`: it holds a scope the creator's current role cannot grant.
-         *
-         */
-        reason: 'creator_left' | 'exceeds_creator_role';
-    }>;
-    invitations: Array<{
-        invitation: Invitation;
-        /**
-         * `inviter_left`: whoever sent it is no longer a member.
-         * `inviter_cannot_invite`: their current role cannot invite to this role.
-         *
-         */
-        reason: 'inviter_left' | 'inviter_cannot_invite';
-    }>;
-};
-
-export type Usage = {
-    object: 'usage';
-    organization_id: string;
-    plan: {
-        key: string;
-        name: string;
-    };
-    /**
-     * The current period; `end` is exclusive.
-     */
-    period: {
-        start: string;
-        end: string;
-    };
-    metrics: Array<UsageMetric>;
-    retention: UsageRetention;
-};
-
-/**
- * How long the plan keeps record revisions (beyond each record's first and latest 10) and audit events, in days; null keeps everything.
- */
-export type UsageRetention = {
-    revision_days: number | null;
-    audit_days: number | null;
-    /**
-     * After a downgrade, all history is kept for 30 days; history past the plan's retention is removed after `ends_at`. Null otherwise.
-     */
-    grace: null | UsageRetentionGrace;
-};
-
-export type UsageRetentionGrace = {
-    ends_at: string;
-    /**
-     * Days of revisions kept until `ends_at`; null keeps everything (as a downgrade's grace does).
-     */
-    revision_days: number | null;
-    /**
-     * Days of audit events kept until `ends_at`; null keeps everything (as a downgrade's grace does).
-     */
-    audit_days: number | null;
-};
-
-export type UsageMetric = {
-    metric: 'api_requests' | 'search_requests' | 'image_transformations' | 'asset_uploads' | 'asset_downloads' | 'webhook_deliveries' | 'record_revisions' | 'projects' | 'collections' | 'records' | 'members' | 'webhooks' | 'asset_storage_bytes' | 'indexed_records';
-    kind: 'counter' | 'gauge';
-    usage: number;
-    /**
-     * The plan's limit, or null when unlimited or not limited.
-     */
-    limit: number | null;
-    /**
-     * `hard` refuses changes over the limit (402), `soft` warns, `off` only meters.
-     */
-    enforcement: 'hard' | 'soft' | 'off';
-    /**
-     * Counters only, one entry per day with usage.
-     */
-    daily?: Array<{
-        date: string;
-        value: number;
     }>;
 };
 
@@ -1548,49 +1211,10 @@ export type AssetUploadTarget = {
  */
 export type ApiKeyScope = 'records:read' | 'records:write' | 'schema:read' | 'schema:write' | 'assets:read' | 'assets:write' | 'search:read' | 'webhooks:read' | 'webhooks:write' | 'audit:read';
 
-export type ApiKey = ApiKeyProperties;
-
-export type ApiKeyProperties = {
-    id: string;
-    object: 'api_key';
-    project_id: string;
-    name: string;
-    scopes: Array<ApiKeyScope>;
-    published_only: PublishedOnly;
-    /**
-     * The non-secret start of the token, to recognize it.
-     */
-    token_hint: string;
-    expires_at: NullableTimestamp;
-    last_used_at: NullableTimestamp;
-    revoked_at: NullableTimestamp;
-    created_by: string | null;
-    created_at: Timestamp;
-};
-
 /**
  * The key sees published records only, for sites and apps: lists, reads, search and expanded relations leave out unpublished and deleted records, and history is not available. Only read scopes (records:read, schema:read, assets:read, search:read) are allowed.
  */
 export type PublishedOnly = boolean;
-
-export type ApiKeyWithToken = ApiKeyProperties & {
-    /**
-     * The secret token. Returned only once, at creation.
-     */
-    token: string;
-};
-
-export type ApiKeyCreate = {
-    name: string;
-    scopes: Array<ApiKeyScope>;
-    published_only?: PublishedOnly;
-    expires_at?: NullableTimestamp;
-};
-
-export type ApiKeyList = {
-    data: Array<ApiKey>;
-    meta: ListMeta;
-};
 
 export type ErrorType = 'invalid_request' | 'authentication_error' | 'plan_limit_exceeded' | 'authorization_error' | 'not_found' | 'conflict' | 'precondition_failed' | 'validation_error' | 'rate_limited' | 'internal_error' | 'service_unavailable';
 
@@ -2220,6 +1844,262 @@ export type RecordsUpdateResponses = {
 
 export type RecordsUpdateResponse = RecordsUpdateResponses[keyof RecordsUpdateResponses];
 
+export type RecordsRestoreData = {
+    body?: never;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        record_id: string;
+    };
+    query?: never;
+    url: '/v1/records/{record_id}/restore';
+};
+
+export type RecordsRestoreErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The change would exceed a hard limit of the organization's plan. The
+     * detail names the metric (`field`) with its `usage` and `limit`.
+     *
+     */
+    402: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsRestoreError = RecordsRestoreErrors[keyof RecordsRestoreErrors];
+
+export type RecordsRestoreResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
+};
+
+export type RecordsRestoreResponse = RecordsRestoreResponses[keyof RecordsRestoreResponses];
+
+export type RecordsCountData = {
+    body?: never;
+    path: {
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
+    };
+    query?: {
+        /**
+         * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
+         * filters combine with AND. Keys are field API keys, `published_at`,
+         * `deleted` (`true` lists soft-deleted records instead) and, in record
+         * lists and counts, `created_at` and `updated_at`. In search,
+         * `published_at` takes only `exists`.
+         *
+         * - `eq`, `ne`: equal, not equal. For fields with several values,
+         * "contains" and "does not contain". `ne` matches records with no value.
+         * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
+         * value, and the timestamps.
+         * - `in`: any of up to 100 comma-separated values (`\,` is a comma
+         * inside a value, `\\` a backslash); for fields with several values,
+         * "contains any of".
+         * - `exists`: `true` for records with a value, `false` for those without
+         * (and `published_at`: published or not).
+         *
+         * Values are parsed per field type (`"5"` is not the integer 5), but
+         * not held to the field's limits or format (`price[lt]=10` works when
+         * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
+         * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
+         * given for a date with a time, or a timestamp, covers that day in the
+         * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
+         * its end, `eq` within it. A date with a time matches the same moment
+         * written with any offset.
+         *
+         */
+        filter?: {
+            [key: string]: RecordFilterValue;
+        };
+    };
+    url: '/v1/collections/{collection_id}/records/count';
+};
+
+export type RecordsCountErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsCountError = RecordsCountErrors[keyof RecordsCountErrors];
+
+export type RecordsCountResponses = {
+    /**
+     * The count.
+     */
+    200: RecordCount;
+};
+
+export type RecordsCountResponse = RecordsCountResponses[keyof RecordsCountResponses];
+
+export type RecordsBulkData = {
+    body: RecordBatchRequest;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+        /**
+         * Optional reason for the change, shown in history (at most 500
+         * characters once decoded). Percent-encoded UTF-8, as
+         * `encodeURIComponent` encodes it, so any language fits in a header:
+         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
+         * as is. Other bytes are `400`.
+         *
+         */
+        'Nohead-Change-Note'?: string;
+    };
+    path: {
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
+    };
+    query?: never;
+    url: '/v1/collections/{collection_id}/record-batches';
+};
+
+export type RecordsBulkErrors = {
+    /**
+     * The request was malformed.
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RecordsBulkError = RecordsBulkErrors[keyof RecordsBulkErrors];
+
+export type RecordsBulkResponses = {
+    /**
+     * What happened to each record, in request order.
+     */
+    200: RecordBatch;
+};
+
+export type RecordsBulkResponse = RecordsBulkResponses[keyof RecordsBulkResponses];
+
 export type RecordsUnpublishData = {
     body?: never;
     headers?: {
@@ -2624,45 +2504,29 @@ export type RecordsScheduleResponses = {
 
 export type RecordsScheduleResponse = RecordsScheduleResponses[keyof RecordsScheduleResponses];
 
-export type RecordsRestoreData = {
+export type ScheduledChangesListData = {
     body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
-         */
-        'If-Match'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
-    };
     path: {
-        record_id: string;
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
     };
-    query?: never;
-    url: '/v1/records/{record_id}/restore';
+    query?: {
+        sort?: 'at' | '-at';
+        /**
+         * Page size.
+         */
+        limit?: number;
+        /**
+         * The `next_cursor` from the previous page.
+         */
+        cursor?: string;
+    };
+    url: '/v1/collections/{collection_id}/scheduled-changes';
 };
 
-export type RecordsRestoreErrors = {
+export type ScheduledChangesListErrors = {
     /**
      * The request was malformed.
      */
@@ -2672,12 +2536,6 @@ export type RecordsRestoreErrors = {
      */
     401: Error;
     /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
-    /**
      * The caller is not allowed to perform this action.
      */
     403: Error;
@@ -2685,16 +2543,6 @@ export type RecordsRestoreErrors = {
      * The resource does not exist or is not visible to the caller.
      */
     404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The resource changed since the revision given in `If-Match`. Nothing was
-     * written; `details` includes the current revision.
-     *
-     */
-    412: Error;
     /**
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
@@ -2705,16 +2553,16 @@ export type RecordsRestoreErrors = {
     429: Error;
 };
 
-export type RecordsRestoreError = RecordsRestoreErrors[keyof RecordsRestoreErrors];
+export type ScheduledChangesListError = ScheduledChangesListErrors[keyof ScheduledChangesListErrors];
 
-export type RecordsRestoreResponses = {
+export type ScheduledChangesListResponses = {
     /**
-     * The record.
+     * A page of scheduled changes.
      */
-    200: Record;
+    200: ScheduledChangeList;
 };
 
-export type RecordsRestoreResponse = RecordsRestoreResponses[keyof RecordsRestoreResponses];
+export type ScheduledChangesListResponse = ScheduledChangesListResponses[keyof ScheduledChangesListResponses];
 
 export type RecordRevisionsListData = {
     body?: never;
@@ -2980,322 +2828,6 @@ export type RecordsDiffResponses = {
 };
 
 export type RecordsDiffResponse = RecordsDiffResponses[keyof RecordsDiffResponses];
-
-export type RecordsRedactData = {
-    body: {
-        /**
-         * The field's API key, or its ID (`fld_...`, also for deleted fields).
-         */
-        field: string;
-        /**
-         * Redact only the values the field had in these revisions
-         * (wherever they appear in history). Omit to redact every
-         * past value.
-         *
-         */
-        revisions?: Array<number>;
-        /**
-         * Must be true to redact (not needed for a dry run).
-         */
-        confirm?: boolean;
-    };
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-    };
-    path: {
-        record_id: string;
-    };
-    query?: {
-        /**
-         * Report what would be redacted without changing anything.
-         */
-        dry_run?: boolean;
-    };
-    url: '/v1/records/{record_id}/redactions';
-};
-
-export type RecordsRedactErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type RecordsRedactError = RecordsRedactErrors[keyof RecordsRedactErrors];
-
-export type RecordsRedactResponses = {
-    /**
-     * What was (or, for a dry run, would be) redacted.
-     */
-    200: Redaction;
-};
-
-export type RecordsRedactResponse = RecordsRedactResponses[keyof RecordsRedactResponses];
-
-export type RecordsCountData = {
-    body?: never;
-    path: {
-        /**
-         * Collection ID, or the collection slug when authenticating with an API key.
-         */
-        collection_id: string;
-    };
-    query?: {
-        /**
-         * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `published_at`,
-         * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at` and `updated_at`. In search,
-         * `published_at` takes only `exists`.
-         *
-         * - `eq`, `ne`: equal, not equal. For fields with several values,
-         * "contains" and "does not contain". `ne` matches records with no value.
-         * - `gt`, `gte`, `lt`, `lte`: integer, decimal and date fields with one
-         * value, and the timestamps.
-         * - `in`: any of up to 100 comma-separated values (`\,` is a comma
-         * inside a value, `\\` a backslash); for fields with several values,
-         * "contains any of".
-         * - `exists`: `true` for records with a value, `false` for those without
-         * (and `published_at`: published or not).
-         *
-         * Values are parsed per field type (`"5"` is not the integer 5), but
-         * not held to the field's limits or format (`price[lt]=10` works when
-         * `max` is 5; a slug filter that isn't a slug matches nothing). Dates
-         * take `today`, and dates with a time `now` too. A day (`YYYY-MM-DD`)
-         * given for a date with a time, or a timestamp, covers that day in the
-         * field's `time_zone` (UTC without one): `gte` from its start, `lte` to
-         * its end, `eq` within it. A date with a time matches the same moment
-         * written with any offset.
-         *
-         */
-        filter?: {
-            [key: string]: RecordFilterValue;
-        };
-    };
-    url: '/v1/collections/{collection_id}/records/count';
-};
-
-export type RecordsCountErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type RecordsCountError = RecordsCountErrors[keyof RecordsCountErrors];
-
-export type RecordsCountResponses = {
-    /**
-     * The count.
-     */
-    200: RecordCount;
-};
-
-export type RecordsCountResponse = RecordsCountResponses[keyof RecordsCountResponses];
-
-export type RecordsBulkData = {
-    body: RecordBatchRequest;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-        /**
-         * Optional reason for the change, shown in history (at most 500
-         * characters once decoded). Percent-encoded UTF-8, as
-         * `encodeURIComponent` encodes it, so any language fits in a header:
-         * `Rettet%20stavefejl%20p%C3%A5%20forsiden`. Plain ASCII may be sent
-         * as is. Other bytes are `400`.
-         *
-         */
-        'Nohead-Change-Note'?: string;
-    };
-    path: {
-        /**
-         * Collection ID, or the collection slug when authenticating with an API key.
-         */
-        collection_id: string;
-    };
-    query?: never;
-    url: '/v1/collections/{collection_id}/record-batches';
-};
-
-export type RecordsBulkErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type RecordsBulkError = RecordsBulkErrors[keyof RecordsBulkErrors];
-
-export type RecordsBulkResponses = {
-    /**
-     * What happened to each record, in request order.
-     */
-    200: RecordBatch;
-};
-
-export type RecordsBulkResponse = RecordsBulkResponses[keyof RecordsBulkResponses];
-
-export type ScheduledChangesListData = {
-    body?: never;
-    path: {
-        /**
-         * Collection ID, or the collection slug when authenticating with an API key.
-         */
-        collection_id: string;
-    };
-    query?: {
-        sort?: 'at' | '-at';
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/collections/{collection_id}/scheduled-changes';
-};
-
-export type ScheduledChangesListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ScheduledChangesListError = ScheduledChangesListErrors[keyof ScheduledChangesListErrors];
-
-export type ScheduledChangesListResponses = {
-    /**
-     * A page of scheduled changes.
-     */
-    200: ScheduledChangeList;
-};
-
-export type ScheduledChangesListResponse = ScheduledChangesListResponses[keyof ScheduledChangesListResponses];
 
 export type RecordDraftsListData = {
     body?: never;
@@ -5344,7 +4876,7 @@ export type MigrationsCancelData = {
         migration_id: string;
     };
     query?: never;
-    url: '/v1/migrations/{migration_id}/cancellation';
+    url: '/v1/migrations/{migration_id}/cancel';
 };
 
 export type MigrationsCancelErrors = {
@@ -5696,7 +5228,7 @@ export type AssetsCompleteData = {
         asset_id: string;
     };
     query?: never;
-    url: '/v1/assets/{asset_id}/completion';
+    url: '/v1/assets/{asset_id}/complete';
 };
 
 export type AssetsCompleteErrors = {
@@ -7274,1853 +6806,6 @@ export type WebhookDeliveriesRetryResponses = {
 
 export type WebhookDeliveriesRetryResponse = WebhookDeliveriesRetryResponses[keyof WebhookDeliveriesRetryResponses];
 
-export type ApiKeysListData = {
-    body?: never;
-    path: {
-        project_id: string;
-    };
-    query?: {
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/projects/{project_id}/api-keys';
-};
-
-export type ApiKeysListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ApiKeysListError = ApiKeysListErrors[keyof ApiKeysListErrors];
-
-export type ApiKeysListResponses = {
-    /**
-     * A page of API keys. Tokens are never returned.
-     */
-    200: ApiKeyList;
-};
-
-export type ApiKeysListResponse = ApiKeysListResponses[keyof ApiKeysListResponses];
-
-export type ApiKeysCreateData = {
-    body: ApiKeyCreate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/v1/projects/{project_id}/api-keys';
-};
-
-export type ApiKeysCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ApiKeysCreateError = ApiKeysCreateErrors[keyof ApiKeysCreateErrors];
-
-export type ApiKeysCreateResponses = {
-    /**
-     * The created key, including its one-time token.
-     */
-    201: ApiKeyWithToken;
-};
-
-export type ApiKeysCreateResponse = ApiKeysCreateResponses[keyof ApiKeysCreateResponses];
-
-export type ApiKeysRevokeData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        api_key_id: string;
-    };
-    query?: never;
-    url: '/v1/api-keys/{api_key_id}';
-};
-
-export type ApiKeysRevokeErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ApiKeysRevokeError = ApiKeysRevokeErrors[keyof ApiKeysRevokeErrors];
-
-export type ApiKeysRevokeResponses = {
-    /**
-     * The revoked key.
-     */
-    200: ApiKey;
-};
-
-export type ApiKeysRevokeResponse = ApiKeysRevokeResponses[keyof ApiKeysRevokeResponses];
-
-export type ProjectsListData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * `filter[organization_id]=org_...` limits the list to one
-         * organization; `filter[deleted]=true` lists those scheduled for
-         * deletion instead (to restore them).
-         *
-         */
-        filter?: {
-            organization_id?: string;
-            deleted?: 'true' | 'false';
-        };
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/projects';
-};
-
-export type ProjectsListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsListError = ProjectsListErrors[keyof ProjectsListErrors];
-
-export type ProjectsListResponses = {
-    /**
-     * A page of projects.
-     */
-    200: ProjectList;
-};
-
-export type ProjectsListResponse = ProjectsListResponses[keyof ProjectsListResponses];
-
-export type ProjectsCreateData = {
-    body: ProjectCreate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/v1/projects';
-};
-
-export type ProjectsCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsCreateError = ProjectsCreateErrors[keyof ProjectsCreateErrors];
-
-export type ProjectsCreateResponses = {
-    /**
-     * The created project.
-     */
-    201: Project;
-};
-
-export type ProjectsCreateResponse = ProjectsCreateResponses[keyof ProjectsCreateResponses];
-
-export type ProjectsDeleteData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/v1/projects/{project_id}';
-};
-
-export type ProjectsDeleteErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsDeleteError = ProjectsDeleteErrors[keyof ProjectsDeleteErrors];
-
-export type ProjectsDeleteResponses = {
-    /**
-     * The project, now scheduled for deletion.
-     */
-    200: Project;
-};
-
-export type ProjectsDeleteResponse = ProjectsDeleteResponses[keyof ProjectsDeleteResponses];
-
-export type ProjectsGetData = {
-    body?: never;
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/v1/projects/{project_id}';
-};
-
-export type ProjectsGetErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsGetError = ProjectsGetErrors[keyof ProjectsGetErrors];
-
-export type ProjectsGetResponses = {
-    /**
-     * The project.
-     */
-    200: Project;
-};
-
-export type ProjectsGetResponse = ProjectsGetResponses[keyof ProjectsGetResponses];
-
-export type ProjectsUpdateData = {
-    body: ProjectUpdate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/v1/projects/{project_id}';
-};
-
-export type ProjectsUpdateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsUpdateError = ProjectsUpdateErrors[keyof ProjectsUpdateErrors];
-
-export type ProjectsUpdateResponses = {
-    /**
-     * The updated project.
-     */
-    200: Project;
-};
-
-export type ProjectsUpdateResponse = ProjectsUpdateResponses[keyof ProjectsUpdateResponses];
-
-export type ProjectsRestoreData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        project_id: string;
-    };
-    query?: never;
-    url: '/v1/projects/{project_id}/restore';
-};
-
-export type ProjectsRestoreErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type ProjectsRestoreError = ProjectsRestoreErrors[keyof ProjectsRestoreErrors];
-
-export type ProjectsRestoreResponses = {
-    /**
-     * The restored project.
-     */
-    200: Project;
-};
-
-export type ProjectsRestoreResponse = ProjectsRestoreResponses[keyof ProjectsRestoreResponses];
-
-export type OrganizationsListData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * `filter[deleted]=true` lists soft-deleted items instead of active ones.
-         */
-        filter?: {
-            deleted?: 'true' | 'false';
-        };
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/organizations';
-};
-
-export type OrganizationsListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsListError = OrganizationsListErrors[keyof OrganizationsListErrors];
-
-export type OrganizationsListResponses = {
-    /**
-     * A page of organizations.
-     */
-    200: OrganizationList;
-};
-
-export type OrganizationsListResponse = OrganizationsListResponses[keyof OrganizationsListResponses];
-
-export type OrganizationsCreateData = {
-    body: OrganizationCreate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/v1/organizations';
-};
-
-export type OrganizationsCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsCreateError = OrganizationsCreateErrors[keyof OrganizationsCreateErrors];
-
-export type OrganizationsCreateResponses = {
-    /**
-     * The created organization.
-     */
-    201: Organization;
-};
-
-export type OrganizationsCreateResponse = OrganizationsCreateResponses[keyof OrganizationsCreateResponses];
-
-export type OrganizationsDeleteData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}';
-};
-
-export type OrganizationsDeleteErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsDeleteError = OrganizationsDeleteErrors[keyof OrganizationsDeleteErrors];
-
-export type OrganizationsDeleteResponses = {
-    /**
-     * The organization, now scheduled for deletion.
-     */
-    200: Organization;
-};
-
-export type OrganizationsDeleteResponse = OrganizationsDeleteResponses[keyof OrganizationsDeleteResponses];
-
-export type OrganizationsGetData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}';
-};
-
-export type OrganizationsGetErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsGetError = OrganizationsGetErrors[keyof OrganizationsGetErrors];
-
-export type OrganizationsGetResponses = {
-    /**
-     * The organization.
-     */
-    200: Organization;
-};
-
-export type OrganizationsGetResponse = OrganizationsGetResponses[keyof OrganizationsGetResponses];
-
-export type OrganizationsUpdateData = {
-    body: OrganizationUpdate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}';
-};
-
-export type OrganizationsUpdateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsUpdateError = OrganizationsUpdateErrors[keyof OrganizationsUpdateErrors];
-
-export type OrganizationsUpdateResponses = {
-    /**
-     * The updated organization.
-     */
-    200: Organization;
-};
-
-export type OrganizationsUpdateResponse = OrganizationsUpdateResponses[keyof OrganizationsUpdateResponses];
-
-export type OrganizationsRestoreData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/restore';
-};
-
-export type OrganizationsRestoreErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsRestoreError = OrganizationsRestoreErrors[keyof OrganizationsRestoreErrors];
-
-export type OrganizationsRestoreResponses = {
-    /**
-     * The restored organization.
-     */
-    200: Organization;
-};
-
-export type OrganizationsRestoreResponse = OrganizationsRestoreResponses[keyof OrganizationsRestoreResponses];
-
-export type UsageGetData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/usage';
-};
-
-export type UsageGetErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type UsageGetError = UsageGetErrors[keyof UsageGetErrors];
-
-export type UsageGetResponses = {
-    /**
-     * The organization's usage.
-     */
-    200: Usage;
-};
-
-export type UsageGetResponse = UsageGetResponses[keyof UsageGetResponses];
-
-export type MembersListData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/organizations/{organization_id}/members';
-};
-
-export type MembersListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MembersListError = MembersListErrors[keyof MembersListErrors];
-
-export type MembersListResponses = {
-    /**
-     * A page of members.
-     */
-    200: MembershipList;
-};
-
-export type MembersListResponse = MembersListResponses[keyof MembersListResponses];
-
-export type MembersRemoveData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        membership_id: string;
-    };
-    query?: never;
-    url: '/v1/members/{membership_id}';
-};
-
-export type MembersRemoveErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MembersRemoveError = MembersRemoveErrors[keyof MembersRemoveErrors];
-
-export type MembersRemoveResponses = {
-    /**
-     * The removed membership.
-     */
-    200: Membership;
-};
-
-export type MembersRemoveResponse = MembersRemoveResponses[keyof MembersRemoveResponses];
-
-export type MembersUpdateData = {
-    body: MembershipUpdate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        membership_id: string;
-    };
-    query?: never;
-    url: '/v1/members/{membership_id}';
-};
-
-export type MembersUpdateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MembersUpdateError = MembersUpdateErrors[keyof MembersUpdateErrors];
-
-export type MembersUpdateResponses = {
-    /**
-     * The updated membership.
-     */
-    200: Membership;
-};
-
-export type MembersUpdateResponse = MembersUpdateResponses[keyof MembersUpdateResponses];
-
-export type InvitationsListData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/organizations/{organization_id}/invitations';
-};
-
-export type InvitationsListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type InvitationsListError = InvitationsListErrors[keyof InvitationsListErrors];
-
-export type InvitationsListResponses = {
-    /**
-     * A page of invitations.
-     */
-    200: InvitationList;
-};
-
-export type InvitationsListResponse = InvitationsListResponses[keyof InvitationsListResponses];
-
-export type InvitationsCreateData = {
-    body: InvitationCreate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/invitations';
-};
-
-export type InvitationsCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The change would exceed a hard limit of the organization's plan. The
-     * detail names the metric (`field`) with its `usage` and `limit`.
-     *
-     */
-    402: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type InvitationsCreateError = InvitationsCreateErrors[keyof InvitationsCreateErrors];
-
-export type InvitationsCreateResponses = {
-    /**
-     * The invitation.
-     */
-    201: Invitation;
-};
-
-export type InvitationsCreateResponse = InvitationsCreateResponses[keyof InvitationsCreateResponses];
-
-export type InvitationsRevokeData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        invitation_id: string;
-    };
-    query?: never;
-    url: '/v1/invitations/{invitation_id}';
-};
-
-export type InvitationsRevokeErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type InvitationsRevokeError = InvitationsRevokeErrors[keyof InvitationsRevokeErrors];
-
-export type InvitationsRevokeResponses = {
-    /**
-     * The revoked invitation.
-     */
-    200: Invitation;
-};
-
-export type InvitationsRevokeResponse = InvitationsRevokeResponses[keyof InvitationsRevokeResponses];
-
-export type OrganizationsAccessReviewData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/access-review';
-};
-
-export type OrganizationsAccessReviewErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type OrganizationsAccessReviewError = OrganizationsAccessReviewErrors[keyof OrganizationsAccessReviewErrors];
-
-export type OrganizationsAccessReviewResponses = {
-    /**
-     * What to review; empty lists when nothing is left behind.
-     */
-    200: AccessReview;
-};
-
-export type OrganizationsAccessReviewResponse = OrganizationsAccessReviewResponses[keyof OrganizationsAccessReviewResponses];
-
-export type MeInvitationsListData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-    };
-    url: '/v1/me/invitations';
-};
-
-export type MeInvitationsListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeInvitationsListError = MeInvitationsListErrors[keyof MeInvitationsListErrors];
-
-export type MeInvitationsListResponses = {
-    /**
-     * A page of invitations.
-     */
-    200: InvitationList;
-};
-
-export type MeInvitationsListResponse = MeInvitationsListResponses[keyof MeInvitationsListResponses];
-
-export type MeInvitationsAcceptData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        invitation_id: string;
-    };
-    query?: never;
-    url: '/v1/me/invitations/{invitation_id}/acceptance';
-};
-
-export type MeInvitationsAcceptErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeInvitationsAcceptError = MeInvitationsAcceptErrors[keyof MeInvitationsAcceptErrors];
-
-export type MeInvitationsAcceptResponses = {
-    /**
-     * The new membership.
-     */
-    200: Membership;
-};
-
-export type MeInvitationsAcceptResponse = MeInvitationsAcceptResponses[keyof MeInvitationsAcceptResponses];
-
-export type MeInvitationsDeclineData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path: {
-        invitation_id: string;
-    };
-    query?: never;
-    url: '/v1/me/invitations/{invitation_id}';
-};
-
-export type MeInvitationsDeclineErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeInvitationsDeclineError = MeInvitationsDeclineErrors[keyof MeInvitationsDeclineErrors];
-
-export type MeInvitationsDeclineResponses = {
-    /**
-     * The declined invitation.
-     */
-    200: Invitation;
-};
-
-export type MeInvitationsDeclineResponse = MeInvitationsDeclineResponses[keyof MeInvitationsDeclineResponses];
-
-export type BillingGetData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/billing';
-};
-
-export type BillingGetErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type BillingGetError = BillingGetErrors[keyof BillingGetErrors];
-
-export type BillingGetResponses = {
-    /**
-     * The organization's billing.
-     */
-    200: Billing;
-};
-
-export type BillingGetResponse = BillingGetResponses[keyof BillingGetResponses];
-
-export type BillingCheckoutSessionsCreateData = {
-    body: BillingCheckout;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/billing/checkout-sessions';
-};
-
-export type BillingCheckoutSessionsCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-    /**
-     * The service is temporarily unavailable.
-     */
-    503: Error;
-};
-
-export type BillingCheckoutSessionsCreateError = BillingCheckoutSessionsCreateErrors[keyof BillingCheckoutSessionsCreateErrors];
-
-export type BillingCheckoutSessionsCreateResponses = {
-    /**
-     * Where to send the owner.
-     */
-    200: BillingSession;
-};
-
-export type BillingCheckoutSessionsCreateResponse = BillingCheckoutSessionsCreateResponses[keyof BillingCheckoutSessionsCreateResponses];
-
-export type BillingPortalSessionsCreateData = {
-    body?: BillingPortal;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-        /**
-         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
-         */
-        'Nohead-Client'?: string;
-    };
-    path: {
-        organization_id: string;
-    };
-    query?: never;
-    url: '/v1/organizations/{organization_id}/billing/portal-sessions';
-};
-
-export type BillingPortalSessionsCreateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-    /**
-     * The service is temporarily unavailable.
-     */
-    503: Error;
-};
-
-export type BillingPortalSessionsCreateError = BillingPortalSessionsCreateErrors[keyof BillingPortalSessionsCreateErrors];
-
-export type BillingPortalSessionsCreateResponses = {
-    /**
-     * Where to send the owner.
-     */
-    200: BillingSession;
-};
-
-export type BillingPortalSessionsCreateResponse = BillingPortalSessionsCreateResponses[keyof BillingPortalSessionsCreateResponses];
-
-export type AuditEventsListData = {
-    body?: never;
-    path: {
-        organization_id: string;
-    };
-    query?: {
-        /**
-         * Page size.
-         */
-        limit?: number;
-        /**
-         * The `next_cursor` from the previous page.
-         */
-        cursor?: string;
-        /**
-         * `action` matches exactly, or by prefix with a trailing `.*`
-         * (`filter[action]=record.*`). `since` is inclusive and `until` exclusive.
-         *
-         */
-        filter?: {
-            /**
-             * Organization list only.
-             */
-            project_id?: string;
-            action?: string;
-            resource_type?: string;
-            resource_id?: string;
-            actor_type?: 'user' | 'api_key' | 'system';
-            /**
-             * A user (`usr_...`) or API key (`key_...`).
-             */
-            actor_id?: string;
-            since?: string;
-            until?: string;
-        };
-        sort?: 'id' | '-id';
-    };
-    url: '/v1/organizations/{organization_id}/audit-events';
-};
-
-export type AuditEventsListErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type AuditEventsListError = AuditEventsListErrors[keyof AuditEventsListErrors];
-
-export type AuditEventsListResponses = {
-    /**
-     * A page of audit events.
-     */
-    200: AuditEventList;
-};
-
-export type AuditEventsListResponse = AuditEventsListResponses[keyof AuditEventsListResponses];
-
 export type AuditEventsListForProjectData = {
     body?: never;
     path: {
@@ -9224,63 +6909,6 @@ export type HealthCheckResponses = {
 
 export type HealthCheckResponse = HealthCheckResponses[keyof HealthCheckResponses];
 
-export type MeDeleteData = {
-    body?: never;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/v1/me';
-};
-
-export type MeDeleteErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeDeleteError = MeDeleteErrors[keyof MeDeleteErrors];
-
-export type MeDeleteResponses = {
-    /**
-     * The account is deleted, and the session cookie cleared.
-     */
-    200: AccountDeletion;
-};
-
-export type MeDeleteResponse = MeDeleteResponses[keyof MeDeleteResponses];
-
 export type MeGetData = {
     body?: never;
     path?: never;
@@ -9313,67 +6941,6 @@ export type MeGetResponses = {
 };
 
 export type MeGetResponse = MeGetResponses[keyof MeGetResponses];
-
-export type MeUpdateData = {
-    body: MeUpdate;
-    headers?: {
-        /**
-         * A unique value (1-255 printable ASCII characters) that makes retrying
-         * this request safe. The first response (below 500) is stored for 24
-         * hours per user or API key; retries with the same key and the same
-         * request get it again with an `Idempotent-Replayed: true` header. The
-         * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
-         *
-         */
-        'Idempotency-Key'?: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/v1/me';
-};
-
-export type MeUpdateErrors = {
-    /**
-     * The request was malformed.
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-};
-
-export type MeUpdateError = MeUpdateErrors[keyof MeUpdateErrors];
-
-export type MeUpdateResponses = {
-    /**
-     * The signed-in user, updated.
-     */
-    200: Principal;
-};
-
-export type MeUpdateResponse = MeUpdateResponses[keyof MeUpdateResponses];
 
 export type FeatureFlagsListData = {
     body?: never;
