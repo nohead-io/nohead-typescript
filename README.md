@@ -79,6 +79,8 @@ await nohead.records.schedule(post.id, { unpublish_at: new Date("2027-01-01") })
 await nohead.records.delete(post.id) // soft delete; records.restore() undoes it
 ```
 
+`schedule` sets the whole schedule: a time left out is cleared, so `{ unpublish_at }` alone drops a pending publish.
+
 Methods return the resource and throw on failure. Field names stay as the API sends them (`published_at`, `data`), so the API reference applies as-is.
 
 **Typed data.** Describe a collection's fields and pass the type:
@@ -118,6 +120,7 @@ await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at }
 - A merge changes content only: a live record stays live, an unpublished one unpublished. Publishing a live record with a pending draft is a `ConflictError` (`draft_pending`).
 - `records.drafts(id)` lists a record's draft, and `drafts.list(collection, { record_id })` a collection's (`record_id` takes up to 100 IDs).
 - `drafts.discard` deletes one for good.
+- Drafts take the type of their data as records do: `drafts.get<Post>(id)` is a `Nohead.Draft<Post>` (also exported as `NoheadDraft`).
 
 ## Pagination
 
@@ -225,9 +228,9 @@ await nohead.records.create(
 Every method takes request options as its last argument:
 
 - `idempotencyKey`
-- `ifMatch` (record writes)
-- `changeNote`, a reason shown in history
 - `signal`, `timeout`, `maxRetries` and `headers`
+
+Writes that change records or the schema also take `changeNote`, a reason kept with the revision, schema change or migration they make. Record and draft writes take `ifMatch` (see [concurrency](#concurrency)).
 
 ## Concurrency
 
@@ -244,7 +247,7 @@ try {
 }
 ```
 
-`ifMatch` takes a record or a revision number, on `update`, `delete`, `publish`, `unpublish` and `revisions.revert`.
+`ifMatch` takes a record or a revision number, on `records.update`, `delete`, `restore`, `publish`, `unpublish` and `revisions.revert`, and a draft or its revision on `drafts.update`, `discard` and `merge`.
 
 ## Assets
 
@@ -272,7 +275,7 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 
 **Errors:** `UploadError` if storage refuses the bytes; `ValidationError` if the file fails the checks.
 
-**Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again picks up where it stopped. An asset that is already `ready` comes back without sending the bytes again.
+**Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again resumes it: an asset that is already `ready` comes back without sending the bytes again. Once the upload's URL has expired (its `upload.expires_at`), it throws `UploadError`: start over with a new key.
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 
@@ -336,14 +339,14 @@ export async function POST(request: Request) {
       secret: process.env.NOHEAD_WEBHOOK_SECRET!,
     }
   )
-  if (event.type === "record.published") {
+  if (event.type === "record.published" && event.data.record) {
     revalidateTag(event.data.record.collection)
   }
   return new Response(null, { status: 204 })
 }
 ```
 
-Event types are the activity log's actions (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
+Event types are those of the activity log (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). Narrowing by `type` types `event.data`, and `unwrap<Post>` types the records and drafts in it. `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
 
 A receiver that never calls the API can use `unwrapWebhook` from `@nohead/sdk/webhooks` without a client. Events can arrive more than once, so deduplicate by the `webhook-id` header.
 
@@ -367,7 +370,7 @@ response.headers.get("RateLimit-Remaining")
 | `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                                        |
 | `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                           |
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
-| `fields`                    | `list`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                           |
+| `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                    |
 | `migrations`                | `list`, `get`, `cancel`                                                                                                                                                                                 |
 | `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                                   |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |

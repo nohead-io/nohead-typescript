@@ -1,8 +1,16 @@
 import { createHmac } from "node:crypto"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest"
 
 import { unwrapWebhook } from "../src/webhooks.ts"
-import { WebhookVerificationError } from "../src/index.ts"
+import { WebhookVerificationError, type NoheadDraft } from "../src/index.ts"
 import { mockClient } from "./helpers.ts"
 
 const secret = `whsec_${Buffer.from("a-very-secret-key").toString("base64")}`
@@ -63,6 +71,26 @@ describe("webhook verification", () => {
     const event = await unwrapWebhook(body, new Headers(sign(body)), { secret })
     expect(event.type).toBe("record.published")
     if (event.type === "record.published") expect(event.data.revision).toBe(2)
+  })
+
+  it("types a draft event's draft by the record data", async () => {
+    interface Post {
+      title: string
+    }
+    const payload = JSON.stringify({
+      ...JSON.parse(body),
+      type: "draft.updated",
+      data: {
+        draft: { id: "drf_1", data: { title: "Hi" } },
+        draft_id: "drf_1",
+        record_id: "rec_1",
+      },
+    })
+    const event = await unwrapWebhook<Post>(payload, sign(payload), { secret })
+    if (event.type !== "draft.updated") throw new Error(event.type)
+    expectTypeOf(event.data.draft).toEqualTypeOf<NoheadDraft<Post> | null>()
+    expect(event.data.draft?.data.title).toBe("Hi")
+    expect(event.data.record_id).toBe("rec_1")
   })
 
   it("accepts Node-style headers, raw bytes and several signatures", async () => {

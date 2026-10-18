@@ -29,13 +29,15 @@ describe("pagination", () => {
     ])
     const ids: string[] = []
     for await (const r of nohead.records.list("posts", {
-      filter: { status: "draft" },
+      filter: { published_at: { exists: false } },
     })) {
       ids.push(r.id)
     }
     expect(ids).toEqual(["rec_1", "rec_2", "rec_3"])
     expect(calls[1]!.url.searchParams.get("cursor")).toBe("c2")
-    expect(calls[1]!.url.searchParams.get("filter[status]")).toBe("draft")
+    expect(calls[1]!.url.searchParams.get("filter[published_at][exists]")).toBe(
+      "false"
+    )
   })
 
   it("lists drafts by record: one ID, or several with [in]", async () => {

@@ -2,15 +2,8 @@
 //
 //   import { unwrapWebhook } from "@nohead/sdk/webhooks"
 import { WebhookVerificationError } from "./errors.ts"
-import type {
-  Actor,
-  Asset,
-  Draft,
-  Field,
-  Via,
-  Webhook,
-} from "./generated/types.gen.ts"
-import type { NoheadRecord, RecordData } from "./types.ts"
+import type * as G from "./generated/types.gen.ts"
+import type { NoheadDraft, NoheadRecord, RecordData } from "./types.ts"
 
 interface EventBase<Type extends string, Data> {
   id: string
@@ -19,11 +12,17 @@ interface EventBase<Type extends string, Data> {
   created_at: string
   project_id: string
   /** Who made the change. An integration that writes back can skip its own. */
-  actor: Actor
+  actor: G.Actor
   /** The client the change came through, when known. */
-  via: Via | null
+  via: G.Via | null
   data: Data
 }
+
+/** The event types that start with `prefix`. */
+type TypesOf<Prefix extends string> = Extract<
+  G.WebhookEventType,
+  `${Prefix}.${string}`
+>
 
 /**
  * A change to a record. `record` is the record as the change's revision left
@@ -32,88 +31,39 @@ interface EventBase<Type extends string, Data> {
  * once the record is purged.
  */
 export type RecordEvent<D = RecordData> = EventBase<
-  | "record.created"
-  | "record.imported"
-  | "record.updated"
-  | "record.published"
-  | "record.unpublished"
-  | "record.deleted"
-  | "record.restored"
-  | "record.reverted"
-  | "record.redacted"
-  | "record.scheduled"
-  | "record.unscheduled"
-  | "record.schedule_failed",
-  {
-    record: NoheadRecord<D> | null
-    revision: number | null
-    revision_id: string | null
-    /** On the `record.updated` of a merged draft: the draft it merged. */
-    draft_id?: string
-  }
+  TypesOf<"record">,
+  Omit<G.RecordEventData, "record"> & { record: NoheadRecord<D> | null }
 >
-/** A change to a draft. */
-export type DraftEvent = EventBase<
-  | "draft.created"
-  | "draft.updated"
-  | "draft.discarded"
-  | "draft.scheduled"
-  | "draft.unscheduled"
-  | "draft.schedule_failed",
-  {
-    /** As it is now; `null` once merged or discarded, and while its record is deleted. */
-    draft: Draft | null
-    /** The draft's ID, also once it is gone. */
-    draft_id: string
-    record_id: string
-  }
+/**
+ * A change to a draft. `draft` is the draft as it is now; `null` once merged
+ * or discarded, and while its record is deleted.
+ */
+export type DraftEvent<D = RecordData> = EventBase<
+  TypesOf<"draft">,
+  Omit<G.DraftEventData, "draft"> & { draft: NoheadDraft<D> | null }
 >
-/** An asset as it is now; only its ID once it is purged. */
-export type AssetEvent = EventBase<
-  "asset.created" | "asset.deleted" | "asset.restored" | "asset.purged",
-  { asset: Asset | { id: string; object: "asset" } }
->
-/** A schema change: the collection as it left it, and the change. */
+/** An asset as it is now; only its `id` and `object` once it is purged. */
+export type AssetEvent = EventBase<TypesOf<"asset">, G.AssetEventData>
+/**
+ * A schema change: the collection as it left it, and the change; a field's
+ * events also name the field (`field_id`).
+ */
 export type SchemaEvent = EventBase<
-  | "collection.created"
-  | "collection.updated"
-  | "collection.deleted"
-  | "collection.restored"
-  | "collection.fields_reordered"
-  | "field.created"
-  | "field.updated"
-  | "field.deleted"
-  | "field.restored"
-  | "field.migrated",
-  {
-    /** Only `id` once the schema change is gone (the collection was purged). */
-    collection: {
-      id: string
-      slug: string | null
-      name: string | null
-      schema_version: number | null
-      deleted_at: string | null
-    }
-    schema_change: {
-      id: string
-      operation: string
-      from_version: number
-      to_version: number
-    } | null
-  }
+  Exclude<TypesOf<"collection" | "field">, "field.alias_removed">,
+  G.SchemaEventData
 >
 /** A renamed field's old API key stopped answering before it expired. */
 export type FieldAliasRemovedEvent = EventBase<
   "field.alias_removed",
-  { field: Field | null }
+  G.FieldAliasEventData
 >
 /** Sent by `webhooks.test`. */
-export type WebhookTestEvent = EventBase<"webhook.test", { webhook: Webhook }>
+export type WebhookTestEvent = EventBase<"webhook.test", G.WebhookTestEventData>
 
 /** A webhook request's body, narrowed by `type`. */
 export type WebhookEvent<D = RecordData> =
   | RecordEvent<D>
-  | DraftEvent
+  | DraftEvent<D>
   | AssetEvent
   | SchemaEvent
   | FieldAliasRemovedEvent

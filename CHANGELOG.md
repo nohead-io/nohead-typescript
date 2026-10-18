@@ -7,14 +7,32 @@ section is its GitHub release's notes.
 
 ## 0.3.0
 
+- **Breaking:** 0.1.0 and 0.2.0 no longer work with the API: its paths and
+  shapes changed (below), so upgrading is required.
 - `changeNote` is sent percent-encoded (UTF-8), so change notes work in any
   language: a note outside ASCII used to fail the request.
 - Drafts: changes to a record that wait until they are merged into it, now
   or at a set time. `drafts.create`, `list`, `get` (with `expand`, for
   previews), `update`, `discard`, `merge`, `schedule` and `unschedule`, and
-  `records.drafts`. `records.publish` on a live record with a pending draft
-  is a `ConflictError` (`draft_pending`). Webhook events gain `DraftEvent`
+  `records.drafts`. Drafts take the type of their data as records do
+  (`drafts.get<Post>(id)` is a `NoheadDraft<Post>`, also `Nohead.Draft`),
+  and `drafts.create(record)` needs no params to start from the record's
+  values. `records.publish` on a live record with a pending draft is a
+  `ConflictError` (`draft_pending`). Webhook events gain `DraftEvent`
   (`draft.*`), and a merge's `record.updated` carries its `draft_id`.
+- **Breaking:** request options follow what each operation takes, by type:
+  `changeNote` only on writes that change records or the schema
+  (`WriteOptions`: record writes, `drafts.merge`, collection and field
+  writes), not on assets, webhooks, schedules, search index rebuilds or
+  other draft writes, which never kept a note. `ifMatch` on
+  `records.update`, `delete`, `restore` (new), `publish`, `unpublish` and
+  `revisions.revert` (`ConditionalWriteOptions`) and on `drafts.update`,
+  `discard` and `merge`. `ConditionalRequestOptions` no longer includes
+  `changeNote`.
+- **Breaking:** `records.schedule` sets the whole schedule: a time left out
+  is cleared (it used to keep its value), and `{}` clears both, as
+  `unschedule` does.
+- `fields.get()`: one field by ID.
 - **Breaking:** the types for what only the web app can do (organizations,
   projects, members and invitations, billing, API keys, usage, account
   changes and redaction, such as `Organization`, `Project`, `ApiKey`, `Billing`) are gone. Those
@@ -29,20 +47,46 @@ section is its GitHub release's notes.
   - `records.schedule` and `unschedule` return the schedule, and
     `records.getSchedule`, `records.publication` and
     `records.scheduledChanges` are new. `records.bulk` returns a
-    `record_batch`.
+    `record_batch`: `BulkRecordsResult` and `BulkRecordsRequest` are now
+    `RecordBatch` and `RecordBatchRequest`.
   - Project search takes `filter: { published_at: { exists: true } }`
     instead of `filter: { status }`.
   - Collections, fields, assets and webhooks have `deleted_at` and
     `purge_after` instead of `deleted`, and migrations
     `cancel_requested_at`.
-  - `assets.createUpload` returns the asset with its `upload`.
+  - `assets.createUpload` returns the asset with its `upload`
+    (`AssetWithUpload`, was `AssetUpload`).
   - `fields.reorder` returns the `field_order`; `fields.order` reads it.
-  - Webhook event types are the activity log's actions (`record.restored`,
+  - Webhook event types are those of the activity log (`record.restored`,
     `field.updated`, …, and wildcards such as `record.*`), and event
-    payloads carry `actor` and `via`. `webhooks.rotateSecret` returns a
-    `webhook_secret`; the old secret signs for 24 hours more.
-    `webhooks.secrets.list`, `webhooks.secrets.retire` and
-    `webhooks.restore` are new.
+    payloads carry `actor` and `via`. `SchemaChangedEvent`
+    (`schema.changed`) is now `SchemaEvent` (`collection.*` and `field.*`,
+    with the `collection`, its `object`, the `schema_change` and, for a
+    field, its `field_id`), and `FieldAliasRemovedEvent` is new
+    (`field.alias_removed`). There is no `record.imported`. The event data
+    types are exported too (`RecordEventData`, `DraftEventData`,
+    `AssetEventData`, `SchemaEventData`, `FieldAliasEventData`,
+    `WebhookTestEventData`).
+  - `webhooks.rotateSecret` returns a `webhook_secret`
+    (`WebhookSecretWithValue`, was `WebhookWithSecret`); the old secret
+    signs for 24 hours more. `webhooks.secrets.list`,
+    `webhooks.secrets.retire`, `webhooks.restore` and
+    `webhooks.list({ deleted })` are new. `webhooks.deliveries.retry`
+    calls the API's new path.
+  - Audit events are `object: "event"`, and name what happened in `type`
+    (was `action`). `auditEvents.list` filters by `type`, `resource_type`
+    (one, or a list of them), `resource_id`, `actor_type`, `actor_id` and
+    `created_at: { gte, gt, lte, lt }` (was `action`, `since` and
+    `until`); an unknown filter is an `InvalidRequestError`. Field events
+    have the resource type `field`.
+  - `records.revisions.list` filters `created_at` by range (was `since`
+    and `until`), and revisions' `operation` can be `merge` (not `import`).
+  - `ScheduledChange` has no `last_error`, and `SchemaChange` no `status`.
+    `ChangeVia` is gone: `Via` names the client a change came through.
+  - Exported types for the params that were inline:
+    `ScheduledChangeListParams`, `DraftScheduleParams`,
+    `FieldReorderParams`, and the filters `AuditEventFilter`,
+    `RevisionFilter` and `TimeRange`.
 - **Breaking:** the `datetime` field type is now `date`. A plain date field holds
   `YYYY-MM-DD`; with `include_time` it holds a moment, written in the field's
   `time_zone` when it has one. Field migrations take `time_zone`, the zone
@@ -60,8 +104,8 @@ section is its GitHub release's notes.
 - `assets.usage()`: where an asset is used, as counts of the records that use
   it (and of those, the published ones) and the 10 most recently updated with
   the fields that use it. Needs the `records:read` scope too.
-- `assets.purge()`: permanently deletes a deleted asset now, instead of 30
-  days after the delete, and frees its storage.
+- `assets.purge()`: permanently deletes a deleted asset now, instead of at
+  its `purge_after`, and frees its storage.
 - An error reads only the fields of the API's error envelope that have the
   right type, so JSON from a proxy or gateway that merely looks like one no
   longer gives it a non-string `message`, `type` or `requestId`.
@@ -80,7 +124,8 @@ section is its GitHub release's notes.
 - `assets.upload()` with an `idempotencyKey` no longer fails when it
   completes the upload: the key only starts it. Running the same upload again
   resumes it, and returns an asset that is already `ready` without sending the
-  bytes again.
+  bytes again; once the upload's URL has expired it throws `UploadError`
+  (start over with a new key).
 - Types follow the API's current contract. They add types only for
   operations an API key can't call, so no method changed.
 

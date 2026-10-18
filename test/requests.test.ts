@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, expectTypeOf, it } from "vitest"
 
 import { json, mockClient, page, record } from "./helpers.ts"
 
@@ -15,7 +15,7 @@ describe("requests", () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("posts", {
       filter: {
-        status: "published",
+        published_at: { exists: true },
         featured: true,
         views: 3,
         published_after: new Date("2026-01-01T00:00:00Z"),
@@ -26,7 +26,7 @@ describe("requests", () => {
       limit: 50,
     })
     const params = calls[0]!.url.searchParams
-    expect(params.get("filter[status]")).toBe("published")
+    expect(params.get("filter[published_at][exists]")).toBe("true")
     expect(params.get("filter[featured]")).toBe("true")
     expect(params.get("filter[views]")).toBe("3")
     expect(params.get("filter[published_after]")).toBe(
@@ -42,7 +42,7 @@ describe("requests", () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("products", {
       filter: {
-        status: { ne: "draft" },
+        brand: { ne: "acme" },
         price: { gte: 10, lt: 50 },
         category: { in: ["shoes", "hats, caps", "a\\b"] },
         cover: { exists: true },
@@ -51,7 +51,7 @@ describe("requests", () => {
       sort: "-price",
     })
     const params = calls[0]!.url.searchParams
-    expect(params.get("filter[status][ne]")).toBe("draft")
+    expect(params.get("filter[brand][ne]")).toBe("acme")
     expect(params.get("filter[price][gte]")).toBe("10")
     expect(params.get("filter[price][lt]")).toBe("50")
     expect(params.get("filter[category][in]")).toBe("shoes,hats\\, caps,a\\\\b")
@@ -90,10 +90,11 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ publish_at: "2027-01-01T09:00:00.000Z" })
   })
 
-  it("clears scheduled times with null", async () => {
+  it("sends the schedule as given: a time left out is cleared", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))])
     await nohead.records.schedule("rec_1", { unpublish_at: null })
-    expect(calls[0]!.body).toEqual({ unpublish_at: null })
+    await nohead.records.schedule("rec_1", {})
+    expect(calls.map((c) => c.body)).toEqual([{ unpublish_at: null }, {}])
   })
 
   it("gives every write an idempotency key, and none to reads", async () => {
@@ -145,6 +146,42 @@ describe("requests", () => {
     // Half an emoji (a string cut in the middle) is sent as U+FFFD.
     await nohead.records.delete("rec_1", { changeNote: "Cut \uD83D" })
     expect(calls[2]!.headers.get("nohead-change-note")).toBe("Cut%20%EF%BF%BD")
+  })
+
+  it("sends If-Match on a restore, and a draft's revision", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    await nohead.records.restore("rec_1", { ifMatch: 2 })
+    await nohead.drafts.discard("drf_1", { ifMatch: { revision: 5 } })
+    expect(calls.map((c) => c.headers.get("if-match"))).toEqual(['"2"', '"5"'])
+  })
+
+  it("starts a draft from the record's values, typed like records", async () => {
+    const draft = { id: "drf_1", object: "draft", data: { title: "Hi" } }
+    const { nohead, calls } = mockClient([json(201, draft)])
+    const created = await nohead.drafts.create<{ title: string }>("rec_1")
+    expectTypeOf(created.data.title).toEqualTypeOf<string>()
+    expect(created.data.title).toBe("Hi")
+    expect(calls[0]!.body).toEqual({})
+  })
+
+  it("filters the activity log by several resource types and a time range", async () => {
+    const { nohead, calls } = mockClient([page([], null)])
+    await nohead.auditEvents.list({
+      filter: {
+        type: "field.*",
+        resource_type: ["collection", "field"],
+        created_at: {
+          gte: new Date("2026-10-01T00:00:00Z"),
+          lt: "2026-11-01T00:00:00Z",
+        },
+      },
+    })
+    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
+      "filter[type]": "field.*",
+      "filter[resource_type][in]": "collection,field",
+      "filter[created_at][gte]": "2026-10-01T00:00:00.000Z",
+      "filter[created_at][lt]": "2026-11-01T00:00:00Z",
+    })
   })
 
   it("sends dry runs as a query parameter", async () => {

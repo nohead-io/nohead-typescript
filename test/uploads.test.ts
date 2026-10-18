@@ -9,15 +9,17 @@ const asset = (status: string) => ({
   filename: "a.png",
   status,
 })
-const created = json(201, {
-  ...asset("pending"),
-  upload: {
-    method: "PUT",
-    url: "https://storage.test/uploads/prj_1/ast_1?signature=x",
-    headers: { "Content-Type": "image/png" },
-    expires_at: "2026-10-02T13:00:00.000Z",
-  },
-})
+const createdUntil = (expiresAt: string) =>
+  json(201, {
+    ...asset("pending"),
+    upload: {
+      method: "PUT",
+      url: "https://storage.test/uploads/prj_1/ast_1?signature=x",
+      headers: { "Content-Type": "image/png" },
+      expires_at: expiresAt,
+    },
+  })
+const created = createdUntil(new Date(Date.now() + 900_000).toISOString())
 
 describe("assets.upload", () => {
   it("creates the upload, sends the bytes to storage, then completes it", async () => {
@@ -78,6 +80,17 @@ describe("assets.upload", () => {
       { idempotencyKey: "k1" }
     )
     expect(ready.status).toBe("ready")
+    expect(calls.map((c) => c.method)).toEqual(["POST", "GET"])
+  })
+
+  it("refuses to resume once the upload URL expired", async () => {
+    const { nohead, calls } = mockClient([
+      createdUntil("2026-10-02T13:00:00.000Z"),
+      json(200, asset("pending")),
+    ])
+    await expect(
+      nohead.assets.upload(new Blob(["x"]), {}, { idempotencyKey: "k1" })
+    ).rejects.toThrow(/new idempotencyKey/)
     expect(calls.map((c) => c.method)).toEqual(["POST", "GET"])
   })
 

@@ -61,8 +61,6 @@ export interface RetryEvent {
 export interface RequestOptions {
   /** Sent as `Idempotency-Key` on writes. Generated when omitted. */
   idempotencyKey?: string
-  /** A reason for the change, shown in history (`Nohead-Change-Note`). */
-  changeNote?: string
   signal?: AbortSignal
   /** Milliseconds per attempt, overriding the client's. */
   timeout?: number
@@ -71,7 +69,16 @@ export interface RequestOptions {
   headers?: Record<string, string>
 }
 
-/** Options of record writes that accept `If-Match`. */
+/** Options of writes that change records or the schema. */
+export interface WriteOptions extends RequestOptions {
+  /**
+   * A reason for the change, kept with the revision, schema change or
+   * migration it makes (`Nohead-Change-Note`).
+   */
+  changeNote?: string
+}
+
+/** Options of draft writes that accept `If-Match`. */
 export interface ConditionalRequestOptions extends RequestOptions {
   /**
    * Only write if the record (or the draft) is still at this revision;
@@ -81,13 +88,35 @@ export interface ConditionalRequestOptions extends RequestOptions {
   ifMatch?: number | { revision: number }
 }
 
+/** Options of record writes, which accept `If-Match` and a change note. */
+export interface ConditionalWriteOptions
+  extends WriteOptions, ConditionalRequestOptions {}
+
+/** The request headers an operation declares. */
+type HeadersOf<Op extends OperationId> = Operations[Op]["data"] extends {
+  headers?: infer H
+}
+  ? keyof NonNullable<H>
+  : never
+
+/**
+ * The options an operation takes: `ifMatch` and `changeNote` only where it
+ * declares `If-Match` and `Nohead-Change-Note`, so a method can't offer them
+ * elsewhere.
+ */
+export type OptionsOf<Op extends OperationId> = RequestOptions &
+  ("If-Match" extends HeadersOf<Op>
+    ? Pick<ConditionalRequestOptions, "ifMatch">
+    : { ifMatch?: never }) &
+  ("Nohead-Change-Note" extends HeadersOf<Op>
+    ? Pick<WriteOptions, "changeNote">
+    : { changeNote?: never })
+
 export interface RequestInput {
   path?: Record<string, string | number | undefined>
   query?: object
   body?: unknown
 }
-
-type AllOptions = ConditionalRequestOptions
 
 /**
  * The string with lone surrogates (half an emoji, from cutting a string)
@@ -159,7 +188,7 @@ export class Core {
   request<Op extends OperationId>(
     operation: Op,
     input: RequestInput = {},
-    options: AllOptions = {}
+    options: OptionsOf<Op> = {}
   ): APIPromise<Operations[Op]["response"]> {
     return new APIPromise(
       this.#send(operation, input, options) as Promise<
@@ -219,7 +248,7 @@ export class Core {
   async #send(
     operation: OperationId,
     input: RequestInput,
-    options: AllOptions
+    options: ConditionalWriteOptions
   ): Promise<APIResponse<unknown>> {
     const { method, path } = OPERATIONS[operation]
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))

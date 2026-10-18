@@ -12,7 +12,7 @@ export const OPERATIONS = {
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
   assets_upload: { method: "POST", path: "/v1/projects/{project_id}/assets" },
   assets_usage: { method: "GET", path: "/v1/assets/{asset_id}/usage" },
-  audit_events_list_for_project: { method: "GET", path: "/v1/projects/{project_id}/audit-events" },
+  audit_events_list: { method: "GET", path: "/v1/projects/{project_id}/audit-events" },
   collections_create: { method: "POST", path: "/v1/projects/{project_id}/collections" },
   collections_delete: { method: "DELETE", path: "/v1/collections/{collection_id}" },
   collections_get: { method: "GET", path: "/v1/collections/{collection_id}" },
@@ -32,6 +32,7 @@ export const OPERATIONS = {
   feature_flags_list: { method: "GET", path: "/v1/feature-flags" },
   fields_create: { method: "POST", path: "/v1/collections/{collection_id}/fields" },
   fields_delete: { method: "DELETE", path: "/v1/fields/{field_id}" },
+  fields_get: { method: "GET", path: "/v1/fields/{field_id}" },
   fields_get_order: { method: "GET", path: "/v1/collections/{collection_id}/field-order" },
   fields_list: { method: "GET", path: "/v1/collections/{collection_id}/fields" },
   fields_migrate: { method: "POST", path: "/v1/fields/{field_id}/migrations" },
@@ -71,7 +72,7 @@ export const OPERATIONS = {
   search_index_rebuild: { method: "POST", path: "/v1/collections/{collection_id}/search-index/rebuild" },
   webhook_deliveries_get: { method: "GET", path: "/v1/webhook-deliveries/{delivery_id}" },
   webhook_deliveries_list: { method: "GET", path: "/v1/webhooks/{webhook_id}/deliveries" },
-  webhook_deliveries_retry: { method: "POST", path: "/v1/webhook-deliveries/{delivery_id}/attempts" },
+  webhook_deliveries_retry: { method: "POST", path: "/v1/webhook-deliveries/{delivery_id}/retry" },
   webhook_secrets_list: { method: "GET", path: "/v1/webhooks/{webhook_id}/secrets" },
   webhook_secrets_retire: { method: "DELETE", path: "/v1/webhook-secrets/{secret_id}" },
   webhooks_create: { method: "POST", path: "/v1/projects/{project_id}/webhooks" },
@@ -97,7 +98,7 @@ export interface Operations {
   assets_restore: { data: T.AssetsRestoreData; response: T.AssetsRestoreResponse }
   assets_upload: { data: T.AssetsUploadData; response: T.AssetsUploadResponse }
   assets_usage: { data: T.AssetsUsageData; response: T.AssetsUsageResponse }
-  audit_events_list_for_project: { data: T.AuditEventsListForProjectData; response: T.AuditEventsListForProjectResponse }
+  audit_events_list: { data: T.AuditEventsListData; response: T.AuditEventsListResponse }
   collections_create: { data: T.CollectionsCreateData; response: T.CollectionsCreateResponse }
   collections_delete: { data: T.CollectionsDeleteData; response: T.CollectionsDeleteResponse }
   collections_get: { data: T.CollectionsGetData; response: T.CollectionsGetResponse }
@@ -117,6 +118,7 @@ export interface Operations {
   feature_flags_list: { data: T.FeatureFlagsListData; response: T.FeatureFlagsListResponse }
   fields_create: { data: T.FieldsCreateData; response: T.FieldsCreateResponse }
   fields_delete: { data: T.FieldsDeleteData; response: T.FieldsDeleteResponse }
+  fields_get: { data: T.FieldsGetData; response: T.FieldsGetResponse }
   fields_get_order: { data: T.FieldsGetOrderData; response: T.FieldsGetOrderResponse }
   fields_list: { data: T.FieldsListData; response: T.FieldsListResponse }
   fields_migrate: { data: T.FieldsMigrateData; response: T.FieldsMigrateResponse }
