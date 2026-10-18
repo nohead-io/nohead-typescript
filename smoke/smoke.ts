@@ -165,6 +165,11 @@ try {
     "assets upload to storage"
   )
 
+  const renamed = await nohead.assets.update(asset.id, {
+    filename: "greeting.txt",
+  })
+  expect(renamed.filename === "greeting.txt", "assets rename")
+
   const deletedAsset = await nohead.assets.delete(asset.id)
   expect(deletedAsset.deleted_at, "assets soft-delete")
   await nohead.assets.purge(asset.id)

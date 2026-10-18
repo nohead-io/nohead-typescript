@@ -10,6 +10,7 @@ export const OPERATIONS = {
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
   assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
+  assets_update: { method: "PATCH", path: "/v1/assets/{asset_id}" },
   assets_upload: { method: "POST", path: "/v1/projects/{project_id}/assets" },
   assets_usage: { method: "GET", path: "/v1/assets/{asset_id}/usage" },
   audit_events_list: { method: "GET", path: "/v1/projects/{project_id}/audit-events" },
@@ -96,6 +97,7 @@ export interface Operations {
   assets_list: { data: T.AssetsListData; response: T.AssetsListResponse }
   assets_purge: { data: T.AssetsPurgeData; response: T.AssetsPurgeResponse }
   assets_restore: { data: T.AssetsRestoreData; response: T.AssetsRestoreResponse }
+  assets_update: { data: T.AssetsUpdateData; response: T.AssetsUpdateResponse }
   assets_upload: { data: T.AssetsUploadData; response: T.AssetsUploadResponse }
   assets_usage: { data: T.AssetsUsageData; response: T.AssetsUsageResponse }
   audit_events_list: { data: T.AuditEventsListData; response: T.AuditEventsListResponse }
