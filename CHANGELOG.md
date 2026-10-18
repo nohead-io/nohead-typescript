@@ -124,7 +124,8 @@ section is its GitHub release's notes.
 - `assets.upload()` with an `idempotencyKey` no longer fails when it
   completes the upload: the key only starts it. Running the same upload again
   resumes it, and returns an asset that is already `ready` without sending the
-  bytes again.
+  bytes again; once the upload's URL has expired it throws `UploadError`
+  (start over with a new key).
 - Types follow the API's current contract. They add types only for
   operations an API key can't call, so no method changed.
 

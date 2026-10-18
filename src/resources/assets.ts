@@ -34,7 +34,8 @@ export class Assets extends Resource {
    *
    * With an `idempotencyKey`, running the same upload again resumes it: the
    * key starts the upload, and an asset that is already `ready` is returned
-   * without sending the bytes again.
+   * without sending the bytes again. Once the upload's URL has expired
+   * (`upload.expires_at`), it throws `UploadError`: start over with a new key.
    *
    *   import { openAsBlob } from "node:fs"
    *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg" })
@@ -70,6 +71,12 @@ export class Assets extends Resource {
         idempotencyKey: undefined,
       })
       if (current.status === "ready") return current
+      // The key replays the first run's upload URL, which expires sooner.
+      if (Date.parse(upload.expires_at) <= Date.now()) {
+        throw new UploadError(
+          `The upload of ${asset.filename} expired: start it again with a new idempotencyKey`
+        )
+      }
     }
 
     const stream = file instanceof ReadableStream

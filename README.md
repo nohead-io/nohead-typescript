@@ -275,7 +275,7 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 
 **Errors:** `UploadError` if storage refuses the bytes; `ValidationError` if the file fails the checks.
 
-**Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again picks up where it stopped. An asset that is already `ready` comes back without sending the bytes again.
+**Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again resumes it: an asset that is already `ready` comes back without sending the bytes again. Once the upload's URL has expired (its `upload.expires_at`), it throws `UploadError`: start over with a new key.
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 
