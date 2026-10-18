@@ -183,7 +183,7 @@ export interface DeletedListParams extends ListParams {
 export interface AssetListParams extends DeletedListParams {
   /**
    * Only assets of a MIME type or `type/*` wildcard (`"image/*"`), or of any
-   * of several (up to 50): `["image/*", "application/pdf"]`, such as an asset
+   * of several: `["image/*", "application/pdf"]`, such as an asset
    * field's `accepted_types`.
    */
   content_type?: string | string[]
