@@ -88,14 +88,14 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.collections.restore("posts"),
   (nohead) => nohead.collections.schema("posts", { version: 2 }),
   (nohead) => nohead.collections.schemaChanges.list("posts"),
-  (nohead) => nohead.collections.schemaChanges.get("posts", "sch_01J9ZQ3F8X"),
+  (nohead) => nohead.collections.schemaChanges.get("sch_01J9ZQ3F8X"),
   (nohead) => nohead.collections.searchIndex.get("posts"),
   (nohead) => nohead.collections.searchIndex.rebuild("posts"),
   (nohead) => nohead.fields.list("posts", { deleted: true }),
   (nohead) =>
     nohead.fields.create("posts", {
       name: "Title",
-      api_key: "title",
+      key: "title",
       type: "text",
     }),
   (nohead) => nohead.fields.get("fld_01J9ZQ3F8X"),

@@ -118,15 +118,12 @@ export class SchemaChanges extends Resource {
   }
 
   get(
-    collection: string,
     schemaChange: string,
     options?: RequestOptions
   ): APIPromise<SchemaChangeDetail> {
     return this.core.request(
       "schema_changes_get",
-      {
-        path: { collection_id: collection, schema_change_id: schemaChange },
-      },
+      { path: { schema_change_id: schemaChange } },
       options
     )
   }

@@ -43,7 +43,7 @@ try {
   const collection = await nohead.collections.create({
     name: "TypeScript smoke",
     slug: `sdk-typescript-${randomUUID().slice(0, 8)}`,
-    fields: [{ name: "Title", api_key: "title", type: "text", required: true }],
+    fields: [{ name: "Title", key: "title", type: "text", required: true }],
   })
   left.collections = collection.id
 

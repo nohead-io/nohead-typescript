@@ -131,7 +131,7 @@ const everyHeader: ((nohead: Nohead) => unknown)[] = [
   (nohead) =>
     nohead.fields.create(
       "posts",
-      { name: "Title", api_key: "title", type: "text" },
+      { name: "Title", key: "title", type: "text" },
       note
     ),
   (nohead) => nohead.fields.update(fld, { name: "Heading" }, note),

@@ -66,7 +66,7 @@ export const OPERATIONS = {
   records_unschedule: { method: "DELETE", path: "/v1/records/{record_id}/schedule" },
   records_update: { method: "PATCH", path: "/v1/records/{record_id}" },
   scheduled_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/scheduled-changes" },
-  schema_changes_get: { method: "GET", path: "/v1/collections/{collection_id}/schema-changes/{schema_change_id}" },
+  schema_changes_get: { method: "GET", path: "/v1/schema-changes/{schema_change_id}" },
   schema_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/schema-changes" },
   search_index_get: { method: "GET", path: "/v1/collections/{collection_id}/search-index" },
   search_index_rebuild: { method: "POST", path: "/v1/collections/{collection_id}/search-index/rebuild" },

@@ -306,11 +306,11 @@ Search needs `search_enabled` collections and the `search:read` scope. It pages 
 const posts = await nohead.collections.create({
   name: "Posts",
   slug: "posts",
-  fields: [{ name: "Title", api_key: "title", type: "text", required: true }],
+  fields: [{ name: "Title", key: "title", type: "text", required: true }],
 })
 await nohead.fields.create("posts", {
   name: "Summary",
-  api_key: "summary",
+  key: "summary",
   type: "long_text",
 })
 
