@@ -1255,7 +1255,7 @@ export type SearchIndex = {
  * (`record.*`, `draft.*`, `collection.*`, `field.*`, `asset.*`) or `*` for all.
  *
  */
-export type WebhookEventType = 'record.created' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'draft.created' | 'draft.updated' | 'draft.discarded' | 'draft.scheduled' | 'draft.unscheduled' | 'draft.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
+export type WebhookEventType = 'record.created' | 'record.updated' | 'record.published' | 'record.unpublished' | 'record.deleted' | 'record.restored' | 'record.reverted' | 'record.redacted' | 'record.scheduled' | 'record.unscheduled' | 'record.schedule_failed' | 'draft.created' | 'draft.updated' | 'draft.discarded' | 'draft.scheduled' | 'draft.unscheduled' | 'draft.schedule_failed' | 'collection.created' | 'collection.updated' | 'collection.deleted' | 'collection.restored' | 'collection.fields_reordered' | 'field.created' | 'field.updated' | 'field.deleted' | 'field.restored' | 'field.migrated' | 'field.alias_removed' | 'asset.created' | 'asset.updated' | 'asset.deleted' | 'asset.restored' | 'asset.purged';
 
 export type WebhookSubscription = WebhookEventType | 'record.*' | 'draft.*' | 'collection.*' | 'field.*' | 'asset.*' | '*';
 
@@ -1587,14 +1587,29 @@ export type WebhookTestEventData = {
 
 export type Asset = AssetProperties;
 
+export type AssetUpdate = {
+    /**
+     * Control characters are removed and path separators become `_`, as on upload.
+     */
+    filename?: string;
+    /**
+     * Surrounding whitespace is removed; empty or null clears it.
+     */
+    alt?: string | null;
+};
+
 export type AssetProperties = {
     id: string;
     object: 'asset';
     project_id: string;
     /**
-     * The original filename, any Unicode.
+     * The filename, any Unicode, as uploaded unless renamed since. Downloads use it.
      */
     filename: string;
+    /**
+     * Alternative text, saying what an image shows; null until set. The default wherever the asset is used.
+     */
+    alt: string | null;
     content_type: string;
     byte_size: number;
     /**
@@ -5817,6 +5832,77 @@ export type AssetsGetResponses = {
 };
 
 export type AssetsGetResponse = AssetsGetResponses[keyof AssetsGetResponses];
+
+export type AssetsUpdateData = {
+    body: AssetUpdate;
+    headers?: {
+        /**
+         * A unique value (1-255 printable ASCII characters) that makes retrying
+         * this request safe. The first response (below 500) is stored for 24
+         * hours per user or API key; retries with the same key and the same
+         * request get it again with an `Idempotent-Replayed: true` header. The
+         * same key with a different request is refused with `400`; a retry while
+         * the first request is still running gets `409`.
+         *
+         */
+        'Idempotency-Key'?: string;
+        /**
+         * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
+         */
+        'Nohead-Client'?: string;
+    };
+    path: {
+        asset_id: string;
+    };
+    query?: never;
+    url: '/v1/assets/{asset_id}';
+};
+
+export type AssetsUpdateErrors = {
+    /**
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * The request conflicts with current state.
+     */
+    409: Error;
+    /**
+     * The request failed validation.
+     */
+    422: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type AssetsUpdateError = AssetsUpdateErrors[keyof AssetsUpdateErrors];
+
+export type AssetsUpdateResponses = {
+    /**
+     * The asset.
+     */
+    200: Asset;
+};
+
+export type AssetsUpdateResponse = AssetsUpdateResponses[keyof AssetsUpdateResponses];
 
 export type AssetsImageUrlData = {
     body?: never;

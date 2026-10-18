@@ -9,6 +9,7 @@ export type {
   AssetFieldCreate,
   AssetList,
   AssetProperties,
+  AssetUpdate,
   AssetUploadCreate,
   AssetUploadTarget,
   AssetUsage,

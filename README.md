@@ -279,6 +279,14 @@ const { url } = await nohead.assets.imageUrl(asset.id, {
 
 **Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
 
+**Renaming and alt text:** `update` changes an asset's `filename` and `alt` text, the default wherever the asset is used (`expand` returns it with the asset). The file itself never changes.
+
+```ts
+await nohead.assets.update(asset.id, {
+  alt: "The spring menu, on a chalkboard",
+})
+```
+
 **Deleting:** `delete` keeps a deleted asset until its `purge_after` (30 days), and `restore` brings it back. To remove it for good now, `purge` it after the delete. Records that use it keep an ID that no longer resolves, so check `usage` first:
 
 ```ts
@@ -376,7 +384,7 @@ response.headers.get("RateLimit-Remaining")
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
 | `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`                                                                                                               |
 | `migrations`                | `create`, `list`, `get`, `cancel`                                                                                                                                                                       |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                                   |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `update`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                         |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |
 | `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                                        |
 | `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                                  |

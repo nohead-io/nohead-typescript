@@ -3,6 +3,7 @@ import type { RequestOptions } from "../core.ts"
 import { AbortError, UploadError } from "../errors.ts"
 import type {
   Asset,
+  AssetUpdate,
   AssetUploadCreate,
   AssetWithUpload,
   AssetUsage,
@@ -155,6 +156,24 @@ export class Assets extends Resource {
     return this.core.request(
       "assets_get",
       { path: { asset_id: asset } },
+      options
+    )
+  }
+
+  /**
+   * Renames the asset (`filename`) or sets its `alt` text (`null` or `""`
+   * clears it). The file itself can't change: upload a new asset for that.
+   * `alt` is the default wherever the asset is used. A deleted asset is a
+   * `ConflictError`: restore it first.
+   */
+  update(
+    asset: string,
+    params: AssetUpdate,
+    options?: RequestOptions
+  ): APIPromise<Asset> {
+    return this.core.request(
+      "assets_update",
+      { path: { asset_id: asset }, body: params },
       options
     )
   }

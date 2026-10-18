@@ -7,6 +7,7 @@
   "assets_list": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nfor await (const asset of nohead.assets.list({ deleted: true })) {\n  console.log(asset)\n}\n",
   "assets_purge": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.purge(\"ast_01J9ZQ3F8X\")\n",
   "assets_restore": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.restore(\"ast_01J9ZQ3F8X\")\n",
+  "assets_update": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.update(\"ast_01J9ZQ3F8X\", {\n  filename: \"Spring menu.jpg\",\n  alt: \"The spring menu, on a chalkboard\",\n})\n",
   "assets_upload": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.upload(\n  new Blob([\"Hello\"], { type: \"text/plain\" }),\n  {\n    filename: \"hello.txt\",\n  }\n)\n",
   "assets_usage": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.usage(\"ast_01J9ZQ3F8X\")\n",
   "audit_events_list": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nfor await (const event of nohead.auditEvents.list({\n  filter: {\n    type: \"record.*\",\n    created_at: { gte: \"2026-10-01T00:00:00Z\" },\n  },\n  sort: \"-created_at\",\n})) {\n  console.log(event)\n}\n",
