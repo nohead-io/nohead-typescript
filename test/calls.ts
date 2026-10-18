@@ -37,7 +37,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.records.drafts("rec_01J9ZQ3F8X"),
   (nohead) =>
     nohead.drafts.create("rec_01J9ZQ3F8X", { data: { title: "Hey" } }),
-  (nohead) => nohead.drafts.list("posts", { record_id: ["rec_01J9ZQ3F8X"] }),
+  (nohead) => nohead.drafts.list("posts"),
   (nohead) => nohead.drafts.get("drf_01J9ZQ3F8X", { expand: ["author"] }),
   (nohead) =>
     nohead.drafts.update(
@@ -106,7 +106,8 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.fields.reorder("posts", { field_ids: ["fld_01J9ZQ3F8X"] }),
   (nohead) => nohead.fields.removeAlias("fld_01J9ZQ3F8X", "old_title"),
   (nohead) =>
-    nohead.fields.migrate("fld_01J9ZQ3F8X", {
+    nohead.migrations.create("posts", {
+      field_id: "fld_01J9ZQ3F8X",
       type: "long_text",
       dry_run: true,
     }),
@@ -157,7 +158,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
         type: "record.*",
         created_at: { gte: "2026-10-01T00:00:00Z" },
       },
-      sort: "-id",
+      sort: "-created_at",
     }),
   (nohead) => nohead.featureFlags.list(),
   (nohead) => nohead.me.get(),

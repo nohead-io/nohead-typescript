@@ -18,9 +18,9 @@ import type {
 import type {
   DeletedListParams,
   DryRunParams,
-  FieldMigrateParams,
   FieldReorderParams,
   ListParams,
+  MigrationCreateParams,
   SchemaParams,
 } from "../types.ts"
 import { listQuery, Resource } from "./resource.ts"
@@ -191,7 +191,7 @@ export class Fields extends Resource {
 
   /**
    * Renames, describes or loosens a field. Changes that rewrite record
-   * values (type, `multiple`, tighter rules) are `migrate`.
+   * values (type, `multiple`, tighter rules) are `migrations.create`.
    */
   update(
     field: string,
@@ -259,36 +259,37 @@ export class Fields extends Resource {
       options
     )
   }
-
-  /**
-   * Starts a field migration (type, `multiple`, tighter configuration or a
-   * backfill) that rewrites every record. With `dry_run`, previews it.
-   */
-  migrate(
-    field: string,
-    params: FieldMigrateParams & { dry_run: true },
-    options?: WriteOptions
-  ): APIPromise<FieldMigrationPreview>
-  migrate(
-    field: string,
-    params: FieldMigrateParams & DryRunParams,
-    options?: WriteOptions
-  ): APIPromise<FieldMigration>
-  migrate(
-    field: string,
-    { dry_run, ...body }: FieldMigrateParams & DryRunParams,
-    options?: WriteOptions
-  ): APIPromise<unknown> {
-    return this.core.request(
-      "fields_migrate",
-      { path: { field_id: field }, query: { dry_run }, body },
-      options
-    )
-  }
 }
 
 /** Field migrations. While one runs, its collection is read-only. */
 export class Migrations extends Resource {
+  /**
+   * Starts a migration of one of the collection's fields (`field_id`): a
+   * type, `multiple`, tighter configuration or a backfill, which rewrites
+   * every record. With `dry_run`, previews it.
+   */
+  create(
+    collection: string,
+    params: MigrationCreateParams & { dry_run: true },
+    options?: WriteOptions
+  ): APIPromise<FieldMigrationPreview>
+  create(
+    collection: string,
+    params: MigrationCreateParams & DryRunParams,
+    options?: WriteOptions
+  ): APIPromise<FieldMigration>
+  create(
+    collection: string,
+    { dry_run, ...body }: MigrationCreateParams & DryRunParams,
+    options?: WriteOptions
+  ): APIPromise<unknown> {
+    return this.core.request(
+      "migrations_create",
+      { path: { collection_id: collection }, query: { dry_run }, body },
+      options
+    )
+  }
+
   list(
     collection: string,
     params: ListParams = {},

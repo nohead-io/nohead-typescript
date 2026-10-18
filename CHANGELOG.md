@@ -5,6 +5,26 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- **Breaking:** field migrations are created under their collection:
+  `migrations.create(collection, { field_id, ...changes, dry_run? })`
+  (`POST /v1/collections/{collection_id}/migrations`) replaces
+  `fields.migrate(field, ...)`. It returns a preview for a dry run and the
+  `FieldMigration` otherwise, as before. `FieldMigrateParams` is
+  `MigrationCreateParams`, with `field_id`.
+- **Breaking:** `drafts.list` no longer takes `record_id`; a record's drafts
+  are `records.drafts(record)`.
+- **Breaking:** `assets.list`'s `content_type` is one MIME type or `type/*`
+  wildcard as a string, or several as a list (sent as
+  `filter[content_type][in]`). A comma-separated string no longer lists
+  several types: pass a list.
+- **Breaking:** `auditEvents.list` sorts by `created_at` or `-created_at`
+  (the default), not `id`, and records no longer sort by `id`.
+- Webhook events always carry `actor` and `via` (now required in
+  `WebhookEventPayload`), and `Via` no longer has `import` or `migration`,
+  which were never sent.
+
 ## 0.4.0
 
 - **Breaking:** a field's `api_key` is its `key` (in fields, their aliases,

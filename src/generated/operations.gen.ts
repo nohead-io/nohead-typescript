@@ -35,7 +35,6 @@ export const OPERATIONS = {
   fields_get: { method: "GET", path: "/v1/fields/{field_id}" },
   fields_get_order: { method: "GET", path: "/v1/collections/{collection_id}/field-order" },
   fields_list: { method: "GET", path: "/v1/collections/{collection_id}/fields" },
-  fields_migrate: { method: "POST", path: "/v1/fields/{field_id}/migrations" },
   fields_remove_alias: { method: "DELETE", path: "/v1/fields/{field_id}/aliases/{alias}" },
   fields_reorder: { method: "PUT", path: "/v1/collections/{collection_id}/field-order" },
   fields_restore: { method: "POST", path: "/v1/fields/{field_id}/restore" },
@@ -43,6 +42,7 @@ export const OPERATIONS = {
   health_check: { method: "GET", path: "/v1/health" },
   me_get: { method: "GET", path: "/v1/me" },
   migrations_cancel: { method: "POST", path: "/v1/migrations/{migration_id}/cancel" },
+  migrations_create: { method: "POST", path: "/v1/collections/{collection_id}/migrations" },
   migrations_get: { method: "GET", path: "/v1/migrations/{migration_id}" },
   migrations_list: { method: "GET", path: "/v1/collections/{collection_id}/migrations" },
   projects_search: { method: "GET", path: "/v1/projects/{project_id}/search" },
@@ -121,7 +121,6 @@ export interface Operations {
   fields_get: { data: T.FieldsGetData; response: T.FieldsGetResponse }
   fields_get_order: { data: T.FieldsGetOrderData; response: T.FieldsGetOrderResponse }
   fields_list: { data: T.FieldsListData; response: T.FieldsListResponse }
-  fields_migrate: { data: T.FieldsMigrateData; response: T.FieldsMigrateResponse }
   fields_remove_alias: { data: T.FieldsRemoveAliasData; response: T.FieldsRemoveAliasResponse }
   fields_reorder: { data: T.FieldsReorderData; response: T.FieldsReorderResponse }
   fields_restore: { data: T.FieldsRestoreData; response: T.FieldsRestoreResponse }
@@ -129,6 +128,7 @@ export interface Operations {
   health_check: { data: T.HealthCheckData; response: T.HealthCheckResponse }
   me_get: { data: T.MeGetData; response: T.MeGetResponse }
   migrations_cancel: { data: T.MigrationsCancelData; response: T.MigrationsCancelResponse }
+  migrations_create: { data: T.MigrationsCreateData; response: T.MigrationsCreateResponse }
   migrations_get: { data: T.MigrationsGetData; response: T.MigrationsGetResponse }
   migrations_list: { data: T.MigrationsListData; response: T.MigrationsListResponse }
   projects_search: { data: T.ProjectsSearchData; response: T.ProjectsSearchResponse }

@@ -131,12 +131,22 @@ export class Assets extends Resource {
   }
 
   list(
-    params: AssetListParams = {},
+    { content_type, ...params }: AssetListParams = {},
     options?: RequestOptions
   ): PagePromise<Asset> {
     return this.core.paginate(
       "assets_list",
-      { query: listQuery(params, ["deleted", "content_type"]) },
+      {
+        query: listQuery(
+          {
+            ...params,
+            content_type: Array.isArray(content_type)
+              ? { in: content_type }
+              : content_type,
+          },
+          ["deleted", "content_type"]
+        ),
+      },
       options
     )
   }

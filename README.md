@@ -118,7 +118,7 @@ await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at }
 
 - A record has at most one draft; starting a second is a `ConflictError` (detail code `draft_exists`, with its `draft_id`).
 - A merge changes content only: a live record stays live, an unpublished one unpublished. Publishing a live record with a pending draft is a `ConflictError` (`draft_pending`).
-- `records.drafts(id)` lists a record's draft, and `drafts.list(collection, { record_id })` a collection's (`record_id` takes up to 100 IDs).
+- `records.drafts(id)` lists a record's draft, and `drafts.list(collection)` a collection's.
 - `drafts.discard` deletes one for good.
 - Drafts take the type of their data as records do: `drafts.get<Post>(id)` is a `Nohead.Draft<Post>` (also exported as `NoheadDraft`).
 
@@ -315,11 +315,15 @@ await nohead.fields.create("posts", {
 })
 
 // Changes that rewrite records go through a migration; preview first
-const preview = await nohead.fields.migrate("fld_…", {
+const preview = await nohead.migrations.create("posts", {
+  field_id: "fld_…",
   type: "long_text",
   dry_run: true,
 })
-const migration = await nohead.fields.migrate("fld_…", { type: "long_text" })
+const migration = await nohead.migrations.create("posts", {
+  field_id: "fld_…",
+  type: "long_text",
+})
 await nohead.migrations.get(migration.id)
 ```
 
@@ -370,8 +374,8 @@ response.headers.get("RateLimit-Remaining")
 | `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                                        |
 | `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                           |
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
-| `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`, `migrate`                                                                                                    |
-| `migrations`                | `list`, `get`, `cancel`                                                                                                                                                                                 |
+| `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`                                                                                                               |
+| `migrations`                | `create`, `list`, `get`, `cancel`                                                                                                                                                                       |
 | `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                                   |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |
 | `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                                        |

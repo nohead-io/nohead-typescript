@@ -40,17 +40,16 @@ describe("pagination", () => {
     )
   })
 
-  it("lists drafts by record: one ID, or several with [in]", async () => {
+  it("lists assets by type: one, or several with [in]", async () => {
     const { nohead, calls } = mockClient([page([], null), page([], null)])
-    await nohead.drafts.list("posts", { record_id: "rec_1" })
-    await nohead.drafts.list("posts", { record_id: ["rec_1", "rec_2"] })
-    expect(calls[0]!.url.searchParams.get("filter[record_id]")).toBe("rec_1")
-    expect(calls[1]!.url.searchParams.get("filter[record_id][in]")).toBe(
-      "rec_1,rec_2"
-    )
-    expect(() => nohead.drafts.list("posts", { record_id: [] })).toThrow(
-      TypeError
-    )
+    await nohead.assets.list({ content_type: "image/*" })
+    await nohead.assets.list({ content_type: ["image/*", "application/pdf"] })
+    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
+      "filter[content_type]": "image/*",
+    })
+    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({
+      "filter[content_type][in]": "image/*,application/pdf",
+    })
   })
 
   it("stops fetching once it has enough", async () => {
