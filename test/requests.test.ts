@@ -186,9 +186,14 @@ describe("requests", () => {
 
   it("sends dry runs as a query parameter", async () => {
     const { nohead, calls } = mockClient([json(200, {})])
-    await nohead.fields.migrate("fld_1", { type: "integer", dry_run: true })
+    await nohead.migrations.create("posts", {
+      field_id: "fld_1",
+      type: "integer",
+      dry_run: true,
+    })
+    expect(calls[0]!.url.pathname).toBe("/v1/collections/posts/migrations")
     expect(calls[0]!.url.searchParams.get("dry_run")).toBe("true")
-    expect(calls[0]!.body).toEqual({ type: "integer" })
+    expect(calls[0]!.body).toEqual({ field_id: "fld_1", type: "integer" })
   })
 
   it("sends a diff's revisions as from and to", async () => {

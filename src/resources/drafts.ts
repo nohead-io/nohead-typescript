@@ -43,29 +43,17 @@ export class Drafts extends Resource {
   }
 
   /**
-   * A collection's drafts, most recently changed first. `record_id` narrows
-   * them to one record, or to several (1 to 100; an empty list is a
-   * `TypeError`, since it would match no record).
+   * A collection's drafts, most recently changed first. One record's draft
+   * is `records.drafts(record)`.
    */
   list<D = RecordData>(
     collection: string,
-    { record_id, ...params }: DraftListParams = {},
+    params: DraftListParams = {},
     options?: RequestOptions
   ): PagePromise<NoheadDraft<D>> {
-    if (Array.isArray(record_id) && record_id.length === 0)
-      throw new TypeError("record_id needs at least one record ID")
-    const filter =
-      record_id === undefined
-        ? undefined
-        : {
-            record_id: Array.isArray(record_id) ? { in: record_id } : record_id,
-          }
     return this.core.paginate(
       "drafts_list",
-      {
-        path: { collection_id: collection },
-        query: { ...params, ...(filter && { filter }) },
-      },
+      { path: { collection_id: collection }, query: params },
       options
     )
   }

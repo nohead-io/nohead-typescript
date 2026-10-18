@@ -747,9 +747,13 @@ export type FieldDefinition = {
 };
 
 /**
- * The parts of the definition to change; omitted parts stay as they are.
+ * The field, and the parts of its definition to change; omitted parts stay as they are.
  */
 export type FieldMigrationRequest = {
+    /**
+     * One of the collection's fields (`422` otherwise).
+     */
+    field_id: string;
     type?: FieldType;
     /**
      * The complete new configuration. When the type changes and this is omitted, only `description`, `searchable`, `filterable` and `sortable` carry over.
@@ -946,9 +950,9 @@ export type TimeFilter = {
 };
 
 /**
- * The client a change came through; `scheduler` for scheduled changes. `import` and `migration` are not sent yet.
+ * The client a change came through; `scheduler` for scheduled changes.
  */
-export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'import' | 'migration' | 'system' | 'scheduler';
+export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'system' | 'scheduler';
 
 /**
  * Changes to a record's content that wait until they are merged into
@@ -1483,16 +1487,16 @@ export type WebhookEventPayload = {
     created_at: Timestamp;
     project_id: string;
     /**
-     * Who made the change. Always sent.
+     * Who made the change.
      */
-    actor?: Actor;
+    actor: Actor;
     /**
-     * The client the change came through (null when not known). Always
-     * sent. An integration that writes back can skip changes made with its own
-     * API key (`actor`).
+     * The client the change came through (null when not known). An
+     * integration that writes back can skip changes made with its own API
+     * key (`actor`).
      *
      */
-    via?: null | Via;
+    via: null | Via;
     data: RecordEventData | DraftEventData | AssetEventData | SchemaEventData | FieldAliasEventData | WebhookTestEventData;
 };
 
@@ -1855,7 +1859,7 @@ export type RecordRevisionFilter = {
     created_at?: TimeFilter;
 };
 
-export type AuditEventSort = 'id' | '-id';
+export type AuditEventSort = 'created_at' | '-created_at';
 
 /**
  * Page size.
@@ -1876,14 +1880,20 @@ export type DeletedFilter = {
 
 /**
  * `filter[deleted]=true` lists deleted assets instead.
- * `filter[content_type]` lists only assets of those types: comma-separated
- * MIME types or `type*` wildcards, for example the ones an asset field
- * accepts (its `accepted_types`).
+ * `filter[content_type]` lists only assets of a type: a MIME type or a
+ * `type*` wildcard, or several with
+ * `filter[content_type][in]=image*,application/pdf`, for example the
+ * ones an asset field accepts (its `accepted_types`).
  *
  */
 export type AssetFilter = {
     deleted?: 'true' | 'false';
-    content_type?: string;
+    content_type?: string | {
+        /**
+         * Up to 50 comma-separated MIME types or `type*` wildcards.
+         */
+        in: string;
+    };
 };
 
 /**
@@ -1958,8 +1968,8 @@ export type RecordsListData = {
             [key: string]: RecordFilterValue;
         };
         /**
-         * `id`, `created_at`, `updated_at`, `published_at` (unpublished
-         * records first), or the key of a text, number, boolean, date or
+         * `created_at`, `updated_at`, `published_at` (unpublished records
+         * first), or the key of a text, number, boolean, date or
          * enum field with one value (records without a value last, in both
          * directions; text by code point). `-` for descending.
          *
@@ -3464,14 +3474,6 @@ export type DraftsListData = {
         collection_id: string;
     };
     query?: {
-        filter?: {
-            record_id?: string | {
-                /**
-                 * Up to 100 comma-separated record IDs.
-                 */
-                in: string;
-            };
-        };
         sort?: 'updated_at' | '-updated_at';
         /**
          * Page size.
@@ -5277,7 +5279,7 @@ export type MigrationsListResponses = {
 
 export type MigrationsListResponse = MigrationsListResponses[keyof MigrationsListResponses];
 
-export type FieldsMigrateData = {
+export type MigrationsCreateData = {
     body: FieldMigrationRequest;
     headers?: {
         /**
@@ -5306,15 +5308,18 @@ export type FieldsMigrateData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
-        field_id: string;
+        /**
+         * Collection ID, or the collection slug when authenticating with an API key.
+         */
+        collection_id: string;
     };
     query?: {
         dry_run?: boolean;
     };
-    url: '/v1/fields/{field_id}/migrations';
+    url: '/v1/collections/{collection_id}/migrations';
 };
 
-export type FieldsMigrateErrors = {
+export type MigrationsCreateErrors = {
     /**
      * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
@@ -5349,9 +5354,9 @@ export type FieldsMigrateErrors = {
     429: Error;
 };
 
-export type FieldsMigrateError = FieldsMigrateErrors[keyof FieldsMigrateErrors];
+export type MigrationsCreateError = MigrationsCreateErrors[keyof MigrationsCreateErrors];
 
-export type FieldsMigrateResponses = {
+export type MigrationsCreateResponses = {
     /**
      * A preview (dry runs only).
      */
@@ -5362,7 +5367,7 @@ export type FieldsMigrateResponses = {
     202: FieldMigration;
 };
 
-export type FieldsMigrateResponse = FieldsMigrateResponses[keyof FieldsMigrateResponses];
+export type MigrationsCreateResponse = MigrationsCreateResponses[keyof MigrationsCreateResponses];
 
 export type MigrationsGetData = {
     body?: never;
@@ -5494,14 +5499,20 @@ export type AssetsListData = {
         cursor?: string;
         /**
          * `filter[deleted]=true` lists deleted assets instead.
-         * `filter[content_type]` lists only assets of those types: comma-separated
-         * MIME types or `type*` wildcards, for example the ones an asset field
-         * accepts (its `accepted_types`).
+         * `filter[content_type]` lists only assets of a type: a MIME type or a
+         * `type*` wildcard, or several with
+         * `filter[content_type][in]=image*,application/pdf`, for example the
+         * ones an asset field accepts (its `accepted_types`).
          *
          */
         filter?: {
             deleted?: 'true' | 'false';
-            content_type?: string;
+            content_type?: string | {
+                /**
+                 * Up to 50 comma-separated MIME types or `type*` wildcards.
+                 */
+                in: string;
+            };
         };
     };
     url: '/v1/projects/{project_id}/assets';
@@ -7274,7 +7285,7 @@ export type AuditEventsListData = {
             actor_id?: string;
             created_at?: TimeFilter;
         };
-        sort?: 'id' | '-id';
+        sort?: 'created_at' | '-created_at';
     };
     url: '/v1/projects/{project_id}/audit-events';
 };

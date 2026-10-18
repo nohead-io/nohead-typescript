@@ -70,12 +70,13 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.collections.schemaChanges.list("posts", page),
   (nohead) => nohead.fields.list("posts", page),
   (nohead) => nohead.migrations.list("posts", page),
-  (nohead) => nohead.assets.list({ content_type: ["image/*"], ...page }),
+  (nohead) => nohead.assets.list({ content_type: "image/*", ...page }),
+  (nohead) =>
+    nohead.assets.list({ content_type: ["image/*", "application/pdf"] }),
   (nohead) => nohead.records.scheduledChanges("posts", page),
   (nohead) => nohead.records.drafts("rec_01J9ZQ3F8X", page),
   (nohead) =>
     nohead.drafts.list("posts", {
-      record_id: "rec_01J9ZQ3F8X",
       sort: "updated_at",
       ...page,
     }),
@@ -138,7 +139,12 @@ const everyHeader: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.fields.delete(fld, note),
   (nohead) => nohead.fields.restore(fld, note),
   (nohead) => nohead.fields.reorder("posts", { field_ids: [fld] }, note),
-  (nohead) => nohead.fields.migrate(fld, { type: "long_text" }, note),
+  (nohead) =>
+    nohead.migrations.create(
+      "posts",
+      { field_id: fld, type: "long_text" },
+      note
+    ),
 ]
 
 describe("the contract", () => {
