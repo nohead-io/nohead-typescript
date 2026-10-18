@@ -54,7 +54,92 @@ export type RecordFilterValue = string | {
 
 export type FieldType = 'text' | 'long_text' | 'rich_text' | 'integer' | 'decimal' | 'date' | 'boolean' | 'enum' | 'asset' | 'relation' | 'json';
 
-export type Field = {
+/**
+ * A field, typed by its `type`, which also decides the options its `configuration` takes.
+ */
+export type Field = ({
+    type: 'text';
+} & TextField) | ({
+    type: 'long_text';
+} & LongTextField) | ({
+    type: 'rich_text';
+} & RichTextField) | ({
+    type: 'integer';
+} & IntegerField) | ({
+    type: 'decimal';
+} & DecimalField) | ({
+    type: 'date';
+} & DateField) | ({
+    type: 'boolean';
+} & BooleanField) | ({
+    type: 'enum';
+} & EnumField) | ({
+    type: 'asset';
+} & AssetField) | ({
+    type: 'relation';
+} & RelationField) | ({
+    type: 'json';
+} & JsonField);
+
+export type TextField = FieldProperties & {
+    type: 'text';
+    configuration: TextFieldConfiguration;
+};
+
+export type LongTextField = FieldProperties & {
+    type: 'long_text';
+    configuration: LongTextFieldConfiguration;
+};
+
+export type RichTextField = FieldProperties & {
+    type: 'rich_text';
+    configuration: RichTextFieldConfiguration;
+};
+
+export type IntegerField = FieldProperties & {
+    type: 'integer';
+    configuration: IntegerFieldConfiguration;
+};
+
+export type DecimalField = FieldProperties & {
+    type: 'decimal';
+    configuration: DecimalFieldConfiguration;
+};
+
+export type DateField = FieldProperties & {
+    type: 'date';
+    configuration: DateFieldConfiguration;
+};
+
+export type BooleanField = FieldProperties & {
+    type: 'boolean';
+    configuration: BooleanFieldConfiguration;
+};
+
+export type EnumField = FieldProperties & {
+    type: 'enum';
+    configuration: EnumFieldConfiguration;
+};
+
+export type AssetField = FieldProperties & {
+    type: 'asset';
+    configuration: AssetFieldConfiguration;
+};
+
+export type RelationField = FieldProperties & {
+    type: 'relation';
+    configuration: RelationFieldConfiguration;
+};
+
+export type JsonField = FieldProperties & {
+    type: 'json';
+    configuration: JsonFieldConfiguration;
+};
+
+/**
+ * What every field has; `Field` adds its `type` and that type's `configuration`.
+ */
+export type FieldProperties = {
     /**
      * Stable field ID. Never changes, even when the field is renamed.
      */
@@ -68,8 +153,7 @@ export type Field = {
     /**
      * Key used in record data. Part of the API contract.
      */
-    api_key: string;
-    type: FieldType;
+    key: string;
     /**
      * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
      */
@@ -83,47 +167,6 @@ export type Field = {
      */
     position: number;
     /**
-     * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
-     * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
-     * written values must have; any file when absent), `include_time` and
-     * `time_zone` (date fields, below), `format` (text fields, below),
-     * `unique` (text and integer fields, below), plus
-     * the options for searches with API keys: `searchable` (the search words match the
-     * field; default true for text, long_text, rich_text and enum), `filterable` and
-     * `sortable` (default false).
-     *
-     * Date fields hold a calendar date, `YYYY-MM-DD`, with no time and no
-     * time zone: returned exactly as written, so it never shows as the day
-     * before or after. With `include_time: true` they hold a moment: ISO
-     * 8601 with an offset, stored in UTC and returned in UTC, or with the
-     * offset of `time_zone` (an IANA name such as `Europe/Copenhagen`,
-     * daylight saving included) when the field has one. Input may use any
-     * offset. Changing `time_zone` never rewrites values; turning
-     * `include_time` on or off does, through a field migration.
-     *
-     * Text fields (not long text) can have a `format`: `slug`
-     * (lowercase letters, digits and single hyphens, at most 200
-     * characters; one value per record, never a list, and always
-     * unique: a slug field has `unique: true`), `url` (an absolute
-     * `http` or `https` address) or `email`. A value that doesn't match is
-     * refused with `invalid_format`. A format sets its own length limits
-     * (254 characters for emails, 2,048 for URLs), so `min_length` and
-     * `max_length` are for plain text. Text and integer
-     * fields with one value can be `unique`: no two active records of the
-     * collection share a value (emails compare ignoring capitals; records
-     * without a value don't count). A taken value is refused with
-     * `taken` and the `record_id` that has it. Turning `unique` on is
-     * refused with `duplicate_values` while records share a value (and
-     * so is restoring a deleted unique field, `409`). A field migration
-     * to a unique field is refused with `duplicate_values` when its
-     * converted values or backfill would be shared, and fails if values
-     * written while it waits would be.
-     *
-     */
-    configuration: {
-        [key: string]: unknown;
-    };
-    /**
      * When the field was deleted; null unless it is. Its values stay hidden in records until it is restored or purged.
      */
     deleted_at: NullableTimestamp;
@@ -132,19 +175,311 @@ export type Field = {
      */
     purge_after: NullableTimestamp;
     /**
-     * Old API keys of a renamed field that still work until `expires_at`:
+     * Old keys of a renamed field that still work until `expires_at`:
      * record data also carries the value under them, and writes, filters,
      * sorts and `expand` accept them. Responses about the collection then
      * have `Deprecation` and `Sunset` headers.
      *
      */
     aliases: Array<{
-        api_key: string;
+        key: string;
         expires_at: Timestamp;
     }>;
     created_at: Timestamp;
     updated_at: Timestamp;
 };
+
+/**
+ * Plain text up to 10,000 characters, or a `format`.
+ */
+export type TextFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    min_length?: number;
+    max_length?: number;
+    /**
+     * `slug` (always unique, one value), `url` (absolute http or https) or `email`; each sets its own length limits.
+     */
+    format?: 'slug' | 'url' | 'email';
+    /**
+     * No two active records of the collection share a value (one value only; a slug is always unique).
+     */
+    unique?: boolean;
+};
+
+/**
+ * Text up to 100,000 characters.
+ */
+export type LongTextFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    min_length?: number;
+    max_length?: number;
+};
+
+export type RichTextFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+};
+
+export type IntegerFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    min?: number;
+    max?: number;
+    /**
+     * No two active records of the collection share a value (one value only).
+     */
+    unique?: boolean;
+};
+
+export type DecimalFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    min?: number;
+    max?: number;
+};
+
+export type DateFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    /**
+     * Holds a moment (ISO 8601 with an offset) instead of a calendar date; changing it is a field migration.
+     */
+    include_time?: boolean;
+    /**
+     * An IANA time zone (`Europe/Copenhagen`) moments are returned in; changing it never rewrites values.
+     */
+    time_zone?: string;
+};
+
+export type BooleanFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+};
+
+export type EnumFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    options: Array<string>;
+};
+
+export type AssetFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    /**
+     * MIME types or `type*` wildcards newly written values must have (`["image*", "application/pdf"]`); any file when absent.
+     */
+    accepted_types?: Array<string>;
+};
+
+export type RelationFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+    /**
+     * The collection (same project) whose records it points at.
+     */
+    target_collection_id: string;
+};
+
+export type JsonFieldConfiguration = {
+    /**
+     * Help text for editors.
+     */
+    description?: string;
+    /**
+     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     */
+    searchable?: boolean;
+    /**
+     * API searches can filter on it. Default false.
+     */
+    filterable?: boolean;
+    /**
+     * API searches can sort on it (one value only). Default false.
+     */
+    sortable?: boolean;
+};
+
+/**
+ * Type-specific options, e.g. `max_length`, `options`, `target_collection_id`,
+ * `accepted_types` (asset fields: MIME types or `type*` wildcards that newly
+ * written values must have; any file when absent), `include_time` and
+ * `time_zone` (date fields, below), `format` (text fields, below),
+ * `unique` (text and integer fields, below), plus
+ * the options for searches with API keys: `searchable` (the search words match the
+ * field; default true for text, long_text, rich_text and enum), `filterable` and
+ * `sortable` (default false).
+ *
+ * Date fields hold a calendar date, `YYYY-MM-DD`, with no time and no
+ * time zone: returned exactly as written, so it never shows as the day
+ * before or after. With `include_time: true` they hold a moment: ISO
+ * 8601 with an offset, stored in UTC and returned in UTC, or with the
+ * offset of `time_zone` (an IANA name such as `Europe/Copenhagen`,
+ * daylight saving included) when the field has one. Input may use any
+ * offset. Changing `time_zone` never rewrites values; turning
+ * `include_time` on or off does, through a field migration.
+ *
+ * Text fields (not long text) can have a `format`: `slug`
+ * (lowercase letters, digits and single hyphens, at most 200
+ * characters; one value per record, never a list, and always
+ * unique: a slug field has `unique: true`), `url` (an absolute
+ * `http` or `https` address) or `email`. A value that doesn't match is
+ * refused with `invalid_format`. A format sets its own length limits
+ * (254 characters for emails, 2,048 for URLs), so `min_length` and
+ * `max_length` are for plain text. Text and integer
+ * fields with one value can be `unique`: no two active records of the
+ * collection share a value (emails compare ignoring capitals; records
+ * without a value don't count). A taken value is refused with
+ * `taken` and the `record_id` that has it. Turning `unique` on is
+ * refused with `duplicate_values` while records share a value (and
+ * so is restoring a deleted unique field, `409`). A field migration
+ * to a unique field is refused with `duplicate_values` when its
+ * converted values or backfill would be shared, and fails if values
+ * written while it waits would be.
+ *
+ */
+export type FieldConfiguration = TextFieldConfiguration | LongTextFieldConfiguration | RichTextFieldConfiguration | IntegerFieldConfiguration | DecimalFieldConfiguration | DateFieldConfiguration | BooleanFieldConfiguration | EnumFieldConfiguration | AssetFieldConfiguration | RelationFieldConfiguration | JsonFieldConfiguration;
 
 export type RecordCount = {
     object: 'record_count';
@@ -152,13 +487,97 @@ export type RecordCount = {
     count: number;
 };
 
-export type FieldCreate = {
+/**
+ * A new field. Its `type` decides the options `configuration` takes.
+ */
+export type FieldCreate = ({
+    type: 'text';
+} & TextFieldCreate) | ({
+    type: 'long_text';
+} & LongTextFieldCreate) | ({
+    type: 'rich_text';
+} & RichTextFieldCreate) | ({
+    type: 'integer';
+} & IntegerFieldCreate) | ({
+    type: 'decimal';
+} & DecimalFieldCreate) | ({
+    type: 'date';
+} & DateFieldCreate) | ({
+    type: 'boolean';
+} & BooleanFieldCreate) | ({
+    type: 'enum';
+} & EnumFieldCreate) | ({
+    type: 'asset';
+} & AssetFieldCreate) | ({
+    type: 'relation';
+} & RelationFieldCreate) | ({
+    type: 'json';
+} & JsonFieldCreate);
+
+export type TextFieldCreate = FieldCreateProperties & {
+    type: 'text';
+    configuration?: TextFieldConfiguration;
+};
+
+export type LongTextFieldCreate = FieldCreateProperties & {
+    type: 'long_text';
+    configuration?: LongTextFieldConfiguration;
+};
+
+export type RichTextFieldCreate = FieldCreateProperties & {
+    type: 'rich_text';
+    configuration?: RichTextFieldConfiguration;
+};
+
+export type IntegerFieldCreate = FieldCreateProperties & {
+    type: 'integer';
+    configuration?: IntegerFieldConfiguration;
+};
+
+export type DecimalFieldCreate = FieldCreateProperties & {
+    type: 'decimal';
+    configuration?: DecimalFieldConfiguration;
+};
+
+export type DateFieldCreate = FieldCreateProperties & {
+    type: 'date';
+    configuration?: DateFieldConfiguration;
+};
+
+export type BooleanFieldCreate = FieldCreateProperties & {
+    type: 'boolean';
+    configuration?: BooleanFieldConfiguration;
+};
+
+export type EnumFieldCreate = FieldCreateProperties & {
+    type: 'enum';
+    configuration: EnumFieldConfiguration;
+};
+
+export type AssetFieldCreate = FieldCreateProperties & {
+    type: 'asset';
+    configuration?: AssetFieldConfiguration;
+};
+
+export type RelationFieldCreate = FieldCreateProperties & {
+    type: 'relation';
+    configuration: RelationFieldConfiguration;
+};
+
+export type JsonFieldCreate = FieldCreateProperties & {
+    type: 'json';
+    configuration?: JsonFieldConfiguration;
+};
+
+/**
+ * What every new field takes; `FieldCreate` adds its `type` and that type's `configuration`.
+ */
+export type FieldCreateProperties = {
     name: string;
     /**
      * The field's key in records' `data`, filters and sorts. Reserved for records' own attributes, and a few kept for later: `id`, `object`, `collection`, `data`, `status`, `published_at`, `created_at`, `updated_at`, `deleted`, `deleted_at`, `purge_after`, `revision` and `schema_version`.
      */
-    api_key: string;
-    type: FieldType;
+    key: string;
     /**
      * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
      */
@@ -167,29 +586,22 @@ export type FieldCreate = {
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
     multiple?: boolean;
-    configuration?: {
-        [key: string]: unknown;
-    };
 };
 
+/**
+ * Renames, describes or loosens a field. A change to its `type` or `multiple` rewrites record values, so it is a field migration (`POST /v1/fields/{id}/migrations`); either key here is `400` `unknown_parameter`, saying so.
+ */
 export type FieldUpdate = {
     name?: string;
     /**
      * The field's key in records' `data`, filters and sorts. Reserved for records' own attributes, and a few kept for later: `id`, `object`, `collection`, `data`, `status`, `published_at`, `created_at`, `updated_at`, `deleted`, `deleted_at`, `purge_after`, `revision` and `schema_version`.
      */
-    api_key?: string;
-    type?: FieldType;
+    key?: string;
     /**
      * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
      */
     required?: boolean;
-    /**
-     * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
-     */
-    multiple?: boolean;
-    configuration?: {
-        [key: string]: unknown;
-    };
+    configuration?: FieldConfiguration;
 };
 
 export type FieldList = {
@@ -260,14 +672,12 @@ export type SchemaDefinition = {
     fields: Array<{
         id: string;
         name: string;
-        api_key: string;
+        key: string;
         type: FieldType;
         required: boolean;
         multiple: boolean;
         position: number;
-        configuration: {
-            [key: string]: unknown;
-        };
+        configuration: FieldConfiguration;
         deleted_at: NullableTimestamp;
     }>;
 };
@@ -328,9 +738,7 @@ export type SchemaChangeList = {
 
 export type FieldDefinition = {
     type: FieldType;
-    configuration: {
-        [key: string]: unknown;
-    };
+    configuration: FieldConfiguration;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
@@ -346,9 +754,7 @@ export type FieldMigrationRequest = {
     /**
      * The complete new configuration. When the type changes and this is omitted, only `description`, `searchable`, `filterable` and `sortable` carry over.
      */
-    configuration?: {
-        [key: string]: unknown;
-    };
+    configuration?: FieldConfiguration;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
@@ -575,7 +981,7 @@ export type Draft = {
      */
     data: RecordData;
     /**
-     * API keys of the fields the draft changes.
+     * Keys of the fields the draft changes.
      */
     changed_fields: Array<string>;
     schedule: DraftSchedule;
@@ -633,7 +1039,7 @@ export type MergedDraft = {
 };
 
 /**
- * Field values keyed by field `api_key`. A rich text value is a
+ * Field values keyed by field `key`. A rich text value is a
  * ProseMirror/Tiptap JSON document (`{"type": "doc", "content": [...]}`).
  * An image of an asset in it is `{"type": "image", "attrs": {"asset_id":
  * "ast_...", "alt": "..."}}`, between the document's blocks (not inside
@@ -679,7 +1085,7 @@ export type Record = {
     data: RecordData;
     /**
      * Only with `expand`: what each requested relation, asset or rich
-     * text field points at, keyed by field API key: records for
+     * text field points at, keyed by field key: records for
      * relation fields, assets for asset fields. A single value is the object, or null when
      * it no longer exists; a multiple value is a list of those that still
      * exist. For a rich text field, the list of assets its images show,
@@ -733,11 +1139,11 @@ export type RecordRevisionProperties = {
     schema_version: number;
     reverted_to_revision: number | null;
     /**
-     * API keys of changed fields, and changed attributes.
+     * Keys of changed fields, and changed attributes.
      */
     changed_fields: Array<string>;
     /**
-     * API keys of fields whose values in this revision were redacted (owners
+     * Keys of fields whose values in this revision were redacted (owners
      * and admins redact them in the web app); those values read
      * `{"$redacted": true}`.
      *
@@ -1246,7 +1652,7 @@ export type AssetUsage = {
     uses: Array<{
         record: Record;
         /**
-         * API keys of the record's fields that use the asset, in its content or its draft.
+         * Keys of the record's fields that use the asset, in its content or its draft.
          */
         fields: Array<string>;
     }>;
@@ -1310,7 +1716,7 @@ export type ErrorType = 'invalid_request' | 'authentication_error' | 'plan_limit
 
 export type ErrorDetail = {
     /**
-     * API key of the offending field or parameter, when applicable.
+     * Key of the offending field or parameter, when applicable.
      */
     field?: string;
     /**
@@ -1378,13 +1784,13 @@ export type DraftId = string;
 export type RevisionNumber = number;
 
 /**
- * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+ * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
  */
 export type Expand = string;
 
 /**
  * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
- * filters combine with AND. Keys are field API keys, `published_at`,
+ * filters combine with AND. Keys are field keys, `published_at`,
  * `deleted` (`true` lists soft-deleted records instead) and, in record
  * lists and counts, `created_at` and `updated_at`. In search,
  * `published_at` takes only `exists`.
@@ -1523,7 +1929,7 @@ export type RecordsListData = {
     query?: {
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `published_at`,
+         * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
          * lists and counts, `created_at` and `updated_at`. In search,
          * `published_at` takes only `exists`.
@@ -1553,14 +1959,14 @@ export type RecordsListData = {
         };
         /**
          * `id`, `created_at`, `updated_at`, `published_at` (unpublished
-         * records first), or the API key of a text, number, boolean, date or
+         * records first), or the key of a text, number, boolean, date or
          * enum field with one value (records without a value last, in both
          * directions; text by code point). `-` for descending.
          *
          */
         sort?: string;
         /**
-         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
         /**
@@ -1577,7 +1983,7 @@ export type RecordsListData = {
 
 export type RecordsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -1653,7 +2059,7 @@ export type RecordsCreateData = {
 
 export type RecordsCreateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -1744,7 +2150,7 @@ export type RecordsDeleteData = {
 
 export type RecordsDeleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -1797,7 +2203,7 @@ export type RecordsGetData = {
     };
     query?: {
         /**
-         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
@@ -1806,7 +2212,7 @@ export type RecordsGetData = {
 
 export type RecordsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -1883,7 +2289,7 @@ export type RecordsUpdateData = {
 
 export type RecordsUpdateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -1944,7 +2350,7 @@ export type RecordsCountData = {
     query?: {
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `published_at`,
+         * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
          * lists and counts, `created_at` and `updated_at`. In search,
          * `published_at` takes only `exists`.
@@ -1978,7 +2384,7 @@ export type RecordsCountData = {
 
 export type RecordsCountErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2054,7 +2460,7 @@ export type RecordsBulkData = {
 
 export type RecordsBulkErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2139,7 +2545,7 @@ export type RecordsRestoreData = {
 
 export type RecordsRestoreErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2232,7 +2638,7 @@ export type RecordsUnpublishData = {
 
 export type RecordsUnpublishErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2289,7 +2695,7 @@ export type RecordsGetPublicationData = {
 
 export type RecordsGetPublicationErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2366,7 +2772,7 @@ export type RecordsPublishData = {
 
 export type RecordsPublishErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2439,7 +2845,7 @@ export type RecordsUnscheduleData = {
 
 export type RecordsUnscheduleErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2490,7 +2896,7 @@ export type RecordsGetScheduleData = {
 
 export type RecordsGetScheduleErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2553,7 +2959,7 @@ export type RecordsScheduleData = {
 
 export type RecordsScheduleErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2621,7 +3027,7 @@ export type ScheduledChangesListData = {
 
 export type ScheduledChangesListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2688,7 +3094,7 @@ export type RecordRevisionsListData = {
 
 export type RecordRevisionsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2739,7 +3145,7 @@ export type RecordRevisionsGetData = {
 
 export type RecordRevisionsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2822,7 +3228,7 @@ export type RecordRevisionsRevertData = {
 
 export type RecordRevisionsRevertErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2886,7 +3292,7 @@ export type RecordsDiffData = {
 
 export type RecordsDiffErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -2942,7 +3348,7 @@ export type RecordDraftsListData = {
 
 export type RecordDraftsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3005,7 +3411,7 @@ export type DraftsCreateData = {
 
 export type DraftsCreateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3081,7 +3487,7 @@ export type DraftsListData = {
 
 export type DraftsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3148,7 +3554,7 @@ export type DraftsDiscardData = {
 
 export type DraftsDiscardErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3201,7 +3607,7 @@ export type DraftsGetData = {
     };
     query?: {
         /**
-         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
@@ -3210,7 +3616,7 @@ export type DraftsGetData = {
 
 export type DraftsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3277,7 +3683,7 @@ export type DraftsUpdateData = {
 
 export type DraftsUpdateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3368,7 +3774,7 @@ export type DraftsMergeData = {
 
 export type DraftsMergeErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3445,7 +3851,7 @@ export type DraftsUnscheduleData = {
 
 export type DraftsUnscheduleErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3512,7 +3918,7 @@ export type DraftsScheduleData = {
 
 export type DraftsScheduleErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3582,7 +3988,7 @@ export type CollectionsListData = {
 
 export type CollectionsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3655,7 +4061,7 @@ export type CollectionsCreateData = {
 
 export type CollectionsCreateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3745,7 +4151,7 @@ export type CollectionsDeleteData = {
 
 export type CollectionsDeleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3799,7 +4205,7 @@ export type CollectionsGetData = {
 
 export type CollectionsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3875,7 +4281,7 @@ export type CollectionsUpdateData = {
 
 export type CollectionsUpdateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -3959,7 +4365,7 @@ export type CollectionsRestoreData = {
 
 export type CollectionsRestoreErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4028,7 +4434,7 @@ export type CollectionsGetSchemaData = {
 
 export type CollectionsGetSchemaErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4087,7 +4493,7 @@ export type SchemaChangesListData = {
 
 export type SchemaChangesListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4126,19 +4532,15 @@ export type SchemaChangesListResponse = SchemaChangesListResponses[keyof SchemaC
 export type SchemaChangesGetData = {
     body?: never;
     path: {
-        /**
-         * Collection ID, or the collection slug when authenticating with an API key.
-         */
-        collection_id: string;
         schema_change_id: string;
     };
     query?: never;
-    url: '/v1/collections/{collection_id}/schema-changes/{schema_change_id}';
+    url: '/v1/schema-changes/{schema_change_id}';
 };
 
 export type SchemaChangesGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4203,7 +4605,7 @@ export type FieldsListData = {
 
 export type FieldsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4279,7 +4681,7 @@ export type FieldsCreateData = {
 
 export type FieldsCreateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4360,7 +4762,7 @@ export type FieldsDeleteData = {
 
 export type FieldsDeleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4411,7 +4813,7 @@ export type FieldsGetData = {
 
 export type FieldsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4484,7 +4886,7 @@ export type FieldsUpdateData = {
 
 export type FieldsUpdateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4542,7 +4944,7 @@ export type FieldsGetOrderData = {
 
 export type FieldsGetOrderErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4620,7 +5022,7 @@ export type FieldsReorderData = {
 
 export type FieldsReorderErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4685,7 +5087,7 @@ export type FieldsRemoveAliasData = {
     path: {
         field_id: string;
         /**
-         * The old API key.
+         * The old key.
          */
         alias: string;
     };
@@ -4695,7 +5097,7 @@ export type FieldsRemoveAliasData = {
 
 export type FieldsRemoveAliasErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4772,7 +5174,7 @@ export type FieldsRestoreData = {
 
 export type FieldsRestoreErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4839,7 +5241,7 @@ export type MigrationsListData = {
 
 export type MigrationsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4914,7 +5316,7 @@ export type FieldsMigrateData = {
 
 export type FieldsMigrateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -4973,7 +5375,7 @@ export type MigrationsGetData = {
 
 export type MigrationsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5036,7 +5438,7 @@ export type MigrationsCancelData = {
 
 export type MigrationsCancelErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5107,7 +5509,7 @@ export type AssetsListData = {
 
 export type AssetsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5170,7 +5572,7 @@ export type AssetsUploadData = {
 
 export type AssetsUploadErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5247,7 +5649,7 @@ export type AssetsCompleteData = {
 
 export type AssetsCompleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5318,7 +5720,7 @@ export type AssetsDeleteData = {
 
 export type AssetsDeleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5369,7 +5771,7 @@ export type AssetsGetData = {
 
 export type AssetsGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5425,7 +5827,7 @@ export type AssetsImageUrlData = {
 
 export type AssetsImageUrlErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5484,7 +5886,7 @@ export type AssetsDownloadUrlData = {
 
 export type AssetsDownloadUrlErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5535,7 +5937,7 @@ export type AssetsUsageData = {
 
 export type AssetsUsageErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5598,7 +6000,7 @@ export type AssetsRestoreData = {
 
 export type AssetsRestoreErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5665,7 +6067,7 @@ export type AssetsPurgeData = {
 
 export type AssetsPurgeErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5728,7 +6130,7 @@ export type CollectionsSearchData = {
         cursor?: string;
         /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
-         * filters combine with AND. Keys are field API keys, `published_at`,
+         * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
          * lists and counts, `created_at` and `updated_at`. In search,
          * `published_at` takes only `exists`.
@@ -5758,7 +6160,7 @@ export type CollectionsSearchData = {
         };
         sort?: string;
         /**
-         * Comma-separated relation, asset or rich text field API keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
@@ -5767,7 +6169,7 @@ export type CollectionsSearchData = {
 
 export type CollectionsSearchErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5848,7 +6250,7 @@ export type ProjectsSearchData = {
 
 export type ProjectsSearchErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5902,7 +6304,7 @@ export type SearchIndexGetData = {
 
 export type SearchIndexGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -5968,7 +6370,7 @@ export type SearchIndexRebuildData = {
 
 export type SearchIndexRebuildErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6034,7 +6436,7 @@ export type WebhooksListData = {
 
 export type WebhooksListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6097,7 +6499,7 @@ export type WebhooksCreateData = {
 
 export type WebhooksCreateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6174,7 +6576,7 @@ export type WebhooksDeleteData = {
 
 export type WebhooksDeleteErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6225,7 +6627,7 @@ export type WebhooksGetData = {
 
 export type WebhooksGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6288,7 +6690,7 @@ export type WebhooksUpdateData = {
 
 export type WebhooksUpdateErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6359,7 +6761,7 @@ export type WebhooksTestData = {
 
 export type WebhooksTestErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6419,7 +6821,7 @@ export type WebhookSecretsListData = {
 
 export type WebhookSecretsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6482,7 +6884,7 @@ export type WebhooksRotateSecretData = {
 
 export type WebhooksRotateSecretErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6549,7 +6951,7 @@ export type WebhookSecretsRetireData = {
 
 export type WebhookSecretsRetireErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6616,7 +7018,7 @@ export type WebhooksRestoreData = {
 
 export type WebhooksRestoreErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6685,7 +7087,7 @@ export type WebhookDeliveriesListData = {
 
 export type WebhookDeliveriesListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6732,7 +7134,7 @@ export type WebhookDeliveriesGetData = {
 
 export type WebhookDeliveriesGetErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6795,7 +7197,7 @@ export type WebhookDeliveriesRetryData = {
 
 export type WebhookDeliveriesRetryErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6879,7 +7281,7 @@ export type AuditEventsListData = {
 
 export type AuditEventsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**
@@ -6982,7 +7384,7 @@ export type FeatureFlagsListData = {
 
 export type FeatureFlagsListErrors = {
     /**
-     * The request was malformed.
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
      */
     400: Error;
     /**

@@ -5,6 +5,22 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## 0.4.0
+
+- **Breaking:** a field's `api_key` is its `key` (in fields, their aliases,
+  `fields.create` and `fields.update`), as the editor's "Field key" says.
+  API keys keep their name.
+- **Breaking:** `collections.schemaChanges.get(schemaChange)` takes the
+  schema change's ID alone (`GET /v1/schema-changes/{id}`).
+- **Breaking:** `fields.update` no longer takes `type` or `multiple`; they
+  rewrite record values, so they are `fields.migrate`. The API refuses a
+  body key an operation doesn't take with `400` (`unknown_parameter`, naming
+  it), so a misspelt key no longer passes unnoticed.
+- `Field` and `FieldCreate` are typed per field type: narrowing on
+  `field.type` types its `configuration` (`if (field.type === "enum")
+field.configuration.options`), and `EnumFieldConfiguration`,
+  `RelationFieldConfiguration`... are exported.
+
 ## 0.3.0
 
 - **Breaking:** 0.1.0 and 0.2.0 no longer work with the API: its paths and
