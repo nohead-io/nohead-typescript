@@ -24,7 +24,10 @@ import { VERSION } from "./version.ts"
 export const DEFAULT_BASE_URL = "https://api.nohead.io"
 
 export interface ClientOptions {
-  /** A project API key (`sk_live_…`). Defaults to `NOHEAD_API_KEY`. */
+  /**
+   * A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only).
+   * Defaults to `NOHEAD_API_KEY`.
+   */
   apiKey?: string
   /** Defaults to `NOHEAD_API_URL`, else `https://api.nohead.io`. */
   baseUrl?: string

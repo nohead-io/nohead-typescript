@@ -3,7 +3,7 @@
 // schema, records, assets and webhooks read/write scopes). Exits non-zero on
 // failure, after deleting what it created.
 //
-//   npm run build && NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=sk_live_… npm run smoke
+//   npm run build && NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 import { randomUUID } from "node:crypto"
 
 import {

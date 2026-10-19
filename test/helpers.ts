@@ -76,7 +76,7 @@ export function mockClient(
     return response.clone()
   }
   const nohead = new Nohead({
-    apiKey: "sk_live_test",
+    apiKey: "nohead_sk_test",
     baseUrl: "https://api.test",
     projectId: "prj_1",
     fetch,
