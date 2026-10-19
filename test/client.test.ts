@@ -13,21 +13,21 @@ describe("configuration", () => {
   })
 
   it("reads the key and URL from the environment", async () => {
-    vi.stubEnv("NOHEAD_API_KEY", "sk_live_env")
+    vi.stubEnv("NOHEAD_API_KEY", "nohead_sk_env")
     vi.stubEnv("NOHEAD_API_URL", "https://env.test/")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({ fetch }).records.get("rec_1")
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe("https://env.test/v1/records/rec_1")
     expect(new Headers(init.headers).get("authorization")).toBe(
-      "Bearer sk_live_env"
+      "Bearer nohead_sk_env"
     )
   })
 
   it("drops trailing slashes from the base URL", async () => {
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({
-      apiKey: "sk_live_x",
+      apiKey: "nohead_sk_x",
       baseUrl: "https://api.test///",
       fetch,
     }).records.get("rec_1")
@@ -39,7 +39,7 @@ describe("configuration", () => {
   it("defaults to the production API", async () => {
     vi.stubEnv("NOHEAD_API_URL", "")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
-    await new Nohead({ apiKey: "sk_live_x", fetch }).records.get("rec_1")
+    await new Nohead({ apiKey: "nohead_sk_x", fetch }).records.get("rec_1")
     expect(String((fetch.mock.calls[0] as unknown[])[0])).toBe(
       "https://api.nohead.io/v1/records/rec_1"
     )

@@ -51,17 +51,17 @@ const nohead = new Nohead({
 })
 ```
 
-| Option       | Default                                        |                                                                    |
-| ------------ | ---------------------------------------------- | ------------------------------------------------------------------ |
-| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`sk_live_…`). Required.                         |
-| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                    |
-| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                     |
-| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                           |
-| `timeout`    | `60000`                                        | Milliseconds per attempt.                                          |
-| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                            |
-| `headers`    | `{}`                                           | Added to every request.                                            |
-| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.               |
-| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency). |
+| Option       | Default                                        |                                                                                    |
+| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required. |
+| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                                    |
+| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                                     |
+| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                                           |
+| `timeout`    | `60000`                                        | Milliseconds per attempt.                                                          |
+| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                                            |
+| `headers`    | `{}`                                           | Added to every request.                                                            |
+| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.                               |
+| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency).                 |
 
 API keys belong to a project, so methods like `collections.list()` need no project ID. Collections can be named by ID or slug everywhere.
 
@@ -403,7 +403,7 @@ npm test             # unit and contract tests
 npm run lint && npm run typecheck && npm run format:check
 npm run generate     # after updating openapi.json
 npm run samples      # after changing test/calls.ts (the docs' code samples)
-NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=sk_live_… npm run smoke
+NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 ```
 
 **How the code is organized:**

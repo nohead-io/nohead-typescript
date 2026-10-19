@@ -38,7 +38,7 @@ const samples: Record<string, string> = {}
 for (const call of everyCall) {
   let first: string | undefined
   const nohead = new Nohead({
-    apiKey: "sk_live_sample",
+    apiKey: "nohead_sk_sample",
     baseUrl: "https://api.test",
     projectId: "prj_sample",
     maxRetries: 0,
