@@ -73,6 +73,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       filter: { operation: "update" },
     }),
   (nohead) => nohead.records.revisions.get("rec_01J9ZQ3F8X", 1),
+  (nohead) => nohead.revisions.get("rev_01J9ZQ3F8X"),
   (nohead) =>
     nohead.records.revisions.revert("rec_01J9ZQ3F8X", 1, { dry_run: true }),
   (nohead) =>

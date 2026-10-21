@@ -226,7 +226,11 @@ export class Assets extends Resource {
     )
   }
 
-  /** A signed, cacheable URL of an image rendition (`url`). */
+  /**
+   * A rendition URL (`url`) from a few common options. Image URLs are open,
+   * so `imageUrl` from `@nohead/sdk/images` builds any rendition from an
+   * asset's `image_url` without a request.
+   */
   imageUrl(
     asset: string,
     params: ImageUrlParams = {},
@@ -239,7 +243,7 @@ export class Assets extends Resource {
     )
   }
 
-  /** A 15-minute link to download the original file (`url`). */
+  /** A link to download the original file (`url`), valid for 2 minutes. */
   downloadUrl(
     asset: string,
     options?: RequestOptions

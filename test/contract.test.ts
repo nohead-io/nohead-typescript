@@ -109,7 +109,7 @@ const rec = "rec_01J9ZQ3F8X"
 const drf = "drf_01J9ZQ3F8X"
 const fld = "fld_01J9ZQ3F8X"
 const everyHeader: ((nohead: Nohead) => unknown)[] = [
-  (nohead) => nohead.records.create("posts", { data: {} }, note),
+  (nohead) => nohead.records.create("posts", { data: {} }, conditional),
   (nohead) => nohead.records.update(rec, { data: {} }, conditional),
   (nohead) => nohead.records.delete(rec, conditional),
   (nohead) => nohead.records.restore(rec, conditional),

@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest"
+
+import {
+  astroImageService,
+  getImage,
+  imageUrl,
+  nextImageLoader,
+} from "../src/images.ts"
+
+const base =
+  "https://images.nohead.io/insecure/plain/projects/0199f5c2-7b1e-7c3a-9d4f-2a6b8c0e1f3d/assets/0199f5c2-8a2d-7e4b-b1c3-5d7e9f1a2b4c"
+const at = (options: string) =>
+  base.replace("/insecure/plain/", `/insecure/${options}/plain/`)
+
+describe("imageUrl", () => {
+  it("writes the options before the source, and the format after it", () => {
+    expect(
+      imageUrl(base, {
+        width: 800,
+        height: 600,
+        fit: "cover",
+        gravity: "sm",
+        dpr: 2,
+        quality: 80,
+        format: "webp",
+        options: ["bl:2"],
+      })
+    ).toBe(`${at("rs:fill:800:600/g:sm/dpr:2/q:80/bl:2")}@webp`)
+    expect(imageUrl({ image_url: base }, { width: 320 })).toBe(
+      at("rs:fit:320:0")
+    )
+    expect(imageUrl(base)).toBe(base)
+  })
+
+  it("replaces a format the URL already names", () => {
+    expect(imageUrl(`${base}@png`, { format: "avif" })).toBe(`${base}@avif`)
+  })
+
+  it("refuses what is not a ready image's URL", () => {
+    expect(() => imageUrl({ image_url: null })).toThrow(/no image_url/)
+    expect(() => imageUrl("https://example.com/cat.png")).toThrow(
+      /Not a Nohead image URL/
+    )
+  })
+})
+
+describe("framework loaders", () => {
+  it("serve Next.js, Astro and Nuxt Image", () => {
+    expect(nextImageLoader({ src: base, width: 640, quality: 75 })).toBe(
+      at("rs:fit:640:0/q:75")
+    )
+    expect(
+      astroImageService.getURL({
+        src: base,
+        width: 400,
+        height: 300,
+        format: "avif",
+        quality: "high",
+      })
+    ).toBe(`${at("rs:fit:400:300")}@avif`)
+    expect(
+      getImage(base, {
+        modifiers: { width: "200", fit: "cover", format: "webp" },
+      })
+    ).toEqual({ url: `${at("rs:fill:200:0")}@webp` })
+  })
+})

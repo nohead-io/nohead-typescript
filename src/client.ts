@@ -4,7 +4,7 @@ import type * as G from "./generated/types.gen.ts"
 import { Assets } from "./resources/assets.ts"
 import { Drafts } from "./resources/drafts.ts"
 import { AuditEvents, FeatureFlags, Health, Me } from "./resources/other.ts"
-import { Records } from "./resources/records.ts"
+import { Records, RevisionsById } from "./resources/records.ts"
 import { Collections, Fields, Migrations } from "./resources/schema.ts"
 import { Webhooks } from "./resources/webhooks.ts"
 import type {
@@ -25,6 +25,7 @@ import type {
  */
 export class Nohead {
   readonly records: Records
+  readonly revisions: RevisionsById
   readonly drafts: Drafts
   readonly collections: Collections
   readonly fields: Fields
@@ -41,6 +42,7 @@ export class Nohead {
     const core = new Core(options)
     this.#core = core
     this.records = new Records(core)
+    this.revisions = new RevisionsById(core)
     this.drafts = new Drafts(core)
     this.collections = new Collections(core)
     this.fields = new Fields(core)

@@ -68,11 +68,15 @@ export class Records extends Resource {
     ) as APIPromise<NoheadRecord<D>>
   }
 
-  /** Creates an unpublished record. */
+  /**
+   * Creates an unpublished record. With `upsert_on`, updates the record
+   * holding that unique value instead, if one exists, so a sync can run
+   * again without duplicates; `ifMatch` then applies to that update.
+   */
   create<D = RecordData>(
     collection: string,
     params: RecordCreateParams<D>,
-    options?: WriteOptions
+    options?: ConditionalWriteOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_create",
@@ -277,7 +281,7 @@ export class Records extends Resource {
   }
 
   /**
-   * Full-text search in one collection (`search_enabled` collections).
+   * Full-text search in one collection, matching its `searchable` fields.
    * Pages through the first 1,000 hits, most relevant first.
    */
   search<D = RecordData>(
@@ -343,6 +347,23 @@ export class Revisions extends Resource {
     return this.core.request(
       "record_revisions_revert",
       { path: { record_id: record, revision }, query: params },
+      options
+    )
+  }
+}
+
+/**
+ * A revision by its own ID (`rev_…`), as webhooks and the activity log name
+ * it. Readable while its record is deleted.
+ */
+export class RevisionsById extends Resource {
+  get(
+    revision: string,
+    options?: RequestOptions
+  ): APIPromise<RecordRevisionDetail> {
+    return this.core.request(
+      "revisions_get",
+      { path: { revision_id: revision } },
       options
     )
   }

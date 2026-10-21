@@ -85,6 +85,11 @@ export interface RecordGetParams {
 
 export interface RecordCreateParams<D = G.RecordData> {
   data: D
+  /**
+   * The key of a `unique` field whose value `data` includes: the active
+   * record holding that value is updated instead, if there is one.
+   */
+  upsert_on?: string
 }
 
 export interface RecordUpdateParams<D = G.RecordData> {

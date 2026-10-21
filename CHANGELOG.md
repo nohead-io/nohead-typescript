@@ -15,6 +15,23 @@ section is its GitHub release's notes.
   alt text (`PATCH /v1/assets/{asset_id}`). `Asset` has `alt` (a string or
   `null`), and webhooks can subscribe to `asset.updated`.
 
+- Image URLs are open. `Asset` has `image_url`, the whole image, and
+  `imageUrl` from the new `@nohead/sdk/images` (no dependencies) writes any of
+  imgproxy's processing options into it, without a request. It also has
+  loaders for Next.js (`nextImageLoader`), Astro (`astroImageService`) and
+  Nuxt Image (`getImage`). `assets.imageUrl` still asks the API for one, now
+  for exactly the sizes and quality given.
+
+- **Breaking:** `Collection` has no `search_enabled`, and `SearchIndex` no
+  `enabled`: API keys search every collection they can read.
+
+- `revisions.get(revision)` reads a revision by its own `rev_` ID, as
+  webhooks and the activity log name it (`GET /v1/revisions/{revision_id}`).
+
+- `records.create` takes `upsert_on`, a unique field's key: the record
+  holding that value is updated instead, if one exists, and `ifMatch`
+  applies to that update.
+
 ## 0.5.0
 
 - **Breaking:** field migrations are created under their collection:
