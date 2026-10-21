@@ -5,6 +5,7 @@ import {
   getImage,
   imageUrl,
   nextImageLoader,
+  nuxtImageProvider,
 } from "../src/images.ts"
 
 const base =
@@ -36,6 +37,15 @@ describe("imageUrl", () => {
     expect(imageUrl(`${base}@png`, { format: "avif" })).toBe(`${base}@avif`)
   })
 
+  it("refuses options that would break the path", () => {
+    expect(() => imageUrl(base, { gravity: "fp:0.5/0.3" })).toThrow(
+      /Not an imgproxy option/
+    )
+    expect(() => imageUrl(base, { options: ["bl:2@x"] })).toThrow(
+      /Not an imgproxy option/
+    )
+  })
+
   it("refuses what is not a ready image's URL", () => {
     expect(() => imageUrl({ image_url: null })).toThrow(/no image_url/)
     expect(() => imageUrl("https://example.com/cat.png")).toThrow(
@@ -63,5 +73,26 @@ describe("framework loaders", () => {
         modifiers: { width: "200", fit: "cover", format: "webp" },
       })
     ).toEqual({ url: `${at("rs:fill:200:0")}@webp` })
+    expect(nuxtImageProvider().getImage(base, { modifiers: {} })).toEqual({
+      url: base,
+    })
+    expect(
+      astroImageService.getURL({
+        src: base,
+        width: 300,
+        height: 300,
+        fit: "cover",
+      })
+    ).toBe(at("rs:fill:300:300"))
+  })
+
+  it("leave the site's own images alone", () => {
+    expect(nextImageLoader({ src: "/logo.png", width: 640 })).toBe("/logo.png")
+    expect(
+      astroImageService.getURL({ src: { src: "/_astro/logo.png" }, width: 100 })
+    ).toBe("/_astro/logo.png")
+    expect(getImage("https://example.com/cat.png")).toEqual({
+      url: "https://example.com/cat.png",
+    })
   })
 })

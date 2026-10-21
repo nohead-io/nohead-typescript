@@ -48,6 +48,9 @@ export function imageUrl(
     dpr,
     gravity,
   } = options
+  for (const option of [gravity, ...(options.options ?? [])])
+    if (option && /[/@?#]/.test(option))
+      throw new TypeError(`Not an imgproxy option: ${option}`)
   const segments: string[] = []
   if (width || height)
     segments.push(`rs:${FITS[fit]}:${width ?? 0}:${height ?? 0}`)
@@ -62,10 +65,19 @@ export function imageUrl(
   return `${base.slice(0, at)}${segments.map((s) => `/${s}`).join("")}${source}`
 }
 
+/** Whether a URL is a Nohead image's: the loaders leave any other alone. */
+export function isImageUrl(src: unknown): src is string {
+  return (
+    typeof src === "string" &&
+    /^https?:\/\/[^/]+\/[^/]+\/(.*\/)?plain\//.test(src)
+  )
+}
+
 /**
  * A Next.js image loader. In a file named by `images.loaderFile` in
  * next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`,
  * then `<Image src={asset.image_url} width={…} height={…} alt={asset.alt} />`.
+ * Other images (the site's own) are left as they are.
  */
 export function nextImageLoader({
   src,
@@ -76,20 +88,30 @@ export function nextImageLoader({
   width: number
   quality?: number
 }): string {
-  return imageUrl(src, { width, quality })
+  return isImageUrl(src) ? imageUrl(src, { width, quality }) : src
 }
 
 const FORMATS = new Set<string>(["webp", "avif", "jpeg", "png"])
-const NUXT_FITS: Record<string, ImageOptions["fit"]> = {
+// Astro's and Nuxt Image's fits, as imgproxy has them.
+const FRAMEWORK_FITS: Record<string, ImageOptions["fit"]> = {
   cover: "cover",
   contain: "contain",
   fill: "fill",
+  inside: "contain",
+  outside: "cover",
 }
+const fitOf = (fit: unknown) =>
+  typeof fit === "string" ? FRAMEWORK_FITS[fit] : undefined
+const formatOf = (format: unknown) =>
+  typeof format === "string" && FORMATS.has(format)
+    ? (format as ImageOptions["format"])
+    : undefined
 
 /**
  * An Astro image service (an external one: Astro never fetches the image).
  * In a module named by `image.service.entrypoint` in astro.config:
  * `export { astroImageService as default } from "@nohead/sdk/images"`.
+ * Other images (the site's own, imported or remote) are served as they are.
  */
 export const astroImageService = {
   getURL(options: {
@@ -98,16 +120,19 @@ export const astroImageService = {
     height?: number
     format?: string
     quality?: number | string
+    fit?: string
   }): string {
-    if (typeof options.src !== "string")
-      throw new TypeError("The Nohead image service takes image_url strings")
-    return imageUrl(options.src, {
+    const { src } = options
+    if (!isImageUrl(src)) {
+      const own =
+        typeof src === "string" ? src : (src as { src?: unknown } | null)?.src
+      return typeof own === "string" ? own : ""
+    }
+    return imageUrl(src, {
       width: options.width,
       height: options.height,
-      format:
-        options.format && FORMATS.has(options.format)
-          ? (options.format as ImageOptions["format"])
-          : undefined,
+      fit: fitOf(options.fit),
+      format: formatOf(options.format),
       quality:
         typeof options.quality === "number" ? options.quality : undefined,
     })
@@ -116,7 +141,10 @@ export const astroImageService = {
 
 /**
  * Nuxt Image's custom provider (`getImage`). In a file named as a provider
- * in nuxt.config's `image.providers`: `export { getImage } from "@nohead/sdk/images"`.
+ * in nuxt.config's `image.providers`: on Nuxt Image 2,
+ * `export { nuxtImageProvider as default } from "@nohead/sdk/images"`; on
+ * Nuxt Image 1, `export { getImage } from "@nohead/sdk/images"`. Other
+ * images are left as they are.
  */
 export function getImage(
   src: string,
@@ -128,20 +156,17 @@ export function getImage(
       : typeof value === "string" && value
         ? Number(value)
         : undefined
-  const format =
-    typeof modifiers.format === "string" && FORMATS.has(modifiers.format)
-      ? (modifiers.format as ImageOptions["format"])
-      : undefined
+  if (!isImageUrl(src)) return { url: src }
   return {
     url: imageUrl(src, {
       width: number(modifiers.width),
       height: number(modifiers.height),
-      fit:
-        typeof modifiers.fit === "string"
-          ? NUXT_FITS[modifiers.fit]
-          : undefined,
-      format,
+      fit: fitOf(modifiers.fit),
+      format: formatOf(modifiers.format),
       quality: number(modifiers.quality),
     }),
   }
 }
+
+/** Nuxt Image 2's provider: what its `defineProvider({ getImage })` returns. */
+export const nuxtImageProvider = () => ({ getImage })
