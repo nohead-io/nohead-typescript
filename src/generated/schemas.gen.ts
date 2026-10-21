@@ -79,6 +79,7 @@ export type {
   RecordBatch,
   RecordBatchRequest,
   RecordCount,
+  RecordCreate,
   RecordData,
   RecordDiff,
   RecordEventData,

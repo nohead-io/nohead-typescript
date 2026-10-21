@@ -626,12 +626,6 @@ export type Collection = {
      */
     purge_after: NullableTimestamp;
     /**
-     * Whether API keys can search the collection (`GET /v1/collections/{collection_id}/search`).
-     * Every collection is indexed; members can search it in the web app either way.
-     *
-     */
-    search_enabled: boolean;
-    /**
      * Active fields in position order.
      */
     fields: Array<Field>;
@@ -640,7 +634,6 @@ export type Collection = {
 };
 
 export type CollectionCreate = {
-    search_enabled?: boolean;
     name: string;
     slug: string;
     description?: string | null;
@@ -648,7 +641,6 @@ export type CollectionCreate = {
 };
 
 export type CollectionUpdate = {
-    search_enabled?: boolean;
     name?: string;
     slug?: string;
     description?: string | null;
@@ -668,7 +660,6 @@ export type SchemaDefinition = {
     slug: string;
     description: string | null;
     deleted_at: NullableTimestamp;
-    search_enabled?: boolean;
     fields: Array<{
         id: string;
         name: string;
@@ -952,7 +943,7 @@ export type TimeFilter = {
 /**
  * The client a change came through; `scheduler` for scheduled changes.
  */
-export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'system' | 'scheduler';
+export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'mcp' | 'system' | 'scheduler';
 
 /**
  * Changes to a record's content that wait until they are merged into
@@ -1108,6 +1099,17 @@ export type RecordWrite = {
     data: RecordData;
 };
 
+export type RecordCreate = {
+    data: RecordData;
+    /**
+     * The key of a `unique` field (a slug, or a field with `unique` on)
+     * whose value `data` includes: update the record that has it, or
+     * create one.
+     *
+     */
+    upsert_on?: string;
+};
+
 export type RecordList = {
     data: Array<Record>;
     meta: ListMeta;
@@ -1236,10 +1238,6 @@ export type SearchResults = {
 export type SearchIndex = {
     object: 'search_index';
     collection_id: string;
-    /**
-     * The collection's `search_enabled`; the index is kept up to date either way.
-     */
-    enabled: boolean;
     /**
      * `building` until first built; `stale` from the change that queues a rebuild until it has run; `failed` if the last rebuild failed (it is retried).
      */
@@ -1630,7 +1628,20 @@ export type AssetProperties = {
      */
     purge_after: NullableTimestamp;
     /**
-     * A signed URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
+     * The URL of the whole image, for ready images (JPEG, PNG, GIF, WebP
+     * or AVIF), deleted ones included until they are purged; null
+     * otherwise. Image URLs are open and never expire. For a rendition,
+     * write [imgproxy processing options](https://docs.imgproxy.net/usage/processing)
+     * between `/insecure/` and `/plain/`, and a format after `@`: for
+     * example `…/insecure/rs:fill:800:600/g:sm/plain/…@webp`. Renditions
+     * are at most 4096 pixels a side, from originals of at most 50
+     * megapixels. Options that would return the file as stored (`raw`,
+     * `skip_processing`, `strip_metadata`) are refused.
+     *
+     */
+    image_url: string | null;
+    /**
+     * The URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
     uploaded_at: NullableTimestamp;
@@ -1796,6 +1807,8 @@ export type DeliveryId = string;
 export type RecordId = string;
 
 export type DraftId = string;
+
+export type RevisionId = string;
 
 /**
  * Per-record revision number.
@@ -2045,7 +2058,7 @@ export type RecordsListResponses = {
 export type RecordsListResponse = RecordsListResponses[keyof RecordsListResponses];
 
 export type RecordsCreateData = {
-    body: RecordWrite;
+    body: RecordCreate;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -2057,6 +2070,10 @@ export type RecordsCreateData = {
          *
          */
         'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
         /**
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
@@ -2110,6 +2127,12 @@ export type RecordsCreateErrors = {
      */
     409: Error;
     /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
      * The request failed validation.
      */
     422: Error;
@@ -2126,6 +2149,10 @@ export type RecordsCreateErrors = {
 export type RecordsCreateError = RecordsCreateErrors[keyof RecordsCreateErrors];
 
 export type RecordsCreateResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
     /**
      * The created record.
      */
@@ -3205,6 +3232,53 @@ export type RecordRevisionsGetResponses = {
 };
 
 export type RecordRevisionsGetResponse = RecordRevisionsGetResponses[keyof RecordRevisionsGetResponses];
+
+export type RevisionsGetData = {
+    body?: never;
+    path: {
+        revision_id: string;
+    };
+    query?: never;
+    url: '/v1/revisions/{revision_id}';
+};
+
+export type RevisionsGetErrors = {
+    /**
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RevisionsGetError = RevisionsGetErrors[keyof RevisionsGetErrors];
+
+export type RevisionsGetResponses = {
+    /**
+     * The revision with its snapshot and changes.
+     */
+    200: RecordRevisionDetail;
+};
+
+export type RevisionsGetResponse = RevisionsGetResponses[keyof RevisionsGetResponses];
 
 export type RecordRevisionsRevertData = {
     body?: never;
