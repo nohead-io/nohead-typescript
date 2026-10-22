@@ -73,6 +73,8 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.assets.list({ content_type: "image/*", ...page }),
   (nohead) =>
     nohead.assets.list({ content_type: ["image/*", "application/pdf"] }),
+  (nohead) => nohead.assets.list({ q: "hero jpg", kind: "image" }),
+  (nohead) => nohead.assets.list({ kind: ["image", "video"] }),
   (nohead) => nohead.records.scheduledChanges("posts", page),
   (nohead) => nohead.records.drafts("rec_01J9ZQ3F8X", page),
   (nohead) =>

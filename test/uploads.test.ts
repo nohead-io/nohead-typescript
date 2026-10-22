@@ -108,6 +108,17 @@ describe("assets.upload", () => {
     })
   })
 
+  it("types a Blob without a type by its filename", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+    ])
+    // As Node's openAsBlob makes one: no type.
+    await nohead.assets.upload(new Blob(["x"]), { filename: "Cover.JPG" })
+    expect(calls[0]!.body).toMatchObject({ content_type: "image/jpeg" })
+  })
+
   it("needs byte_size for a stream", async () => {
     const { nohead } = mockClient([created])
     await expect(

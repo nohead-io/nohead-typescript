@@ -5,6 +5,16 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `assets.list({ q, kind })`: `q` finds assets whose filename or alt text
+  has every word, ignoring case; `kind` lists only `image`, `video`,
+  `audio`, `document` or `other` assets, or several kinds as a list.
+
+- `assets.upload` types a file by its filename's extension when the Blob has
+  no type, as Node's `openAsBlob` makes them: `cover.jpg` is now an
+  `image/jpeg` asset, not `application/octet-stream`.
+
 ## 0.6.0
 
 - API keys now start `nohead_sk_`, or `nohead_pk_` for published-only keys;

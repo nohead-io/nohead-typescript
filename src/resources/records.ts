@@ -223,9 +223,9 @@ export class Records extends Resource {
   }
 
   /**
-   * A collection's pending scheduled publishes and unpublishes, soonest
-   * first: one per change, so a record due to publish and later unpublish
-   * appears twice.
+   * A collection's pending scheduled changes, soonest first: publishes,
+   * unpublishes and draft merges, one per change, so a record due to publish
+   * and later unpublish appears twice.
    */
   scheduledChanges(
     collection: string,
