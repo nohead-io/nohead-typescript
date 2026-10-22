@@ -1,6 +1,6 @@
 {
   "name": "@nohead/sdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Official TypeScript SDK for the Nohead API",
   "license": "MIT",
   "homepage": "https://nohead.io",
