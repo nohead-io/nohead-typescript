@@ -626,15 +626,15 @@ export type Collection = {
      */
     purge_after: NullableTimestamp;
     /**
-     * Whether sites find its published records with the project's
-     * search tokens (made in the web app), straight from the browser.
-     * Off by default: every field of those records becomes readable by
-     * anyone with a token, so turn it on only for collections whose
-     * published records are public. A change reaches search tokens
-     * within seconds.
+     * Whether the project's search tokens (made in the web app) find
+     * its published records, from a browser or a backend. Off by
+     * default: every field of those records becomes readable by anyone
+     * with a token, so turn it on only for collections whose published
+     * records are public. A change reaches search tokens within
+     * seconds.
      *
      */
-    site_search: boolean;
+    public_search: boolean;
     /**
      * Active fields in position order.
      */
@@ -647,7 +647,7 @@ export type CollectionCreate = {
     name: string;
     slug: string;
     description?: string | null;
-    site_search?: boolean;
+    public_search?: boolean;
     fields?: Array<FieldCreate>;
 };
 
@@ -655,7 +655,7 @@ export type CollectionUpdate = {
     name?: string;
     slug?: string;
     description?: string | null;
-    site_search?: boolean;
+    public_search?: boolean;
 };
 
 export type CollectionList = {
@@ -675,7 +675,7 @@ export type SchemaDefinition = {
     /**
      * Absent from schemas before the setting existed (off).
      */
-    site_search?: boolean;
+    public_search?: boolean;
     fields: Array<{
         id: string;
         name: string;
@@ -1254,6 +1254,12 @@ export type SearchResults = {
 export type SearchIndex = {
     object: 'search_index';
     collection_id: string;
+    /**
+     * The index's name in the search engine, which search tokens search
+     * (`indexUid` in Meilisearch's search API). Opaque; it never changes.
+     *
+     */
+    index: string;
     /**
      * `building` until first built; `stale` from the change that queues a rebuild until it has run; `failed` if the last rebuild failed (it is retried).
      */
