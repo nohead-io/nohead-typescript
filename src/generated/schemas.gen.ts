@@ -7,6 +7,7 @@ export type {
   AssetField,
   AssetFieldConfiguration,
   AssetFieldCreate,
+  AssetKind,
   AssetList,
   AssetProperties,
   AssetUpdate,

@@ -198,7 +198,7 @@ export type TextFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -230,7 +230,7 @@ export type LongTextFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -251,7 +251,7 @@ export type RichTextFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -270,7 +270,7 @@ export type IntegerFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -295,7 +295,7 @@ export type DecimalFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -316,7 +316,7 @@ export type DateFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -343,7 +343,7 @@ export type BooleanFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -362,7 +362,7 @@ export type EnumFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -382,7 +382,7 @@ export type AssetFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -405,7 +405,7 @@ export type RelationFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -428,7 +428,7 @@ export type JsonFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field (API searches). Default true for text, long_text, rich_text and enum.
+     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
      */
     searchable?: boolean;
     /**
@@ -589,7 +589,7 @@ export type FieldCreateProperties = {
 };
 
 /**
- * Renames, describes or loosens a field. A change to its `type` or `multiple` rewrites record values, so it is a field migration (`POST /v1/fields/{id}/migrations`); either key here is `400` `unknown_parameter`, saying so.
+ * Renames, describes or loosens a field. A change to its `type` or `multiple` rewrites record values, so it is a field migration (`POST /v1/collections/{collection_id}/migrations`); either key here is `400` `unknown_parameter`, saying so.
  */
 export type FieldUpdate = {
     name?: string;
@@ -1607,6 +1607,8 @@ export type WebhookTestEventData = {
 
 export type Asset = AssetProperties;
 
+export type AssetKind = 'image' | 'video' | 'audio' | 'document' | 'other';
+
 export type AssetUpdate = {
     /**
      * Control characters are removed and path separators become `_`, as on upload.
@@ -1663,7 +1665,7 @@ export type AssetProperties = {
      */
     image_url: string | null;
     /**
-     * The URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
+     * The URL of a small rendition (fits in 640×640, WebP), for ready images and SVGs (rasterized; SVGs have no `image_url`), deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
     uploaded_at: NullableTimestamp;
@@ -1923,10 +1925,22 @@ export type DeletedFilter = {
  * `type*` wildcard, or several with
  * `filter[content_type][in]=image*,application/pdf`, for example the
  * ones an asset field accepts (its `accepted_types`).
+ * `filter[kind]` lists only assets of a kind, or several with
+ * `filter[kind][in]=image,video`: `image`, `video` and `audio` by
+ * their types (`image*` and so on); `document` for PDFs, plain text,
+ * Markdown, CSV, and word processing, spreadsheet and presentation
+ * files (Microsoft Office, OpenDocument, RTF); `other` for every other
+ * file.
  *
  */
 export type AssetFilter = {
     deleted?: 'true' | 'false';
+    kind?: AssetKind | {
+        /**
+         * Comma-separated kinds.
+         */
+        in: string;
+    };
     content_type?: string | {
         /**
          * Up to 50 comma-separated MIME types or `type*` wildcards.
@@ -5590,6 +5604,13 @@ export type AssetsListData = {
     };
     query?: {
         /**
+         * Words that must each appear in the filename or the alt text,
+         * ignoring case: `q=hero jpg` finds `Hero-banner.jpg`. Up to 10
+         * words and 200 characters (`400` beyond).
+         *
+         */
+        q?: string;
+        /**
          * Page size.
          */
         limit?: number;
@@ -5603,10 +5624,22 @@ export type AssetsListData = {
          * `type*` wildcard, or several with
          * `filter[content_type][in]=image*,application/pdf`, for example the
          * ones an asset field accepts (its `accepted_types`).
+         * `filter[kind]` lists only assets of a kind, or several with
+         * `filter[kind][in]=image,video`: `image`, `video` and `audio` by
+         * their types (`image*` and so on); `document` for PDFs, plain text,
+         * Markdown, CSV, and word processing, spreadsheet and presentation
+         * files (Microsoft Office, OpenDocument, RTF); `other` for every other
+         * file.
          *
          */
         filter?: {
             deleted?: 'true' | 'false';
+            kind?: AssetKind | {
+                /**
+                 * Comma-separated kinds.
+                 */
+                in: string;
+            };
             content_type?: string | {
                 /**
                  * Up to 50 comma-separated MIME types or `type*` wildcards.

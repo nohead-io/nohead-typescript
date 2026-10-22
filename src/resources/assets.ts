@@ -25,6 +25,33 @@ export interface UploadParams {
 }
 
 /** Files of the key's project. `asset` is an asset ID (`ast_…`). */
+/** Common files' types by extension, as the other SDKs guess them. */
+const CONTENT_TYPES: Record<string, string> = {
+  avif: "image/avif",
+  gif: "image/gif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  json: "application/json",
+  txt: "text/plain",
+  md: "text/markdown",
+  csv: "text/csv",
+  mp3: "audio/mpeg",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  zip: "application/zip",
+}
+
+function contentTypeOf(filename: string): string | undefined {
+  const dot = filename.lastIndexOf(".")
+  return dot > 0
+    ? CONTENT_TYPES[filename.slice(dot + 1).toLowerCase()]
+    : undefined
+}
+
 export class Assets extends Resource {
   /**
    * Uploads a file and returns the `ready` asset: creates the upload, sends
@@ -39,6 +66,9 @@ export class Assets extends Resource {
    *
    *   import { openAsBlob } from "node:fs"
    *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg" })
+   *
+   * Without `content_type`, the type is the Blob's, or else the filename's
+   * extension's for common files.
    */
   async upload(
     file: Uploadable,
@@ -49,16 +79,22 @@ export class Assets extends Resource {
     if (byteSize === undefined) {
       throw new UploadError("Uploading a stream needs `byte_size`")
     }
+    const filename =
+      params.filename ??
+      (typeof File !== "undefined" && file instanceof File
+        ? file.name
+        : "upload")
     const { upload, ...asset } = await this.createUpload(
       {
-        filename:
-          params.filename ??
-          (typeof File !== "undefined" && file instanceof File
-            ? file.name
-            : "upload"),
+        filename,
+        // The Blob's own type, or one the filename's extension implies (a
+        // Blob from Node's openAsBlob has none), as the Python and Ruby
+        // SDKs do.
         content_type:
           params.content_type ??
-          ((file instanceof Blob && file.type) || "application/octet-stream"),
+          ((file instanceof Blob && file.type) ||
+            contentTypeOf(filename) ||
+            "application/octet-stream"),
         byte_size: byteSize,
       },
       options
@@ -131,7 +167,7 @@ export class Assets extends Resource {
   }
 
   list(
-    { content_type, ...params }: AssetListParams = {},
+    { content_type, kind, ...params }: AssetListParams = {},
     options?: RequestOptions
   ): PagePromise<Asset> {
     return this.core.paginate(
@@ -143,8 +179,9 @@ export class Assets extends Resource {
             content_type: Array.isArray(content_type)
               ? { in: content_type }
               : content_type,
+            kind: Array.isArray(kind) ? { in: kind } : kind,
           },
-          ["deleted", "content_type"]
+          ["deleted", "content_type", "kind"]
         ),
       },
       options

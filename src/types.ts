@@ -187,6 +187,17 @@ export interface DeletedListParams extends ListParams {
 
 export interface AssetListParams extends DeletedListParams {
   /**
+   * Words that must each appear in the filename or the alt text, ignoring
+   * case: `"hero jpg"` finds `Hero-banner.jpg`.
+   */
+  q?: string
+  /**
+   * Only assets of a kind, or of any of several: `"image"`, `"video"` and
+   * `"audio"` by their types, `"document"` for PDFs, text and office files,
+   * `"other"` for every other file.
+   */
+  kind?: G.AssetKind | G.AssetKind[]
+  /**
    * Only assets of a MIME type or `type/*` wildcard (`"image/*"`), or of any
    * of several: `["image/*", "application/pdf"]`, such as an asset
    * field's `accepted_types`.

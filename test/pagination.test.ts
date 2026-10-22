@@ -52,6 +52,19 @@ describe("pagination", () => {
     })
   })
 
+  it("searches assets, and lists them by kind: one, or several with [in]", async () => {
+    const { nohead, calls } = mockClient([page([], null), page([], null)])
+    await nohead.assets.list({ q: "hero jpg", kind: "image" })
+    await nohead.assets.list({ kind: ["image", "video"] })
+    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
+      q: "hero jpg",
+      "filter[kind]": "image",
+    })
+    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({
+      "filter[kind][in]": "image,video",
+    })
+  })
+
   it("stops fetching once it has enough", async () => {
     const { nohead, calls } = mockClient([
       page([record("rec_1"), record("rec_2")], "c2"),
