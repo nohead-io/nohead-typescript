@@ -207,8 +207,6 @@ export interface FieldReorderParams {
   field_ids: string[]
 }
 
-export type ImageUrlParams = NonNullable<G.AssetsImageUrlData["query"]>
-
 export interface DeliveryListParams extends ListParams {
   status?: "pending" | "succeeded" | "failed"
 }

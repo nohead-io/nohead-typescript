@@ -6,7 +6,6 @@ export const OPERATIONS = {
   assets_delete: { method: "DELETE", path: "/v1/assets/{asset_id}" },
   assets_download_url: { method: "GET", path: "/v1/assets/{asset_id}/download-url" },
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
-  assets_image_url: { method: "GET", path: "/v1/assets/{asset_id}/image-url" },
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
   assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
@@ -94,7 +93,6 @@ export interface Operations {
   assets_delete: { data: T.AssetsDeleteData; response: T.AssetsDeleteResponse }
   assets_download_url: { data: T.AssetsDownloadUrlData; response: T.AssetsDownloadUrlResponse }
   assets_get: { data: T.AssetsGetData; response: T.AssetsGetResponse }
-  assets_image_url: { data: T.AssetsImageUrlData; response: T.AssetsImageUrlResponse }
   assets_list: { data: T.AssetsListData; response: T.AssetsListResponse }
   assets_purge: { data: T.AssetsPurgeData; response: T.AssetsPurgeResponse }
   assets_restore: { data: T.AssetsRestoreData; response: T.AssetsRestoreResponse }

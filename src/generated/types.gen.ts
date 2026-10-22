@@ -1632,8 +1632,8 @@ export type AssetProperties = {
      * or AVIF), deleted ones included until they are purged; null
      * otherwise. Image URLs are open and never expire. For a rendition,
      * write [imgproxy processing options](https://docs.imgproxy.net/usage/processing)
-     * between `/insecure/` and `/plain/`, and a format after `@`: for
-     * example `…/insecure/rs:fill:800:600/g:sm/plain/…@webp`. Renditions
+     * before `/plain/`, and a format after `@`: for example
+     * `https://images.nohead.io/rs:fill:800:600/g:sm/plain/…@webp`. Renditions
      * are at most 4096 pixels a side, from originals of at most 50
      * megapixels. Options that would return the file as stored (`raw`,
      * `skip_processing`, `strip_metadata`) are refused.
@@ -1652,17 +1652,6 @@ export type AssetProperties = {
 export type AssetList = {
     data: Array<Asset>;
     meta: ListMeta;
-};
-
-export type ImageUrl = {
-    object: 'image_url';
-    asset_id: string;
-    url: string;
-    width: number | null;
-    height: number | null;
-    fit: 'contain' | 'cover' | 'fill';
-    format: 'original' | 'webp' | 'avif' | 'jpeg' | 'png';
-    quality: number | null;
 };
 
 export type AssetUsage = {
@@ -5977,74 +5966,6 @@ export type AssetsUpdateResponses = {
 };
 
 export type AssetsUpdateResponse = AssetsUpdateResponses[keyof AssetsUpdateResponses];
-
-export type AssetsImageUrlData = {
-    body?: never;
-    path: {
-        asset_id: string;
-    };
-    query?: {
-        width?: number;
-        height?: number;
-        /**
-         * `contain` fits inside width × height; `cover` fills it, cropping; `fill` stretches to it.
-         */
-        fit?: 'contain' | 'cover' | 'fill';
-        format?: 'original' | 'webp' | 'avif' | 'jpeg' | 'png';
-        quality?: number;
-    };
-    url: '/v1/assets/{asset_id}/image-url';
-};
-
-export type AssetsImageUrlErrors = {
-    /**
-     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-    /**
-     * The service is temporarily unavailable.
-     */
-    503: Error;
-};
-
-export type AssetsImageUrlError = AssetsImageUrlErrors[keyof AssetsImageUrlErrors];
-
-export type AssetsImageUrlResponses = {
-    /**
-     * The image URL.
-     */
-    200: ImageUrl;
-};
-
-export type AssetsImageUrlResponse = AssetsImageUrlResponses[keyof AssetsImageUrlResponses];
 
 export type AssetsDownloadUrlData = {
     body?: never;

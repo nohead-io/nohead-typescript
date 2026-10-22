@@ -61,7 +61,6 @@ export type {
   FieldType,
   FieldUpdate,
   Health,
-  ImageUrl,
   IntegerField,
   IntegerFieldConfiguration,
   IntegerFieldCreate,

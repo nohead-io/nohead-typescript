@@ -81,12 +81,6 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
       ...page,
     }),
   (nohead) => nohead.webhooks.secrets.list("wh_01J9ZQ3F8X", page),
-  (nohead) =>
-    nohead.assets.imageUrl("ast_01J9ZQ3F8X", {
-      height: 100,
-      fit: "cover",
-      quality: 80,
-    }),
   (nohead) => nohead.webhooks.list(page),
   (nohead) => nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", page),
   (nohead) =>

@@ -3,7 +3,6 @@
   "assets_delete": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.delete(\"ast_01J9ZQ3F8X\")\n",
   "assets_download_url": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.downloadUrl(\"ast_01J9ZQ3F8X\")\n",
   "assets_get": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.get(\"ast_01J9ZQ3F8X\")\n",
-  "assets_image_url": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.imageUrl(\"ast_01J9ZQ3F8X\", {\n  width: 100,\n  format: \"webp\",\n})\n",
   "assets_list": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nfor await (const asset of nohead.assets.list({ deleted: true })) {\n  console.log(asset)\n}\n",
   "assets_purge": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.purge(\"ast_01J9ZQ3F8X\")\n",
   "assets_restore": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.assets.restore(\"ast_01J9ZQ3F8X\")\n",

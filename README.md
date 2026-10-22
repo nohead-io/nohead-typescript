@@ -292,7 +292,7 @@ Frameworks' image components, with `srcset` and all, take a loader from it:
 
 The loaders leave other images, the site's own, as they are.
 
-`assets.imageUrl(asset.id, { width, height, fit, format, quality })` asks the API for one instead.
+Thumbnails: an image's `preview_url` fits in 640×640, as WebP.
 
 **What `upload` accepts:** a `Blob`, `File`, `ArrayBuffer`, `Uint8Array`, or a `ReadableStream` with `byte_size`.
 
@@ -414,7 +414,7 @@ response.headers.get("RateLimit-Remaining")
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
 | `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`                                                                                                               |
 | `migrations`                | `create`, `list`, `get`, `cancel`                                                                                                                                                                       |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `update`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                         |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `update`, `delete`, `restore`, `purge`, `usage`, `downloadUrl`                                                                                     |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |
 | `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                                        |
 | `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                                  |

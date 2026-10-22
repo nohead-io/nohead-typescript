@@ -20,8 +20,11 @@ section is its GitHub release's notes.
   imgproxy's processing options into it, without a request. It also has
   loaders for Next.js (`nextImageLoader`), Astro (`astroImageService`) and
   Nuxt Image (`nuxtImageProvider`, or `getImage` on Nuxt Image 1), which leave
-  other images as they are. `assets.imageUrl` still asks the API for one, now
-  for exactly the sizes and quality given.
+  other images as they are.
+
+- **Breaking:** `assets.imageUrl` is gone, with the API's
+  `GET /v1/assets/{asset_id}/image-url`: use `imageUrl` from
+  `@nohead/sdk/images`, which needs no request.
 
 - **Breaking:** `Collection` has no `search_enabled`, and `SearchIndex` no
   `enabled`: API keys search every collection they can read.

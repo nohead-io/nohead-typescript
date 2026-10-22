@@ -8,9 +8,8 @@ import type {
   AssetWithUpload,
   AssetUsage,
   DownloadUrl,
-  ImageUrl,
 } from "../generated/types.gen.ts"
-import type { AssetListParams, ImageUrlParams } from "../types.ts"
+import type { AssetListParams } from "../types.ts"
 import { listQuery, Resource } from "./resource.ts"
 
 /** What `assets.upload` accepts. A stream needs `byte_size`. */
@@ -222,23 +221,6 @@ export class Assets extends Resource {
     return this.core.request(
       "assets_usage",
       { path: { asset_id: asset } },
-      options
-    )
-  }
-
-  /**
-   * A rendition URL (`url`) from a few common options. Image URLs are open,
-   * so `imageUrl` from `@nohead/sdk/images` builds any rendition from an
-   * asset's `image_url` without a request.
-   */
-  imageUrl(
-    asset: string,
-    params: ImageUrlParams = {},
-    options?: RequestOptions
-  ): APIPromise<ImageUrl> {
-    return this.core.request(
-      "assets_image_url",
-      { path: { asset_id: asset }, query: params },
       options
     )
   }
