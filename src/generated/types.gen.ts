@@ -626,6 +626,16 @@ export type Collection = {
      */
     purge_after: NullableTimestamp;
     /**
+     * Whether sites find its published records with the project's
+     * search tokens (made in the web app), straight from the browser.
+     * Off by default: every field of those records becomes readable by
+     * anyone with a token, so turn it on only for collections whose
+     * published records are public. A change reaches search tokens
+     * within seconds.
+     *
+     */
+    site_search: boolean;
+    /**
      * Active fields in position order.
      */
     fields: Array<Field>;
@@ -637,6 +647,7 @@ export type CollectionCreate = {
     name: string;
     slug: string;
     description?: string | null;
+    site_search?: boolean;
     fields?: Array<FieldCreate>;
 };
 
@@ -644,6 +655,7 @@ export type CollectionUpdate = {
     name?: string;
     slug?: string;
     description?: string | null;
+    site_search?: boolean;
 };
 
 export type CollectionList = {
@@ -660,6 +672,10 @@ export type SchemaDefinition = {
     slug: string;
     description: string | null;
     deleted_at: NullableTimestamp;
+    /**
+     * Absent from schemas before the setting existed (off).
+     */
+    site_search?: boolean;
     fields: Array<{
         id: string;
         name: string;

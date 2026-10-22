@@ -36,6 +36,10 @@ section is its GitHub release's notes.
   holding that value is updated instead, if one exists, and `ifMatch`
   applies to that update.
 
+- Collections have `site_search`: whether sites find their published records
+  with the project's search tokens, made in the web app. Off by default;
+  `collections.create` and `collections.update` take it.
+
 ## 0.5.0
 
 - **Breaking:** field migrations are created under their collection:
