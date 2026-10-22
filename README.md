@@ -81,6 +81,15 @@ await nohead.records.delete(post.id) // soft delete; records.restore() undoes it
 
 `schedule` sets the whole schedule: a time left out is cleared, so `{ unpublish_at }` alone drops a pending publish.
 
+**Upserts.** With `upsert_on`, the key of a `unique` field, `create` updates the record holding that value instead, if one exists, so a content sync can run again without duplicates:
+
+```ts
+await nohead.records.create("products", {
+  data: { sku: "TEE-01", title: "Tee" },
+  upsert_on: "sku",
+})
+```
+
 Methods return the resource and throw on failure. Field names stay as the API sends them (`published_at`, `data`), so the API reference applies as-is.
 
 **Typed data.** Describe a collection's fields and pass the type:
@@ -97,7 +106,7 @@ await nohead.records.update<Post>(id, { data: { title: null } }) // null clears
 
 The type is a promise you make; nothing is checked at runtime. The record type itself is `Nohead.Record<Post>` (also exported as `NoheadRecord`).
 
-**More:** `count`, `bulk` (up to 100 records at once), `diff`, `revisions.list`, `revisions.get` and `revisions.revert` (with `{ dry_run: true }` for a preview).
+**More:** `count`, `bulk` (up to 100 records at once), `diff`, `revisions.list`, `revisions.get` and `revisions.revert` (with `{ dry_run: true }` for a preview). A revision by its own ID, as webhooks and the activity log name it: `nohead.revisions.get("rev_…")`.
 
 ## Drafts
 
@@ -258,12 +267,32 @@ const asset = await nohead.assets.upload(await openAsBlob("cover.jpg"), {
   filename: "cover.jpg",
 })
 await nohead.records.update(id, { data: { cover: asset.id } })
+```
 
-const { url } = await nohead.assets.imageUrl(asset.id, {
+**Images.** Image URLs are open: an image's `image_url` serves the whole image, and any of [imgproxy's processing options](https://docs.imgproxy.net/usage/processing) written into it transform it. `@nohead/sdk/images` builds them without a request, and has no dependencies, so it suits browser bundles:
+
+```ts
+import { imageUrl } from "@nohead/sdk/images"
+
+imageUrl(asset, {
   width: 1200,
+  height: 630,
+  fit: "cover",
+  gravity: "sm",
   format: "webp",
 })
+imageUrl(asset.image_url!, { width: 400, dpr: 2, options: ["bl:2"] })
 ```
+
+Frameworks' image components, with `srcset` and all, take a loader from it:
+
+- **Next.js:** a file named by `images.loaderFile` in next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`, then `<Image src={asset.image_url} … />`.
+- **Astro:** a module named by `image.service.entrypoint` in astro.config: `export { astroImageService as default } from "@nohead/sdk/images"`.
+- **Nuxt Image:** a custom provider file in nuxt.config's `image.providers`: `export { nuxtImageProvider as default } from "@nohead/sdk/images"` (Nuxt Image 1: `export { getImage } from "@nohead/sdk/images"`).
+
+The loaders leave other images, the site's own, as they are.
+
+Thumbnails: an image's `preview_url` fits in 640×640, as WebP.
 
 **What `upload` accepts:** a `Blob`, `File`, `ArrayBuffer`, `Uint8Array`, or a `ReadableStream` with `byte_size`.
 
@@ -306,7 +335,7 @@ const results = await nohead.search("content model", { collections: ["posts", "p
 results.meta.total_estimate
 ```
 
-Search needs `search_enabled` collections and the `search:read` scope. It pages through the first 1,000 hits.
+Search needs the `search:read` scope and covers every collection the key can read, matching their `searchable` fields. It pages through the first 1,000 hits. For search straight from a site's browser, without the API, use a search token from the web app with Meilisearch's own clients or InstantSearch.
 
 ## Schema
 
@@ -378,13 +407,14 @@ response.headers.get("RateLimit-Remaining")
 | `records`                   | `list`, `get`, `create`, `update`, `delete`, `restore`, `publish`, `unpublish`, `publication`, `getSchedule`, `schedule`, `unschedule`, `scheduledChanges`, `drafts`, `count`, `bulk`, `diff`, `search` |
 | `drafts`                    | `create`, `list`, `get`, `update`, `discard`, `merge`, `schedule`, `unschedule`                                                                                                                         |
 | `records.revisions`         | `list`, `get`, `revert`                                                                                                                                                                                 |
+| `revisions`                 | `get` (by its own `rev_` ID, as webhooks and the activity log name it)                                                                                                                                  |
 | `search`                    | across the project                                                                                                                                                                                      |
 | `collections`               | `list`, `get`, `create`, `update`, `delete`, `restore`, `schema`                                                                                                                                        |
 | `collections.schemaChanges` | `list`, `get`                                                                                                                                                                                           |
 | `collections.searchIndex`   | `get`, `rebuild`                                                                                                                                                                                        |
 | `fields`                    | `list`, `get`, `create`, `update`, `delete`, `restore`, `order`, `reorder`, `removeAlias`                                                                                                               |
 | `migrations`                | `create`, `list`, `get`, `cancel`                                                                                                                                                                       |
-| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `update`, `delete`, `restore`, `purge`, `usage`, `imageUrl`, `downloadUrl`                                                                         |
+| `assets`                    | `upload`, `createUpload`, `complete`, `list`, `get`, `update`, `delete`, `restore`, `purge`, `usage`, `downloadUrl`                                                                                     |
 | `webhooks`                  | `list`, `get`, `create`, `update`, `delete`, `restore`, `rotateSecret`, `test`, `unwrap`                                                                                                                |
 | `webhooks.secrets`          | `list`, `retire`                                                                                                                                                                                        |
 | `webhooks.deliveries`       | `list`, `get`, `retry`                                                                                                                                                                                  |

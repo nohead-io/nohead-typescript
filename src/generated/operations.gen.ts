@@ -6,7 +6,6 @@ export const OPERATIONS = {
   assets_delete: { method: "DELETE", path: "/v1/assets/{asset_id}" },
   assets_download_url: { method: "GET", path: "/v1/assets/{asset_id}/download-url" },
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
-  assets_image_url: { method: "GET", path: "/v1/assets/{asset_id}/image-url" },
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
   assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
   assets_restore: { method: "POST", path: "/v1/assets/{asset_id}/restore" },
@@ -66,6 +65,7 @@ export const OPERATIONS = {
   records_unpublish: { method: "DELETE", path: "/v1/records/{record_id}/publication" },
   records_unschedule: { method: "DELETE", path: "/v1/records/{record_id}/schedule" },
   records_update: { method: "PATCH", path: "/v1/records/{record_id}" },
+  revisions_get: { method: "GET", path: "/v1/revisions/{revision_id}" },
   scheduled_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/scheduled-changes" },
   schema_changes_get: { method: "GET", path: "/v1/schema-changes/{schema_change_id}" },
   schema_changes_list: { method: "GET", path: "/v1/collections/{collection_id}/schema-changes" },
@@ -93,7 +93,6 @@ export interface Operations {
   assets_delete: { data: T.AssetsDeleteData; response: T.AssetsDeleteResponse }
   assets_download_url: { data: T.AssetsDownloadUrlData; response: T.AssetsDownloadUrlResponse }
   assets_get: { data: T.AssetsGetData; response: T.AssetsGetResponse }
-  assets_image_url: { data: T.AssetsImageUrlData; response: T.AssetsImageUrlResponse }
   assets_list: { data: T.AssetsListData; response: T.AssetsListResponse }
   assets_purge: { data: T.AssetsPurgeData; response: T.AssetsPurgeResponse }
   assets_restore: { data: T.AssetsRestoreData; response: T.AssetsRestoreResponse }
@@ -153,6 +152,7 @@ export interface Operations {
   records_unpublish: { data: T.RecordsUnpublishData; response: T.RecordsUnpublishResponse }
   records_unschedule: { data: T.RecordsUnscheduleData; response: T.RecordsUnscheduleResponse }
   records_update: { data: T.RecordsUpdateData; response: T.RecordsUpdateResponse }
+  revisions_get: { data: T.RevisionsGetData; response: T.RevisionsGetResponse }
   scheduled_changes_list: { data: T.ScheduledChangesListData; response: T.ScheduledChangesListResponse }
   schema_changes_get: { data: T.SchemaChangesGetData; response: T.SchemaChangesGetResponse }
   schema_changes_list: { data: T.SchemaChangesListData; response: T.SchemaChangesListResponse }

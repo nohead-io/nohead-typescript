@@ -73,6 +73,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       filter: { operation: "update" },
     }),
   (nohead) => nohead.records.revisions.get("rec_01J9ZQ3F8X", 1),
+  (nohead) => nohead.revisions.get("rev_01J9ZQ3F8X"),
   (nohead) =>
     nohead.records.revisions.revert("rec_01J9ZQ3F8X", 1, { dry_run: true }),
   (nohead) =>
@@ -136,8 +137,6 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.assets.restore("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.purge("ast_01J9ZQ3F8X"),
   (nohead) => nohead.assets.usage("ast_01J9ZQ3F8X"),
-  (nohead) =>
-    nohead.assets.imageUrl("ast_01J9ZQ3F8X", { width: 100, format: "webp" }),
   (nohead) => nohead.assets.downloadUrl("ast_01J9ZQ3F8X"),
   (nohead) => nohead.webhooks.list({ deleted: true }),
   (nohead) => nohead.webhooks.get("wh_01J9ZQ3F8X"),

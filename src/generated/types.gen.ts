@@ -626,11 +626,15 @@ export type Collection = {
      */
     purge_after: NullableTimestamp;
     /**
-     * Whether API keys can search the collection (`GET /v1/collections/{collection_id}/search`).
-     * Every collection is indexed; members can search it in the web app either way.
+     * Whether the project's search tokens (made in the web app) find
+     * its published records, from a browser or a backend. Off by
+     * default: every field of those records becomes readable by anyone
+     * with a token, so turn it on only for collections whose published
+     * records are public. A change reaches search tokens within
+     * seconds.
      *
      */
-    search_enabled: boolean;
+    public_search: boolean;
     /**
      * Active fields in position order.
      */
@@ -640,18 +644,18 @@ export type Collection = {
 };
 
 export type CollectionCreate = {
-    search_enabled?: boolean;
     name: string;
     slug: string;
     description?: string | null;
+    public_search?: boolean;
     fields?: Array<FieldCreate>;
 };
 
 export type CollectionUpdate = {
-    search_enabled?: boolean;
     name?: string;
     slug?: string;
     description?: string | null;
+    public_search?: boolean;
 };
 
 export type CollectionList = {
@@ -668,7 +672,10 @@ export type SchemaDefinition = {
     slug: string;
     description: string | null;
     deleted_at: NullableTimestamp;
-    search_enabled?: boolean;
+    /**
+     * Absent from schemas before the setting existed (off).
+     */
+    public_search?: boolean;
     fields: Array<{
         id: string;
         name: string;
@@ -952,7 +959,7 @@ export type TimeFilter = {
 /**
  * The client a change came through; `scheduler` for scheduled changes.
  */
-export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'system' | 'scheduler';
+export type Via = 'ui' | 'api' | 'cli' | 'sdk' | 'mcp' | 'system' | 'scheduler';
 
 /**
  * Changes to a record's content that wait until they are merged into
@@ -1108,6 +1115,17 @@ export type RecordWrite = {
     data: RecordData;
 };
 
+export type RecordCreate = {
+    data: RecordData;
+    /**
+     * The key of a `unique` field (a slug, or a field with `unique` on)
+     * whose value `data` includes: update the record that has it, or
+     * create one.
+     *
+     */
+    upsert_on?: string;
+};
+
 export type RecordList = {
     data: Array<Record>;
     meta: ListMeta;
@@ -1237,9 +1255,11 @@ export type SearchIndex = {
     object: 'search_index';
     collection_id: string;
     /**
-     * The collection's `search_enabled`; the index is kept up to date either way.
+     * The index's name in the search engine, which search tokens search
+     * (`indexUid` in Meilisearch's search API). Opaque; it never changes.
+     *
      */
-    enabled: boolean;
+    index: string;
     /**
      * `building` until first built; `stale` from the change that queues a rebuild until it has run; `failed` if the last rebuild failed (it is retried).
      */
@@ -1630,7 +1650,20 @@ export type AssetProperties = {
      */
     purge_after: NullableTimestamp;
     /**
-     * A signed URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
+     * The URL of the whole image, for ready images (JPEG, PNG, GIF, WebP
+     * or AVIF), deleted ones included until they are purged; null
+     * otherwise. Image URLs are open and never expire. For a rendition,
+     * write [imgproxy processing options](https://docs.imgproxy.net/usage/processing)
+     * before `/plain/`, and a format after `@`: for example
+     * `https://images.nohead.io/rs:fill:800:600/g:sm/plain/…@webp`. Renditions
+     * are at most 4096 pixels a side, from originals of at most 50
+     * megapixels. Options that would return the file as stored (`raw`,
+     * `skip_processing`, `strip_metadata`) are refused.
+     *
+     */
+    image_url: string | null;
+    /**
+     * The URL of a small rendition (fits in 640×640, WebP), for ready images, deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
     uploaded_at: NullableTimestamp;
@@ -1641,17 +1674,6 @@ export type AssetProperties = {
 export type AssetList = {
     data: Array<Asset>;
     meta: ListMeta;
-};
-
-export type ImageUrl = {
-    object: 'image_url';
-    asset_id: string;
-    url: string;
-    width: number | null;
-    height: number | null;
-    fit: 'contain' | 'cover' | 'fill';
-    format: 'original' | 'webp' | 'avif' | 'jpeg' | 'png';
-    quality: number | null;
 };
 
 export type AssetUsage = {
@@ -1796,6 +1818,8 @@ export type DeliveryId = string;
 export type RecordId = string;
 
 export type DraftId = string;
+
+export type RevisionId = string;
 
 /**
  * Per-record revision number.
@@ -2045,7 +2069,7 @@ export type RecordsListResponses = {
 export type RecordsListResponse = RecordsListResponses[keyof RecordsListResponses];
 
 export type RecordsCreateData = {
-    body: RecordWrite;
+    body: RecordCreate;
     headers?: {
         /**
          * A unique value (1-255 printable ASCII characters) that makes retrying
@@ -2057,6 +2081,10 @@ export type RecordsCreateData = {
          *
          */
         'Idempotency-Key'?: string;
+        /**
+         * The revision you last read (the record's, or the draft's for a draft), e.g. `"7"`. Stale writes fail with 412.
+         */
+        'If-Match'?: string;
         /**
          * First-party client identifier recorded in history (e.g. `cli/0.3.1`). Informational only.
          */
@@ -2110,6 +2138,12 @@ export type RecordsCreateErrors = {
      */
     409: Error;
     /**
+     * The resource changed since the revision given in `If-Match`. Nothing was
+     * written; `details` includes the current revision.
+     *
+     */
+    412: Error;
+    /**
      * The request failed validation.
      */
     422: Error;
@@ -2126,6 +2160,10 @@ export type RecordsCreateErrors = {
 export type RecordsCreateError = RecordsCreateErrors[keyof RecordsCreateErrors];
 
 export type RecordsCreateResponses = {
+    /**
+     * The record.
+     */
+    200: Record;
     /**
      * The created record.
      */
@@ -3205,6 +3243,53 @@ export type RecordRevisionsGetResponses = {
 };
 
 export type RecordRevisionsGetResponse = RecordRevisionsGetResponses[keyof RecordRevisionsGetResponses];
+
+export type RevisionsGetData = {
+    body?: never;
+    path: {
+        revision_id: string;
+    };
+    query?: never;
+    url: '/v1/revisions/{revision_id}';
+};
+
+export type RevisionsGetErrors = {
+    /**
+     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
+     */
+    400: Error;
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: Error;
+    /**
+     * The caller is not allowed to perform this action.
+     */
+    403: Error;
+    /**
+     * The resource does not exist or is not visible to the caller.
+     */
+    404: Error;
+    /**
+     * Too many requests for this API key or user (or, with failing
+     * credentials, this IP address). A published-only key is counted per
+     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
+     * are safe.
+     *
+     */
+    429: Error;
+};
+
+export type RevisionsGetError = RevisionsGetErrors[keyof RevisionsGetErrors];
+
+export type RevisionsGetResponses = {
+    /**
+     * The revision with its snapshot and changes.
+     */
+    200: RecordRevisionDetail;
+};
+
+export type RevisionsGetResponse = RevisionsGetResponses[keyof RevisionsGetResponses];
 
 export type RecordRevisionsRevertData = {
     body?: never;
@@ -5903,74 +5988,6 @@ export type AssetsUpdateResponses = {
 };
 
 export type AssetsUpdateResponse = AssetsUpdateResponses[keyof AssetsUpdateResponses];
-
-export type AssetsImageUrlData = {
-    body?: never;
-    path: {
-        asset_id: string;
-    };
-    query?: {
-        width?: number;
-        height?: number;
-        /**
-         * `contain` fits inside width × height; `cover` fills it, cropping; `fill` stretches to it.
-         */
-        fit?: 'contain' | 'cover' | 'fill';
-        format?: 'original' | 'webp' | 'avif' | 'jpeg' | 'png';
-        quality?: number;
-    };
-    url: '/v1/assets/{asset_id}/image-url';
-};
-
-export type AssetsImageUrlErrors = {
-    /**
-     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * The request failed validation.
-     */
-    422: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
-     *
-     */
-    429: Error;
-    /**
-     * The service is temporarily unavailable.
-     */
-    503: Error;
-};
-
-export type AssetsImageUrlError = AssetsImageUrlErrors[keyof AssetsImageUrlErrors];
-
-export type AssetsImageUrlResponses = {
-    /**
-     * The image URL.
-     */
-    200: ImageUrl;
-};
-
-export type AssetsImageUrlResponse = AssetsImageUrlResponses[keyof AssetsImageUrlResponses];
 
 export type AssetsDownloadUrlData = {
     body?: never;

@@ -85,6 +85,11 @@ export interface RecordGetParams {
 
 export interface RecordCreateParams<D = G.RecordData> {
   data: D
+  /**
+   * The key of a `unique` field whose value `data` includes: the active
+   * record holding that value is updated instead, if there is one.
+   */
+  upsert_on?: string
 }
 
 export interface RecordUpdateParams<D = G.RecordData> {
@@ -201,8 +206,6 @@ export interface FieldReorderParams {
   /** Every active field of the collection, once each, in the new order. */
   field_ids: string[]
 }
-
-export type ImageUrlParams = NonNullable<G.AssetsImageUrlData["query"]>
 
 export interface DeliveryListParams extends ListParams {
   status?: "pending" | "succeeded" | "failed"

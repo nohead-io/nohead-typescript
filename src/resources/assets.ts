@@ -8,9 +8,8 @@ import type {
   AssetWithUpload,
   AssetUsage,
   DownloadUrl,
-  ImageUrl,
 } from "../generated/types.gen.ts"
-import type { AssetListParams, ImageUrlParams } from "../types.ts"
+import type { AssetListParams } from "../types.ts"
 import { listQuery, Resource } from "./resource.ts"
 
 /** What `assets.upload` accepts. A stream needs `byte_size`. */
@@ -226,20 +225,7 @@ export class Assets extends Resource {
     )
   }
 
-  /** A signed, cacheable URL of an image rendition (`url`). */
-  imageUrl(
-    asset: string,
-    params: ImageUrlParams = {},
-    options?: RequestOptions
-  ): APIPromise<ImageUrl> {
-    return this.core.request(
-      "assets_image_url",
-      { path: { asset_id: asset }, query: params },
-      options
-    )
-  }
-
-  /** A 15-minute link to download the original file (`url`). */
+  /** A link to download the original file (`url`), valid for 2 minutes. */
   downloadUrl(
     asset: string,
     options?: RequestOptions

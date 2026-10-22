@@ -81,12 +81,6 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
       ...page,
     }),
   (nohead) => nohead.webhooks.secrets.list("wh_01J9ZQ3F8X", page),
-  (nohead) =>
-    nohead.assets.imageUrl("ast_01J9ZQ3F8X", {
-      height: 100,
-      fit: "cover",
-      quality: 80,
-    }),
   (nohead) => nohead.webhooks.list(page),
   (nohead) => nohead.webhooks.deliveries.list("wh_01J9ZQ3F8X", page),
   (nohead) =>
@@ -109,7 +103,7 @@ const rec = "rec_01J9ZQ3F8X"
 const drf = "drf_01J9ZQ3F8X"
 const fld = "fld_01J9ZQ3F8X"
 const everyHeader: ((nohead: Nohead) => unknown)[] = [
-  (nohead) => nohead.records.create("posts", { data: {} }, note),
+  (nohead) => nohead.records.create("posts", { data: {} }, conditional),
   (nohead) => nohead.records.update(rec, { data: {} }, conditional),
   (nohead) => nohead.records.delete(rec, conditional),
   (nohead) => nohead.records.restore(rec, conditional),
