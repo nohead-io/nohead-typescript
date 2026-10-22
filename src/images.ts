@@ -68,8 +68,7 @@ export function imageUrl(
 /** Whether a URL is a Nohead image's: the loaders leave any other alone. */
 export function isImageUrl(src: unknown): src is string {
   return (
-    typeof src === "string" &&
-    /^https?:\/\/[^/]+\/[^/]+\/(.*\/)?plain\//.test(src)
+    typeof src === "string" && /^https?:\/\/[^/]+\/(.*\/)?plain\//.test(src)
   )
 }
 

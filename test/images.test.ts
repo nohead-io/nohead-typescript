@@ -9,9 +9,8 @@ import {
 } from "../src/images.ts"
 
 const base =
-  "https://images.nohead.io/insecure/plain/projects/0199f5c2-7b1e-7c3a-9d4f-2a6b8c0e1f3d/assets/0199f5c2-8a2d-7e4b-b1c3-5d7e9f1a2b4c"
-const at = (options: string) =>
-  base.replace("/insecure/plain/", `/insecure/${options}/plain/`)
+  "https://images.nohead.io/plain/0199f5c2-7b1e-7c3a-9d4f-2a6b8c0e1f3d/0199f5c2-8a2d-7e4b-b1c3-5d7e9f1a2b4c"
+const at = (options: string) => base.replace("/plain/", `/${options}/plain/`)
 
 describe("imageUrl", () => {
   it("writes the options before the source, and the format after it", () => {
@@ -84,6 +83,16 @@ describe("framework loaders", () => {
         fit: "cover",
       })
     ).toBe(at("rs:fill:300:300"))
+  })
+
+  it("take a local image service's URLs, with their signature segment", () => {
+    const local = base.replace(
+      "https://images.nohead.io/",
+      "http://localhost:8081/_/"
+    )
+    expect(nextImageLoader({ src: local, width: 64 })).toBe(
+      local.replace("/_/plain/", "/_/rs:fit:64:0/plain/")
+    )
   })
 
   it("leave the site's own images alone", () => {
