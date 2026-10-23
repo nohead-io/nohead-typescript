@@ -2065,7 +2065,10 @@ export type RecordsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2165,7 +2168,10 @@ export type RecordsCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2256,7 +2262,10 @@ export type RecordsDeleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2308,7 +2317,10 @@ export type RecordsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2399,7 +2411,10 @@ export type RecordsUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2480,7 +2495,10 @@ export type RecordsCountErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2564,7 +2582,10 @@ export type RecordsBulkErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2657,7 +2678,10 @@ export type RecordsRestoreErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2744,7 +2768,10 @@ export type RecordsUnpublishErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2791,7 +2818,10 @@ export type RecordsGetPublicationErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2878,7 +2908,10 @@ export type RecordsPublishErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2945,7 +2978,10 @@ export type RecordsUnscheduleErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -2992,7 +3028,10 @@ export type RecordsGetScheduleErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3063,7 +3102,10 @@ export type RecordsScheduleErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3123,7 +3165,10 @@ export type ScheduledChangesListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3190,7 +3235,10 @@ export type RecordRevisionsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3241,7 +3289,10 @@ export type RecordRevisionsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3288,7 +3339,10 @@ export type RevisionsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3385,7 +3439,10 @@ export type RecordRevisionsRevertErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3435,7 +3492,10 @@ export type RecordsDiffErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3491,7 +3551,10 @@ export type RecordDraftsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3562,7 +3625,10 @@ export type DraftsCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3622,7 +3688,10 @@ export type DraftsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3699,7 +3768,10 @@ export type DraftsDiscardErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3751,7 +3823,10 @@ export type DraftsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3832,7 +3907,10 @@ export type DraftsUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3923,7 +4001,10 @@ export type DraftsMergeErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -3990,7 +4071,10 @@ export type DraftsUnscheduleErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4061,7 +4145,10 @@ export type DraftsScheduleErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4123,7 +4210,10 @@ export type CollectionsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4210,7 +4300,10 @@ export type CollectionsCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4290,7 +4383,10 @@ export type CollectionsDeleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4340,7 +4436,10 @@ export type CollectionsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4424,7 +4523,10 @@ export type CollectionsUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4514,7 +4616,10 @@ export type CollectionsRestoreErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4569,7 +4674,10 @@ export type CollectionsGetSchemaErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4628,7 +4736,10 @@ export type SchemaChangesListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4675,7 +4786,10 @@ export type SchemaChangesGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4740,7 +4854,10 @@ export type FieldsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4824,7 +4941,10 @@ export type FieldsCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4901,7 +5021,10 @@ export type FieldsDeleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -4948,7 +5071,10 @@ export type FieldsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5029,7 +5155,10 @@ export type FieldsUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5079,7 +5208,10 @@ export type FieldsGetOrderErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5165,7 +5297,10 @@ export type FieldsReorderErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5236,7 +5371,10 @@ export type FieldsRemoveAliasErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5317,7 +5455,10 @@ export type FieldsRestoreErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5376,7 +5517,10 @@ export type MigrationsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5462,7 +5606,10 @@ export type MigrationsCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5513,7 +5660,10 @@ export type MigrationsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5580,7 +5730,10 @@ export type MigrationsCancelErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5672,7 +5825,10 @@ export type AssetsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5749,7 +5905,10 @@ export type AssetsUploadErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5820,7 +5979,10 @@ export type AssetsCompleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5887,7 +6049,10 @@ export type AssetsDeleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -5934,7 +6099,10 @@ export type AssetsGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6005,7 +6173,10 @@ export type AssetsUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6056,7 +6227,10 @@ export type AssetsDownloadUrlErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6103,7 +6277,10 @@ export type AssetsUsageErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6170,7 +6347,10 @@ export type AssetsRestoreErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6237,7 +6417,10 @@ export type AssetsPurgeErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6339,7 +6522,10 @@ export type CollectionsSearchErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6416,7 +6602,10 @@ export type ProjectsSearchErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6470,7 +6659,10 @@ export type SearchIndexGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6540,7 +6732,10 @@ export type SearchIndexRebuildErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6602,7 +6797,10 @@ export type WebhooksListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6679,7 +6877,10 @@ export type WebhooksCreateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6746,7 +6947,10 @@ export type WebhooksDeleteErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6793,7 +6997,10 @@ export type WebhooksGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6864,7 +7071,10 @@ export type WebhooksUpdateErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6931,7 +7141,10 @@ export type WebhooksTestErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -6987,7 +7200,10 @@ export type WebhookSecretsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7054,7 +7270,10 @@ export type WebhooksRotateSecretErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7121,7 +7340,10 @@ export type WebhookSecretsRetireErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7194,7 +7416,10 @@ export type WebhooksRestoreErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7253,7 +7478,10 @@ export type WebhookDeliveriesListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7300,7 +7528,10 @@ export type WebhookDeliveriesGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7367,7 +7598,10 @@ export type WebhookDeliveriesRetryErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7447,7 +7681,10 @@ export type AuditEventsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7505,7 +7742,10 @@ export type MeGetErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
@@ -7546,7 +7786,10 @@ export type FeatureFlagsListErrors = {
      * Too many requests for this API key or user (or, with failing
      * credentials, this IP address). A published-only key is counted per
      * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe.
+     * are safe. On the Free plan, an organization's API keys are also
+     * refused once its API requests reach the month's limit, with a
+     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
+     * until the next month (UTC) or an upgrade.
      *
      */
     429: Error;
