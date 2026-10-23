@@ -372,6 +372,8 @@ Verify a webhook request, then use its event:
 
 ```ts
 // e.g. a Next.js route handler
+import { revalidateTag } from "next/cache"
+
 export async function POST(request: Request) {
   const event = await nohead.webhooks.unwrap(
     await request.text(),
@@ -386,6 +388,8 @@ export async function POST(request: Request) {
   return new Response(null, { status: 204 })
 }
 ```
+
+With `"max"`, Next.js serves the old version to the next request while it fetches the new one; pass `{ expire: 0 }` instead to drop it at once.
 
 Event types are those of the activity log (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). Narrowing by `type` types `event.data`, and `unwrap<Post>` types the records and drafts in it. `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
 
