@@ -381,7 +381,7 @@ export async function POST(request: Request) {
     }
   )
   if (event.type === "record.published" && event.data.record) {
-    revalidateTag(event.data.record.collection)
+    revalidateTag(event.data.record.collection, "max")
   }
   return new Response(null, { status: 204 })
 }
