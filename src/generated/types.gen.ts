@@ -1679,7 +1679,10 @@ export type AssetProperties = {
     /**
      * The URL that plays a ready video or audio file inline, for
      * `<video>` and `<audio>` (with range requests, so players can seek),
-     * deleted ones included until they are purged; null for other types.
+     * deleted ones included until they are purged: MP4, QuickTime, M4A,
+     * 3GP, WebM, Matroska, MP3, AAC, FLAC, WAV and Ogg (whose content is
+     * checked when the upload completes). Null for other types, which
+     * `file_url` downloads.
      * Open, never expiring and cached on a CDN, like `file_url`.
      *
      */
