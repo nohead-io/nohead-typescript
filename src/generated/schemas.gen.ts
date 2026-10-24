@@ -31,7 +31,6 @@ export type {
   DecimalField,
   DecimalFieldConfiguration,
   DecimalFieldCreate,
-  DownloadUrl,
   Draft,
   DraftCreate,
   DraftEventData,

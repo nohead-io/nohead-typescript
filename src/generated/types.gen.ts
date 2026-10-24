@@ -1668,6 +1668,22 @@ export type AssetProperties = {
      * The URL of a small rendition (fits in 640×640, WebP), for ready images and SVGs (rasterized; SVGs have no `image_url`), deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
+    /**
+     * The URL of the file as uploaded, for ready assets of any type,
+     * deleted ones included until they are purged; null otherwise. It
+     * downloads the file under its `filename` (a rename applies within a
+     * minute or so), is open and never expires, and is cached on a CDN.
+     *
+     */
+    file_url: string | null;
+    /**
+     * The URL that plays a ready video or audio file inline, for
+     * `<video>` and `<audio>` (with range requests, so players can seek),
+     * deleted ones included until they are purged; null for other types.
+     * Open, never expiring and cached on a CDN, like `file_url`.
+     *
+     */
+    media_url: string | null;
     uploaded_at: NullableTimestamp;
     created_at: Timestamp;
     updated_at: Timestamp;
@@ -1699,13 +1715,6 @@ export type AssetUsage = {
          */
         fields: Array<string>;
     }>;
-};
-
-export type DownloadUrl = {
-    object: 'download_url';
-    asset_id: string;
-    url: string;
-    expires_at: Timestamp;
 };
 
 export type AssetUploadCreate = {
@@ -6192,60 +6201,6 @@ export type AssetsUpdateResponses = {
 };
 
 export type AssetsUpdateResponse = AssetsUpdateResponses[keyof AssetsUpdateResponses];
-
-export type AssetsDownloadUrlData = {
-    body?: never;
-    path: {
-        asset_id: string;
-    };
-    query?: never;
-    url: '/v1/assets/{asset_id}/download-url';
-};
-
-export type AssetsDownloadUrlErrors = {
-    /**
-     * The request was malformed: unparseable JSON, an invalid query parameter, or a body key the operation doesn't take (detail code `unknown_parameter`, naming the key).
-     */
-    400: Error;
-    /**
-     * Authentication is missing or invalid.
-     */
-    401: Error;
-    /**
-     * The caller is not allowed to perform this action.
-     */
-    403: Error;
-    /**
-     * The resource does not exist or is not visible to the caller.
-     */
-    404: Error;
-    /**
-     * The request conflicts with current state.
-     */
-    409: Error;
-    /**
-     * Too many requests for this API key or user (or, with failing
-     * credentials, this IP address). A published-only key is counted per
-     * client IP. Wait `Retry-After` seconds; retries with the same `Idempotency-Key`
-     * are safe. On the Free plan, an organization's API keys are also
-     * refused once its API requests reach the month's limit, with a
-     * `plan_limit` detail (`field` `api_requests`, `usage` and `limit`),
-     * until the next month (UTC) or an upgrade.
-     *
-     */
-    429: Error;
-};
-
-export type AssetsDownloadUrlError = AssetsDownloadUrlErrors[keyof AssetsDownloadUrlErrors];
-
-export type AssetsDownloadUrlResponses = {
-    /**
-     * The download URL.
-     */
-    200: DownloadUrl;
-};
-
-export type AssetsDownloadUrlResponse = AssetsDownloadUrlResponses[keyof AssetsDownloadUrlResponses];
 
 export type AssetsUsageData = {
     body?: never;

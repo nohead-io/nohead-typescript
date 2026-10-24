@@ -7,7 +7,6 @@ import type {
   AssetUploadCreate,
   AssetWithUpload,
   AssetUsage,
-  DownloadUrl,
 } from "../generated/types.gen.ts"
 import type { AssetListParams } from "../types.ts"
 import { listQuery, Resource } from "./resource.ts"
@@ -257,18 +256,6 @@ export class Assets extends Resource {
   usage(asset: string, options?: RequestOptions): APIPromise<AssetUsage> {
     return this.core.request(
       "assets_usage",
-      { path: { asset_id: asset } },
-      options
-    )
-  }
-
-  /** A link to download the original file (`url`), valid for 2 minutes. */
-  downloadUrl(
-    asset: string,
-    options?: RequestOptions
-  ): APIPromise<DownloadUrl> {
-    return this.core.request(
-      "assets_download_url",
       { path: { asset_id: asset } },
       options
     )
