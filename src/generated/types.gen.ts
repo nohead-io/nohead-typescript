@@ -1712,7 +1712,7 @@ export type AssetUploadCreate = {
     filename: string;
     content_type: string;
     /**
-     * Exact size of the file in bytes (at most 100 MB by default).
+     * Exact size of the file in bytes, at most the plan's largest upload (10 MB on Free, 100 MB on paid plans).
      */
     byte_size: number;
 };
