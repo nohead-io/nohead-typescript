@@ -4,7 +4,6 @@ import type * as T from "./types.gen.ts"
 export const OPERATIONS = {
   assets_complete: { method: "POST", path: "/v1/assets/{asset_id}/complete" },
   assets_delete: { method: "DELETE", path: "/v1/assets/{asset_id}" },
-  assets_download_url: { method: "GET", path: "/v1/assets/{asset_id}/download-url" },
   assets_get: { method: "GET", path: "/v1/assets/{asset_id}" },
   assets_list: { method: "GET", path: "/v1/projects/{project_id}/assets" },
   assets_purge: { method: "POST", path: "/v1/assets/{asset_id}/purge" },
@@ -91,7 +90,6 @@ export type OperationId = keyof typeof OPERATIONS
 export interface Operations {
   assets_complete: { data: T.AssetsCompleteData; response: T.AssetsCompleteResponse }
   assets_delete: { data: T.AssetsDeleteData; response: T.AssetsDeleteResponse }
-  assets_download_url: { data: T.AssetsDownloadUrlData; response: T.AssetsDownloadUrlResponse }
   assets_get: { data: T.AssetsGetData; response: T.AssetsGetResponse }
   assets_list: { data: T.AssetsListData; response: T.AssetsListResponse }
   assets_purge: { data: T.AssetsPurgeData; response: T.AssetsPurgeResponse }
