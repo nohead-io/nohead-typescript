@@ -5,6 +5,12 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `unwrapWebhook` and `webhooks.unwrap` throw a `WebhookVerificationError`
+  for an empty secret (`""` or `"whsec_"`, as from an unset environment
+  variable), not the platform's `DOMException`.
+
 ## 0.8.0
 
 - `Asset` has `file_url`, the file as uploaded, which downloads under its
