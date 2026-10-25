@@ -65,6 +65,44 @@ describe("pagination", () => {
     })
   })
 
+  it("stops on has_more without a cursor", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1")], null, true),
+      page([record("rec_2")], null),
+    ])
+    const ids: string[] = []
+    for await (const r of nohead.records.list("posts")) ids.push(r.id)
+    expect(ids).toEqual(["rec_1"])
+    expect(calls).toHaveLength(1)
+  })
+
+  it("stops on a cursor without has_more", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1")], "c2", false),
+      page([record("rec_2")], null),
+    ])
+    const ids: string[] = []
+    for await (const r of nohead.records.list("posts")) ids.push(r.id)
+    expect(ids).toEqual(["rec_1"])
+    expect(calls).toHaveLength(1)
+  })
+
+  it("walks past an empty page", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1")], "c2"),
+      page([], "c3"),
+      page([record("rec_3")], null),
+    ])
+    const ids: string[] = []
+    for await (const r of nohead.records.list("posts")) ids.push(r.id)
+    expect(ids).toEqual(["rec_1", "rec_3"])
+    expect(calls.map((c) => c.url.searchParams.get("cursor"))).toEqual([
+      null,
+      "c2",
+      "c3",
+    ])
+  })
+
   it("stops fetching once it has enough", async () => {
     const { nohead, calls } = mockClient([
       page([record("rec_1"), record("rec_2")], "c2"),
