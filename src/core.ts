@@ -124,6 +124,8 @@ export interface RequestInput {
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504])
 const MAX_RETRY_AFTER_SECONDS = 60
 
+// Once per process, not per client: an app that makes a client per request
+// (as on Workers) would otherwise warn on every one.
 const warnedDeprecations = new Set<string>()
 let warnedUsage = false
 
