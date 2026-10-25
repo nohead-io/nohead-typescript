@@ -40,7 +40,7 @@ for await (const post of nohead.records.list("posts", {
 npm install @nohead/sdk
 ```
 
-The package is ESM; Node 22+ can also `require()` it. It runs on Node 22, 24 and 26, Bun, Deno, Cloudflare Workers and other runtimes with `fetch` and Web Crypto. Use it on servers: API keys are secrets.
+The package is ESM; Node 22+ can also `require()` it. It runs on Node 22, 24 and 26, Bun, Deno, Cloudflare Workers and other runtimes with `fetch`, Web Crypto and ES2024. Use it on servers: API keys are secrets.
 
 ## Configuration
 
