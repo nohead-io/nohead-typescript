@@ -6,7 +6,6 @@ import {
   InternalServerError,
   RateLimitError,
   TimeoutError,
-  ValidationError,
   type RetryEvent,
 } from "../src/index.ts"
 import {
@@ -24,9 +23,9 @@ const now = { "retry-after": "0" }
 const hang = (call: Call) =>
   new Promise<Response>((_, reject) => {
     // fetch rejects with the signal's reason (an AbortError DOMException).
-    call.signal?.addEventListener("abort", () =>
-      reject(call.signal!.reason as Error)
-    )
+    const abort = () => reject(call.signal!.reason as Error)
+    if (call.signal?.aborted) abort()
+    call.signal?.addEventListener("abort", abort)
   })
 
 // The waits between attempts take no time; `settle` runs them.
@@ -58,15 +57,6 @@ describe("retries", () => {
     expect(
       new Set(calls.map((c) => c.headers.get("idempotency-key"))).size
     ).toBe(1)
-  })
-
-  it.each([502, 504])("retries %i", async (status) => {
-    const { nohead, calls } = mockClient([
-      apiError(status, "internal_error"),
-      json(200, record("rec_1")),
-    ])
-    await settle(nohead.records.get("rec_1"))
-    expect(calls).toHaveLength(2)
   })
 
   it("gives up after the default two retries", async () => {
@@ -153,38 +143,6 @@ describe("retries", () => {
     expect(calls).toHaveLength(2)
   })
 
-  it("gives up at once on a long Retry-After", async () => {
-    const { nohead, calls } = mockClient([
-      apiError(429, "rate_limited", {}, { "retry-after": "120" }),
-    ])
-    await expect(nohead.records.get("rec_1")).rejects.toBeInstanceOf(
-      RateLimitError
-    )
-    expect(calls).toHaveLength(1)
-  })
-
-  it("retries an idempotent request that is still in progress", async () => {
-    const { nohead, calls } = mockClient([
-      apiError(
-        409,
-        "conflict",
-        { details: [{ code: "in_progress", message: "…" }] },
-        now
-      ),
-      json(201, record("rec_1")),
-    ])
-    await settle(nohead.records.create("posts", { data: {} }))
-    expect(calls).toHaveLength(2)
-  })
-
-  it("does not retry other client errors", async () => {
-    const { nohead, calls } = mockClient([apiError(422, "validation_error")])
-    await expect(
-      nohead.records.create("posts", { data: {} })
-    ).rejects.toBeInstanceOf(ValidationError)
-    expect(calls).toHaveLength(1)
-  })
-
   it("retries connection failures", async () => {
     const { nohead, calls } = mockClient([
       new TypeError("fetch failed"),
@@ -227,12 +185,123 @@ describe("retries", () => {
     expect(calls).toHaveLength(2)
   })
 
-  it("stops when the caller aborts", async () => {
+  it.each([
+    ["before the request", 0],
+    ["while it runs", 1],
+  ])("stops when the caller aborts %s", async (_, after) => {
     const controller = new AbortController()
+    if (!after) controller.abort()
+    const { nohead, calls } = mockClient([hang, json(200, record("rec_1"))])
+    const outcome = nohead.records
+      .get("rec_1", {}, { signal: controller.signal })
+      .then(
+        () => undefined,
+        (error: unknown) => error
+      )
+    await vi.advanceTimersByTimeAsync(after)
     controller.abort()
-    const { nohead } = mockClient([new DOMException("aborted", "AbortError")])
-    await expect(
-      nohead.records.get("rec_1", {}, { signal: controller.signal })
-    ).rejects.toBeInstanceOf(AbortError)
+    expect(await outcome).toBeInstanceOf(AbortError)
+    await vi.runAllTimersAsync()
+    expect(calls).toHaveLength(1)
   })
+
+  it("stops when the caller aborts while it waits to retry", async () => {
+    const controller = new AbortController()
+    const { nohead, calls } = mockClient([
+      apiError(429, "rate_limited", {}, { "retry-after": "30" }),
+      json(200, record("rec_1")),
+    ])
+    const outcome = nohead.records
+      .get("rec_1", {}, { signal: controller.signal })
+      .then(
+        () => undefined,
+        (error: unknown) => error
+      )
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(calls).toHaveLength(1)
+    controller.abort()
+    expect(await outcome).toBeInstanceOf(AbortError)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(calls).toHaveLength(1)
+  })
+})
+
+describe("what's retried", () => {
+  it.each([
+    [400, "invalid_request", null, false],
+    [401, "authentication_error", null, false],
+    [402, "plan_limit_exceeded", null, false],
+    [403, "authorization_error", null, false],
+    [404, "not_found", null, false],
+    [409, "conflict", null, false],
+    [409, "conflict", "draft_exists", false],
+    [409, "conflict", "in_progress", true],
+    [412, "precondition_failed", null, false],
+    [422, "validation_error", null, false],
+    [429, "rate_limited", null, true],
+    [500, "internal_error", null, true],
+    [502, "internal_error", null, true],
+    [503, "service_unavailable", null, true],
+    [504, "internal_error", null, true],
+  ])("%i %s, detail %s: retried %s", async (status, type, code, retried) => {
+    const details = code ? [{ code, message: "…" }] : []
+    const { nohead, calls } = mockClient([
+      apiError(status, type, { details }, now),
+      json(201, record("rec_1")),
+    ])
+    const outcome = await settle(
+      nohead.records.create("posts", { data: {} })
+    ).catch((error: unknown) => error)
+    expect(calls).toHaveLength(retried ? 2 : 1)
+    if (retried) expect(outcome).toMatchObject({ id: "rec_1" })
+    else expect(outcome).toMatchObject({ status, type })
+  })
+
+  it.each([
+    [429, "rate_limited", "7", [7]],
+    [503, "service_unavailable", "7", [7]],
+    [429, "rate_limited", "60", [60]],
+    [503, "service_unavailable", "60", [60]],
+    [429, "rate_limited", "61", []],
+    [503, "service_unavailable", "61", []],
+    // Not a number or a date: backoff, as without one.
+    [503, "service_unavailable", "soon", [0.5]],
+  ])(
+    "%i %s with Retry-After %s waits %o",
+    async (status, type, after, waits) => {
+      vi.spyOn(Math, "random").mockReturnValue(0)
+      const { onRetry, delays } = retryDelays()
+      const { nohead, calls } = mockClient(
+        [
+          apiError(status, type, {}, { "retry-after": after }),
+          json(200, record("rec_1")),
+        ],
+        { onRetry }
+      )
+      const outcome = await settle(nohead.records.get("rec_1")).catch(
+        (error: unknown) => error
+      )
+      expect(delays()).toEqual(waits)
+      expect(calls).toHaveLength(waits.length + 1)
+      if (waits.length === 0) expect(outcome).toMatchObject({ status })
+    }
+  )
+
+  it.each([
+    ["a connection failure", new TypeError("fetch failed")],
+    ["a timeout", hang],
+  ])(
+    "sends a write again after %s with the same idempotency key",
+    async (_, failure) => {
+      const { nohead, calls } = mockClient(
+        [failure, json(201, record("rec_1"))],
+        { timeout: 10 }
+      )
+      await settle(nohead.records.create("posts", { data: {} }))
+      expect(calls).toHaveLength(2)
+      const [first, second] = calls.map((c) => c.headers.get("idempotency-key"))
+      expect(first).toMatch(/^[0-9a-f-]{36}$/)
+      expect(second).toBe(first)
+    }
+  )
 })
