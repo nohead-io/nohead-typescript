@@ -84,6 +84,7 @@ describe("errors", () => {
     expect(error.message).toBe(
       "422 validation_error: validation_error message (request req_1)"
     )
+    expect(error.apiMessage).toBe("validation_error message")
     expect(error.details).toEqual([
       { field: "title", code: "required", message: "Title is required" },
     ])

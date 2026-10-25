@@ -19,6 +19,8 @@ export class APIError extends NoheadError {
    * none. A type newer than this SDK is kept as its string.
    */
   readonly type: ErrorType | (string & {}) | undefined
+  /** The API's own message, without the status, type and ID `message` adds. */
+  readonly apiMessage: string
   /** The request's ID (`req_…`), for support requests and logs. */
   readonly requestId: string | undefined
   /** Field-level details, e.g. `[{ field: "title", code: "required", … }]`. */
@@ -31,12 +33,13 @@ export class APIError extends NoheadError {
     const error = errorEnvelope(body)
     const requestId =
       error?.request_id ?? headers.get("x-request-id") ?? undefined
+    const apiMessage = error?.message || `Request failed with status ${status}`
     super(
-      `${status} ${error?.type || "error"}: ` +
-        (error?.message || `Request failed with status ${status}`) +
+      `${status} ${error?.type || "error"}: ${apiMessage}` +
         (requestId ? ` (request ${requestId})` : "")
     )
     this.status = status
+    this.apiMessage = apiMessage
     this.type = error?.type
     this.requestId = requestId
     this.details = error?.details ?? []
