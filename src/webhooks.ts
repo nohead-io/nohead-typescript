@@ -116,9 +116,13 @@ export async function unwrapWebhook<D = RecordData>(
   }
 
   const text = typeof body === "string" ? body : new TextDecoder().decode(body)
+  const keyBytes = decodeBase64(secret.replace(/^whsec_/, ""), "secret")
+  if (keyBytes.length === 0) {
+    throw new WebhookVerificationError("The webhook secret is empty")
+  }
   const key = await crypto.subtle.importKey(
     "raw",
-    decodeBase64(secret.replace(/^whsec_/, ""), "secret"),
+    keyBytes,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["verify"]
