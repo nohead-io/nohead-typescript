@@ -371,7 +371,7 @@ export class Core {
     for (const name of Object.keys(values))
       if (!names.includes(name))
         throw new TypeError(`${name} is not a path parameter of ${template}`)
-    for (const [, name] of template.matchAll(/\{(\w+)\}/g)) {
+    for (const name of names) {
       let value = values[name!]
       if (value === undefined && name === "project_id") {
         value = await this.projectId()

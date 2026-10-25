@@ -16,6 +16,9 @@ section is its GitHub release's notes.
   for an empty secret (`""` or `"whsec_"`, as from an unset environment
   variable), not the platform's `DOMException`.
 
+- `DEFAULT_BASE_URL` is exported: the API's address (`https://api.nohead.io`)
+  that a client uses when neither `baseUrl` nor `NOHEAD_API_URL` is set.
+
 ## 0.8.0
 
 - `Asset` has `file_url`, the file as uploaded, which downloads under its

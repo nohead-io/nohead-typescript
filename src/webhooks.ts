@@ -164,7 +164,5 @@ function decodeBase64(value: string, what: string): Uint8Array<ArrayBuffer> {
   } catch {
     throw new WebhookVerificationError(`The webhook ${what} is not base64`)
   }
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
 }
