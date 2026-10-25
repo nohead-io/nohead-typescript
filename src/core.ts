@@ -366,13 +366,13 @@ export class Core {
     values: RequestInput["path"] = {}
   ): Promise<string> {
     let path = template
-    const names = [...template.matchAll(/\{(\w+)\}/g)].map(([, name]) => name)
+    const names = [...template.matchAll(/\{(\w+)\}/g)].map(([, name]) => name!)
     // A value the template doesn't take is a method out of step with its operation.
     for (const name of Object.keys(values))
       if (!names.includes(name))
         throw new TypeError(`${name} is not a path parameter of ${template}`)
     for (const name of names) {
-      let value = values[name!]
+      let value = values[name]
       if (value === undefined && name === "project_id") {
         value = await this.projectId()
       }
