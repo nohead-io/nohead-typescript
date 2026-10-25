@@ -436,11 +436,19 @@ The SDK covers every operation an API key can call. Organizations, projects, mem
 ```bash
 npm install          # also builds dist/
 npm test             # unit and contract tests
-npm run lint && npm run typecheck && npm run format:check
+npm run lint && npm run typecheck && npm run typecheck:smoke && npm run format:check
 npm run generate     # after updating openapi.json
 npm run samples      # after changing test/calls.ts (the docs' code samples)
 NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 ```
+
+Before pushing, also check that the generated code and the samples are current, as CI does:
+
+```bash
+npm run generate && npm run samples && git diff --exit-code src/generated samples.json
+```
+
+The unit tests' mock client (`mockClient` in `test/helpers.ts`) checks every request to the API, and every reply to one, against `openapi.json`, and fails the test on a mismatch; build replies from the contract's examples (`exampleOf`), and mark one that breaks the contract on purpose with `raw()`.
 
 **How the code is organized:**
 
