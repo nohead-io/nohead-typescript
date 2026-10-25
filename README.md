@@ -190,6 +190,8 @@ Every error is a `NoheadError`. API errors are `APIError`s with `status`, `type`
 | `InternalServerError`     | 500 and other 5xx       |
 | `ServiceUnavailableError` | 503                     |
 
+An API error's `message` names the status, the type and the request ID along with the API's message, so logging it is enough to look the request up: `422 validation_error: Title is required (request req_…)`.
+
 Other errors: `ConnectionError`, `TimeoutError` (a `ConnectionError`), `AbortError` (your `signal` fired), `UploadError` and `WebhookVerificationError`.
 
 ```ts

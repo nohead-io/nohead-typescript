@@ -7,6 +7,12 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- An `APIError`'s `message` names the status, the error type and the
+  request ID along with the API's message, as in the Python and Ruby SDKs:
+  `422 validation_error: Title is required (request req_…)`, where it was
+  only `Title is required`. Code that compares or shows `message` as the
+  API's own text gets the longer one now.
+
 - `unwrapWebhook` and `webhooks.unwrap` throw a `WebhookVerificationError`
   for an empty secret (`""` or `"whsec_"`, as from an unset environment
   variable), not the platform's `DOMException`.

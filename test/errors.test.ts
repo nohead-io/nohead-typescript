@@ -49,6 +49,16 @@ describe("errors", () => {
     expect((error as APIError).headers.get("x-a")).toBe("b")
   })
 
+  it("names the status, type and request ID in its message", async () => {
+    const error = await failure(apiError(404, "not_found"))
+    expect((error as APIError).message).toBe(
+      "404 not_found: not_found message (request req_1)"
+    )
+    expect(String(error)).toBe(
+      "NotFoundError: 404 not_found: not_found message (request req_1)"
+    )
+  })
+
   it("carries details", async () => {
     const error = (await failure(
       apiError(422, "validation_error", {
@@ -57,7 +67,9 @@ describe("errors", () => {
         ],
       })
     )) as ValidationError
-    expect(error.message).toBe("validation_error message")
+    expect(error.message).toBe(
+      "422 validation_error: validation_error message (request req_1)"
+    )
     expect(error.details).toEqual([
       { field: "title", code: "required", message: "Title is required" },
     ])
@@ -95,6 +107,9 @@ describe("errors", () => {
     expect(error).toBeInstanceOf(InternalServerError)
     expect(error.body).toBe("<html>Bad gateway</html>")
     expect(error.requestId).toBe("req_9")
+    expect(error.message).toBe(
+      "502 error: Request failed with status 502 (request req_9)"
+    )
   })
 
   it("ignores error fields of the wrong type", async () => {
@@ -117,7 +132,9 @@ describe("errors", () => {
       })
     )) as APIError
     expect(error).toBeInstanceOf(InternalServerError)
-    expect(error.message).toBe("Request failed with status 502")
+    expect(error.message).toBe(
+      "502 error: Request failed with status 502 (request req_9)"
+    )
     expect(error.type).toBeUndefined()
     expect(error.requestId).toBe("req_9")
     expect(error.details).toEqual([])
