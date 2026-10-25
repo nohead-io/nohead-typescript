@@ -23,7 +23,6 @@ export interface UploadParams {
   byte_size?: number
 }
 
-/** Files of the key's project. `asset` is an asset ID (`ast_…`). */
 /** Common files' types by extension, as the other SDKs guess them. */
 const CONTENT_TYPES: Record<string, string> = {
   avif: "image/avif",
@@ -51,6 +50,7 @@ function contentTypeOf(filename: string): string | undefined {
     : undefined
 }
 
+/** Files of the key's project. `asset` is an asset ID (`ast_…`). */
 export class Assets extends Resource {
   /**
    * Uploads a file and returns the `ready` asset: creates the upload, sends

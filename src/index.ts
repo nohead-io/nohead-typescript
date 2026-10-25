@@ -5,13 +5,14 @@ export {
   PagePromise,
   type APIResponse,
 } from "./api-promise.ts"
-export type {
-  ClientOptions,
-  ConditionalRequestOptions,
-  ConditionalWriteOptions,
-  RequestOptions,
-  RetryEvent,
-  WriteOptions,
+export {
+  DEFAULT_BASE_URL,
+  type ClientOptions,
+  type ConditionalRequestOptions,
+  type ConditionalWriteOptions,
+  type RequestOptions,
+  type RetryEvent,
+  type WriteOptions,
 } from "./core.ts"
 export {
   APIError,
