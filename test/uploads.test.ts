@@ -1,17 +1,13 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { UploadError, ValidationError } from "../src/index.ts"
-import { apiError, json, mockClient, settle } from "./helpers.ts"
+import { ConnectionError, UploadError, ValidationError } from "../src/index.ts"
+import { apiError, exampleOf, json, mockClient, settle } from "./helpers.ts"
 
-const asset = (status: string) => ({
-  id: "ast_1",
-  object: "asset",
-  filename: "a.png",
-  status,
-})
+const asset = (status: string) =>
+  exampleOf("assets_get", { id: "ast_1", filename: "a.png", status })
 const createdUntil = (expiresAt: string) =>
   json(201, {
-    ...asset("pending"),
+    ...exampleOf("assets_upload", asset("pending")),
     upload: {
       method: "PUT",
       url: "https://storage.test/uploads/prj_1/ast_1?signature=x",
@@ -20,6 +16,15 @@ const createdUntil = (expiresAt: string) =>
     },
   })
 const created = createdUntil(new Date(Date.now() + 900_000).toISOString())
+
+/** Three bytes as a stream, which fetch can send only once. */
+const bytes = () =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array([1, 2, 3]))
+      controller.close()
+    },
+  })
 
 describe("assets.upload", () => {
   it("creates the upload, sends the bytes to storage, then completes it", async () => {
@@ -51,6 +56,22 @@ describe("assets.upload", () => {
     )
     expect(put.headers.get("content-type")).toBe("image/png")
     expect(put.headers.has("authorization")).toBe(false)
+    expect(put.init).not.toHaveProperty("duplex")
+  })
+
+  it("sends a stream as it reads it (duplex)", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+    ])
+    const ready = await nohead.assets.upload(bytes(), { byte_size: 3 })
+    expect(ready.status).toBe("ready")
+    expect(calls[0]!.body).toMatchObject({ byte_size: 3 })
+    const put = calls[1]!
+    expect(put.body).toBeInstanceOf(ReadableStream)
+    expect(put.init).toHaveProperty("duplex", "half")
+    expect(calls[2]!.url.pathname).toBe("/v1/assets/ast_1/complete")
   })
 
   it("uses an idempotency key only to start the upload", async () => {
@@ -142,6 +163,63 @@ describe("assets.upload", () => {
         "PUT storage.test",
         "POST api.test",
       ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("doesn't send a stream twice, which it can't replay", async () => {
+    vi.useFakeTimers()
+    try {
+      const { nohead, calls } = mockClient([
+        created,
+        new Response(null, { status: 503 }),
+        new Response(null),
+        json(200, asset("ready")),
+      ])
+      const error = await settle(
+        nohead.assets.upload(bytes(), { byte_size: 3 })
+      ).catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(UploadError)
+      expect((error as UploadError).status).toBe(503)
+      expect(calls.map((c) => `${c.method} ${c.url.host}`)).toEqual([
+        "POST api.test",
+        "PUT storage.test",
+      ])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("doesn't send a stream again after a connection failure", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new TypeError("fetch failed"),
+      new Response(null),
+    ])
+    const error = await nohead.assets
+      .upload(bytes(), { byte_size: 3 })
+      .catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(UploadError)
+    expect((error as UploadError).status).toBeUndefined()
+    expect((error as UploadError).cause).toBeInstanceOf(ConnectionError)
+    expect(calls).toHaveLength(2)
+  })
+
+  it("throws UploadError with the status when storage fails every attempt", async () => {
+    vi.useFakeTimers()
+    try {
+      const { nohead, calls } = mockClient([
+        created,
+        new Response(null, { status: 503 }),
+      ])
+      const error = await settle(nohead.assets.upload(new Blob(["x"]))).catch(
+        (e: unknown) => e
+      )
+      expect(error).toBeInstanceOf(UploadError)
+      expect((error as UploadError).status).toBe(503)
+      // The first attempt and the client's two retries.
+      expect(calls.filter((c) => c.method === "PUT")).toHaveLength(3)
     } finally {
       vi.useRealTimers()
     }

@@ -5,7 +5,11 @@ export class NoheadError extends Error {
   override name = "NoheadError"
 }
 
-/** The API answered with an error status. Subclasses follow the error `type`. */
+/**
+ * The API answered with an error status. Subclasses follow the error `type`.
+ * Its `message` names the status, the type and the request's ID along with
+ * the API's message: `422 validation_error: Title is required (request req_…)`.
+ */
 export class APIError extends NoheadError {
   override name = "APIError"
   /** The HTTP status. */
@@ -15,6 +19,8 @@ export class APIError extends NoheadError {
    * none. A type newer than this SDK is kept as its string.
    */
   readonly type: ErrorType | (string & {}) | undefined
+  /** The API's own message, without the status, type and ID `message` adds. */
+  readonly apiMessage: string
   /** The request's ID (`req_…`), for support requests and logs. */
   readonly requestId: string | undefined
   /** Field-level details, e.g. `[{ field: "title", code: "required", … }]`. */
@@ -25,11 +31,17 @@ export class APIError extends NoheadError {
 
   constructor(status: number, body: unknown, headers: Headers) {
     const error = errorEnvelope(body)
-    super(error?.message ?? `Request failed with status ${status}`)
-    this.status = status
-    this.type = error?.type
-    this.requestId =
+    const requestId =
       error?.request_id ?? headers.get("x-request-id") ?? undefined
+    const apiMessage = error?.message || `Request failed with status ${status}`
+    super(
+      `${status} ${error?.type || "error"}: ${apiMessage}` +
+        (requestId ? ` (request ${requestId})` : "")
+    )
+    this.status = status
+    this.apiMessage = apiMessage
+    this.type = error?.type
+    this.requestId = requestId
     this.details = error?.details ?? []
     this.headers = headers
     this.body = body

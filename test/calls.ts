@@ -173,7 +173,7 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
  * operation's success response (spec.ts), with an upload URL on storage.
  * `variant` picks one of `exampleReplies` (the last, past their end).
  */
-export function mockReply(call: Call, variant = 0): Response {
+export function mockReply(call: Omit<Call, "init">, variant = 0): Response {
   if (call.url.host === "storage.test") return new Response(null)
   const route = routeOf(call.method, call.url.pathname)
   const replies = exampleReplies(route, call.url)

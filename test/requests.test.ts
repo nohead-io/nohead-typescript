@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
 
-import { json, mockClient, page, record } from "./helpers.ts"
+import { exampleOf, json, mockClient, page, record } from "./helpers.ts"
 
 describe("requests", () => {
   it("encodes path parameters", async () => {
@@ -82,8 +82,10 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ data: { title: "Hi" } })
   })
 
+  const schedule = json(200, exampleOf("records_schedule"))
+
   it("serializes dates in bodies as ISO 8601", async () => {
-    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    const { nohead, calls } = mockClient([schedule])
     await nohead.records.schedule("rec_1", {
       publish_at: new Date("2027-01-01T09:00:00Z"),
     })
@@ -91,7 +93,7 @@ describe("requests", () => {
   })
 
   it("sends the schedule as given: a time left out is cleared", async () => {
-    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    const { nohead, calls } = mockClient([schedule])
     await nohead.records.schedule("rec_1", { unpublish_at: null })
     await nohead.records.schedule("rec_1", {})
     expect(calls.map((c) => c.body)).toEqual([{ unpublish_at: null }, {}])
@@ -149,14 +151,17 @@ describe("requests", () => {
   })
 
   it("sends If-Match on a restore, and a draft's revision", async () => {
-    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    const { nohead, calls } = mockClient([
+      json(200, record("rec_1")),
+      json(200, exampleOf("drafts_discard")),
+    ])
     await nohead.records.restore("rec_1", { ifMatch: 2 })
     await nohead.drafts.discard("drf_1", { ifMatch: { revision: 5 } })
     expect(calls.map((c) => c.headers.get("if-match"))).toEqual(['"2"', '"5"'])
   })
 
   it("starts a draft from the record's values, typed like records", async () => {
-    const draft = { id: "drf_1", object: "draft", data: { title: "Hi" } }
+    const draft = exampleOf("drafts_create", { data: { title: "Hi" } })
     const { nohead, calls } = mockClient([json(201, draft)])
     const created = await nohead.drafts.create<{ title: string }>("rec_1")
     expectTypeOf(created.data.title).toEqualTypeOf<string>()
@@ -185,7 +190,9 @@ describe("requests", () => {
   })
 
   it("sends dry runs as a query parameter", async () => {
-    const { nohead, calls } = mockClient([json(200, {})])
+    const { nohead, calls } = mockClient([
+      json(200, exampleOf("migrations_create")),
+    ])
     await nohead.migrations.create("posts", {
       field_id: "fld_1",
       type: "integer",
@@ -198,7 +205,7 @@ describe("requests", () => {
 
   it("sends a diff's revisions as from and to", async () => {
     const { nohead, calls } = mockClient([
-      json(200, { object: "record_diff", from: 1, to: 2, changes: [] }),
+      json(200, exampleOf("records_diff", { from: 1, to: 2 })),
     ])
     const diff = await nohead.records.diff("rec_1", { from: 1, to: 2 })
     expect(diff.to).toBe(2)

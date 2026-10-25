@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto"
 import {
   Webhook,
   WebhookVerificationError as StandardVerificationError,
@@ -41,18 +40,21 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+const official = new Webhook(secret)
+
+/** The headers of a request the official library signs. */
 function sign(
   payload: string,
   { timestamp = now, id = "msg_1", signingSecret = secret } = {}
-) {
-  const key = Buffer.from(signingSecret.slice("whsec_".length), "base64")
-  const signature = createHmac("sha256", key)
-    .update(`${id}.${timestamp}.${payload}`)
-    .digest("base64")
+): Record<string, string> {
   return {
     "webhook-id": id,
     "webhook-timestamp": String(timestamp),
-    "webhook-signature": `v1,${signature}`,
+    "webhook-signature": new Webhook(signingSecret).sign(
+      id,
+      new Date(timestamp * 1000),
+      payload
+    ),
   }
 }
 
@@ -130,6 +132,73 @@ describe("webhook verification", () => {
     ).rejects.toBeInstanceOf(WebhookVerificationError)
   })
 
+  it("rejects a secret that isn't base64", async () => {
+    const error = await unwrapWebhook(body, sign(body), {
+      secret: "whsec_not base64!",
+    }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WebhookVerificationError)
+    expect((error as Error).message).toMatch("not base64")
+  })
+
+  it.each(["", "whsec_"])("rejects an empty secret (%j)", async (empty) => {
+    const error = await unwrapWebhook(body, sign(body), {
+      secret: empty,
+    }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(WebhookVerificationError)
+    expect((error as Error).message).toMatch("empty")
+  })
+})
+
+// The official Standard Webhooks library signs every request above and
+// below, and must agree with unwrap on the ones here.
+describe("webhook verification against the official library", () => {
+  const unicodeBody = JSON.stringify({
+    ...JSON.parse(body),
+    data: {
+      record: { id: "rec_1", data: { title: "Rettet på forsiden ✓ 🎉" } },
+    },
+  })
+
+  it.each([
+    ["an event", body],
+    ["an event with non-ASCII text", unicodeBody],
+    ["the spec's example body", '{"test": 2432232314}'],
+  ])("accepts %s it signs", async (_, payload) => {
+    const headers = sign(payload)
+    const expected = official.verify(payload, headers)
+    const bytes = new TextEncoder().encode(payload)
+    for (const input of [payload, bytes, bytes.buffer]) {
+      await expect(unwrapWebhook(input, headers, { secret })).resolves.toEqual(
+        expected
+      )
+      await expect(
+        unwrapWebhook(input, new Headers(headers), { secret })
+      ).resolves.toEqual(expected)
+    }
+  })
+
+  it("accepts either secret's signature while a rotation overlaps", async () => {
+    const old = sign(body, { signingSecret: otherSecret })
+    const headers = {
+      ...old,
+      "webhook-signature": `${old["webhook-signature"]} ${sign(body)["webhook-signature"]}`,
+    }
+    for (const key of [secret, otherSecret]) {
+      expect(new Webhook(key).verify(body, headers)).toMatchObject({
+        id: "wev_1",
+      })
+      await expect(
+        unwrapWebhook(body, headers, { secret: key })
+      ).resolves.toMatchObject({ id: "wev_1" })
+    }
+  })
+
+  const without = (name: string) => {
+    const headers = sign(body)
+    delete headers[name]
+    return headers
+  }
+
   it.each([
     ["a changed body", () => [body.replace("Hi", "Bye"), sign(body)] as const],
     [
@@ -140,7 +209,7 @@ describe("webhook verification", () => {
       "a signature of another version",
       () => {
         const headers = sign(body)
-        headers["webhook-signature"] = headers["webhook-signature"].replace(
+        headers["webhook-signature"] = headers["webhook-signature"]!.replace(
           "v1,",
           "v2,"
         )
@@ -163,159 +232,27 @@ describe("webhook verification", () => {
       "a timestamp that isn't a number",
       () => [body, { ...sign(body), "webhook-timestamp": "soon" }] as const,
     ],
-    ["missing headers", () => [body, {}] as const],
-    ["a body that isn't JSON", () => ["not json", sign("not json")] as const],
-  ])("rejects %s", async (_, input) => {
-    const [payload, headers] = input()
-    await expect(
-      unwrapWebhook(payload, headers, { secret })
-    ).rejects.toBeInstanceOf(WebhookVerificationError)
-  })
-
-  it("rejects a secret that isn't base64", async () => {
-    const error = await unwrapWebhook(body, sign(body), {
-      secret: "whsec_not base64!",
-    }).catch((e: unknown) => e)
-    expect(error).toBeInstanceOf(WebhookVerificationError)
-    expect((error as Error).message).toMatch("not base64")
-  })
-
-  it.each(["", "whsec_"])("rejects an empty secret (%j)", async (empty) => {
-    const error = await unwrapWebhook(body, sign(body), {
-      secret: empty,
-    }).catch((e: unknown) => e)
-    expect(error).toBeInstanceOf(WebhookVerificationError)
-    expect((error as Error).message).toMatch("empty")
-  })
-})
-
-// The official Standard Webhooks library signs the requests, and its verdict
-// on malformed ones is compared with ours.
-describe("webhook verification against the official library", () => {
-  const official = new Webhook(secret)
-
-  function officialHeaders(
-    payload: string,
-    { timestamp = now, id = "msg_1", signer = official } = {}
-  ): Record<string, string> {
-    return {
-      "webhook-id": id,
-      "webhook-timestamp": String(timestamp),
-      "webhook-signature": signer.sign(id, new Date(timestamp * 1000), payload),
-    }
-  }
-
-  const unicodeBody = JSON.stringify({
-    ...JSON.parse(body),
-    data: {
-      record: { id: "rec_1", data: { title: "Rettet på forsiden ✓ 🎉" } },
-    },
-  })
-
-  it.each([
-    ["an event", body],
-    ["an event with non-ASCII text", unicodeBody],
-    ["the spec's example body", '{"test": 2432232314}'],
-  ])("accepts %s it signs", async (_, payload) => {
-    const headers = officialHeaders(payload)
-    const expected = official.verify(payload, headers)
-    const bytes = new TextEncoder().encode(payload)
-    for (const input of [payload, bytes, bytes.buffer]) {
-      await expect(unwrapWebhook(input, headers, { secret })).resolves.toEqual(
-        expected
-      )
-      await expect(
-        unwrapWebhook(input, new Headers(headers), { secret })
-      ).resolves.toEqual(expected)
-    }
-  })
-
-  it("accepts either secret's signature while a rotation overlaps", async () => {
-    const old = officialHeaders(body, { signer: new Webhook(otherSecret) })
-    const headers = {
-      ...old,
-      "webhook-signature": `${old["webhook-signature"]} ${officialHeaders(body)["webhook-signature"]}`,
-    }
-    for (const key of [secret, otherSecret]) {
-      expect(new Webhook(key).verify(body, headers)).toMatchObject({
-        id: "wev_1",
-      })
-      await expect(
-        unwrapWebhook(body, headers, { secret: key })
-      ).resolves.toMatchObject({ id: "wev_1" })
-    }
-  })
-
-  it.each([
+    ["no headers", () => [body, {}] as const],
+    ["no webhook-id", () => [body, without("webhook-id")] as const],
     [
-      "a tampered body",
-      () => [body.replace("Hi", "Bye"), officialHeaders(body)] as const,
+      "no webhook-timestamp",
+      () => [body, without("webhook-timestamp")] as const,
     ],
     [
-      "a changed webhook-id",
-      () =>
-        [body, { ...officialHeaders(body), "webhook-id": "msg_2" }] as const,
-    ],
-    [
-      "a wrong secret",
-      () =>
-        [
-          body,
-          officialHeaders(body, { signer: new Webhook(otherSecret) }),
-        ] as const,
-    ],
-    [
-      "an old timestamp",
-      () => [body, officialHeaders(body, { timestamp: now - 301 })] as const,
-    ],
-    [
-      "a future timestamp",
-      () => [body, officialHeaders(body, { timestamp: now + 301 })] as const,
-    ],
-    [
-      "a signature of another version",
-      () => {
-        const headers = officialHeaders(body)
-        return [
-          body,
-          {
-            ...headers,
-            "webhook-signature": headers["webhook-signature"]!.replace(
-              "v1,",
-              "v2,"
-            ),
-          },
-        ] as const
-      },
-    ],
-    [
-      "a missing webhook-signature",
-      () => {
-        const headers = officialHeaders(body)
-        delete headers["webhook-signature"]
-        return [body, headers] as const
-      },
+      "no webhook-signature",
+      () => [body, without("webhook-signature")] as const,
     ],
     [
       "a non-ASCII webhook-signature",
-      () =>
-        [
-          body,
-          { ...officialHeaders(body), "webhook-signature": "v1,ü✓🎉" },
-        ] as const,
+      () => [body, { ...sign(body), "webhook-signature": "v1,ü✓🎉" }] as const,
     ],
     [
       "a non-ASCII webhook-id",
-      () =>
-        [body, { ...officialHeaders(body), "webhook-id": "msg_ü✓🎉" }] as const,
+      () => [body, { ...sign(body), "webhook-id": "msg_ü✓🎉" }] as const,
     ],
     [
       "a non-ASCII webhook-timestamp",
-      () =>
-        [
-          body,
-          { ...officialHeaders(body), "webhook-timestamp": "🎉" },
-        ] as const,
+      () => [body, { ...sign(body), "webhook-timestamp": "🎉" }] as const,
     ],
   ])("rejects %s, as the official library does", async (_, input) => {
     const [payload, headers] = input()
@@ -327,8 +264,16 @@ describe("webhook verification against the official library", () => {
     ).rejects.toBeInstanceOf(WebhookVerificationError)
   })
 
+  it("rejects a body that isn't JSON, where the library throws a SyntaxError", async () => {
+    const headers = sign("not json")
+    expect(() => official.verify("not json", headers)).toThrow(SyntaxError)
+    await expect(
+      unwrapWebhook("not json", headers, { secret })
+    ).rejects.toBeInstanceOf(WebhookVerificationError)
+  })
+
   it("rejects Latin-1 header values that a Headers object accepts", async () => {
-    const headers = officialHeaders(body)
+    const headers = sign(body)
     for (const [name, value] of [
       ["webhook-signature", "v1,ÿü"],
       ["webhook-id", "msg_ü"],
