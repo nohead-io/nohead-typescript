@@ -8,56 +8,20 @@
 // Methods offer `ifMatch` and `changeNote` exactly where their operation
 // declares `If-Match` and `Nohead-Change-Note`: sent there (below), and not
 // accepted elsewhere (by type, in Core.request; spot checks below).
-import { Ajv2020 } from "ajv/dist/2020.js"
 import { describe, expect, it } from "vitest"
 
 import { OPERATIONS } from "../src/generated/operations.gen.ts"
 import { Page, PagePromise, type Nohead } from "../src/index.ts"
 import { everyCall, exampleReplies, mockReply } from "./calls.ts"
-import { mockClient } from "./helpers.ts"
+import { API_HOST, mockClient } from "./helpers.ts"
 import {
   OPTION_HEADERS,
+  errors,
+  queryNames,
+  requestProblems,
   routeOf,
   routes,
-  spec,
-  type Parameter,
 } from "./spec.ts"
-
-const ajv = new Ajv2020({ strict: false, validateFormats: false })
-ajv.addSchema(spec, "openapi.json")
-
-/** The errors of `value` against the schema at `pointer` in the contract. */
-function errors(pointer: string, value: unknown) {
-  const validate = ajv.getSchema(`openapi.json${pointer}`)!
-  return validate(value) ? [] : validate.errors
-}
-
-/**
- * A request's query parameters by name, as their schemas read them:
- * `filter[a][b]=v` nests, and numbers and booleans are parsed when declared.
- */
-function queryValues(url: URL, params: Parameter[]) {
-  const values: Record<string, unknown> = {}
-  for (const [key, value] of url.searchParams) {
-    const [name, ...path] = key.split(/[[\]]+/).filter(Boolean) as [string]
-    if (path.length > 0) {
-      let node = (values[name] ??= {}) as Record<string, unknown>
-      for (const part of path.slice(0, -1)) {
-        node = (node[part] ??= {}) as Record<string, unknown>
-      }
-      node[path.at(-1)!] = value
-      continue
-    }
-    const type = params.find((p) => p.name === name)?.schema.type
-    values[name] =
-      (type === "integer" || type === "number") && /^-?\d+(\.\d+)?$/.test(value)
-        ? Number(value)
-        : type === "boolean" && (value === "true" || value === "false")
-          ? value === "true"
-          : value
-  }
-  return values
-}
 
 // Calls that pass the query parameters the samples in calls.ts leave out.
 const page = { limit: 5, cursor: "cur_x" }
@@ -143,15 +107,29 @@ const everyHeader: ((nohead: Nohead) => unknown)[] = [
     ),
 ]
 
+// The query parameters and option headers each operation was sent with,
+// over every call below.
+const sent = new Map<string, Set<string>>()
+const headersSent = new Map<string, Set<string>>()
+const add = (map: Map<string, Set<string>>, id: string, keys: string[]) =>
+  map.set(id, new Set([...(map.get(id) ?? []), ...keys]))
+
+/** A call's code on one line, as its test's name. */
+const named = (call: (nohead: Nohead) => unknown) =>
+  [
+    String(call)
+      .replace(/\s+/g, " ")
+      .replace(/^\(nohead\) => nohead\./, "")
+      .slice(0, 120),
+    call,
+  ] as const
+
 describe("the contract", () => {
-  it("is covered by the SDK, request by request", async () => {
-    let variant = 0
-    const { nohead, calls } = mockClient([(call) => mockReply(call, variant)])
-    const sent = new Map<string, Set<string>>()
-    const headersSent = new Map<string, Set<string>>()
-    const add = (map: Map<string, Set<string>>, id: string, keys: string[]) =>
-      map.set(id, new Set([...(map.get(id) ?? []), ...keys]))
-    for (const call of [...everyCall, ...everyParameter, ...everyHeader]) {
+  it.each([...everyCall, ...everyParameter, ...everyHeader].map(named))(
+    "is met by %s",
+    async (_, call) => {
+      let variant = 0
+      const { nohead, calls } = mockClient([(c) => mockReply(c, variant)])
       // Once per variant of the reply, until the last.
       for (variant = 0; ; variant++) {
         const before = calls.length
@@ -159,38 +137,13 @@ describe("the contract", () => {
         const result = await promise
         const apiCalls = calls
           .slice(before)
-          .filter((c) => c.url.host === "api.test")
+          .filter((c) => c.url.host === API_HOST)
 
         for (const request of apiCalls) {
+          // mockClient checks it too, failing the test once it ends.
+          expect(requestProblems(request)).toEqual([])
           const route = routeOf(request.method, request.url.pathname)
-          const keys = [
-            ...new Set(
-              [...request.url.searchParams.keys()].map((k) =>
-                k.replace(/\[.*$/, "")
-              )
-            ),
-          ]
-          expect(
-            route.query.map((p) => p.name),
-            `${route.id} query`
-          ).toEqual(expect.arrayContaining(keys))
-          const values = queryValues(request.url, route.query)
-          for (const param of route.query.filter((p) => p.name in values)) {
-            expect(
-              errors(param.schemaAt, values[param.name]),
-              `${route.id} ${param.name}`
-            ).toEqual([])
-          }
-          if (request.body === undefined) {
-            expect(route.bodyRequired, `${route.id} needs a body`).toBe(false)
-          } else {
-            expect(route.body, `${route.id} takes no body`).toBeDefined()
-            expect(
-              errors(route.body!.pointer, request.body),
-              `${route.id} body`
-            ).toEqual([])
-          }
-          add(sent, route.id, keys)
+          add(sent, route.id, queryNames(request.url))
           add(
             headersSent,
             route.id,
@@ -215,9 +168,16 @@ describe("the contract", () => {
         if (variant >= replies.length - 1) break
       }
     }
+  )
 
+  // These read what the calls above sent, so they run after them (Vitest runs
+  // a file's tests in order).
+  it("has a method for every operation", () => {
     const missing = Object.keys(OPERATIONS).filter((id) => !sent.has(id))
     expect(missing, "operations without an SDK method").toEqual([])
+  })
+
+  it("sends every query parameter from some call", () => {
     const unsent = Object.fromEntries(
       routes
         .map(({ id, query }): [string, string[]] => [
@@ -227,11 +187,13 @@ describe("the contract", () => {
         .filter(([, params]) => params.length > 0)
     )
     expect(unsent, "query parameters no call sends").toEqual({})
+  })
+
+  it("sends If-Match and Nohead-Change-Note exactly where declared", () => {
     expect(
       Object.fromEntries(
         routes.map(({ id }) => [id, [...(headersSent.get(id) ?? [])].sort()])
-      ),
-      "If-Match and Nohead-Change-Note sent exactly where declared"
+      )
     ).toEqual(
       Object.fromEntries(routes.map(({ id, headers }) => [id, headers]))
     )

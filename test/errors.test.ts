@@ -14,13 +14,16 @@ import {
   ServiceUnavailableError,
   ValidationError,
 } from "../src/index.ts"
-import { apiError, mockClient } from "./helpers.ts"
+import type { ErrorType } from "../src/generated/types.gen.ts"
+import { apiError, mockClient, raw } from "./helpers.ts"
+import { spec } from "./spec.ts"
 
 const noRetries = { maxRetries: 0 }
 
+// A record's creation, which documents every 4xx an error type has.
 async function failure(response: Response) {
   const { nohead } = mockClient([response], noRetries)
-  return nohead.records.get("rec_1").then(
+  return nohead.records.create("posts", { data: {} }).then(
     () => {
       throw new Error("expected an error")
     },
@@ -28,26 +31,37 @@ async function failure(response: Response) {
   )
 }
 
+// Each error type's class, and a status it comes with.
+const CLASSES: Record<ErrorType, [number, typeof APIError]> = {
+  invalid_request: [400, InvalidRequestError],
+  authentication_error: [401, AuthenticationError],
+  plan_limit_exceeded: [402, PlanLimitExceededError],
+  authorization_error: [403, AuthorizationError],
+  not_found: [404, NotFoundError],
+  conflict: [409, ConflictError],
+  precondition_failed: [412, PreconditionFailedError],
+  validation_error: [422, ValidationError],
+  rate_limited: [429, RateLimitError],
+  internal_error: [500, InternalServerError],
+  service_unavailable: [503, ServiceUnavailableError],
+}
+
 describe("errors", () => {
-  it.each([
-    [400, "invalid_request", InvalidRequestError],
-    [401, "authentication_error", AuthenticationError],
-    [402, "plan_limit_exceeded", PlanLimitExceededError],
-    [403, "authorization_error", AuthorizationError],
-    [404, "not_found", NotFoundError],
-    [409, "conflict", ConflictError],
-    [412, "precondition_failed", PreconditionFailedError],
-    [422, "validation_error", ValidationError],
-    [429, "rate_limited", RateLimitError],
-    [500, "internal_error", InternalServerError],
-    [503, "service_unavailable", ServiceUnavailableError],
-  ])("maps %i %s to its class", async (status, type, Class) => {
-    const error = await failure(apiError(status, type, {}, { "x-a": "b" }))
-    expect(error).toBeInstanceOf(Class)
-    expect(error).toBeInstanceOf(APIError)
-    expect(error).toMatchObject({ status, type, requestId: "req_1" })
-    expect((error as APIError).headers.get("x-a")).toBe("b")
-  })
+  it.each(spec.components.schemas.ErrorType.enum as string[])(
+    "maps the contract's %s to its own class",
+    async (type) => {
+      expect(CLASSES, `no class for ${type}`).toHaveProperty(type)
+      const [status, Class] = CLASSES[type as ErrorType]
+      expect(Class).not.toBe(APIError)
+      const others = Object.entries(CLASSES).filter(([t]) => t !== type)
+      expect(others.map(([, [, c]]) => c)).not.toContain(Class)
+      const error = await failure(apiError(status, type, {}, { "x-a": "b" }))
+      expect((error as APIError).constructor).toBe(Class)
+      expect(error).toBeInstanceOf(APIError)
+      expect(error).toMatchObject({ status, type, requestId: "req_1" })
+      expect((error as APIError).headers.get("x-a")).toBe("b")
+    }
+  )
 
   it("names the status, type and request ID in its message", async () => {
     const error = await failure(apiError(404, "not_found"))
@@ -99,10 +113,12 @@ describe("errors", () => {
 
   it("falls back to the status for bodies that are not API errors", async () => {
     const error = (await failure(
-      new Response("<html>Bad gateway</html>", {
-        status: 502,
-        headers: { "content-type": "text/html", "x-request-id": "req_9" },
-      })
+      raw(
+        new Response("<html>Bad gateway</html>", {
+          status: 502,
+          headers: { "content-type": "text/html", "x-request-id": "req_9" },
+        })
+      )
     )) as APIError
     expect(error).toBeInstanceOf(InternalServerError)
     expect(error.body).toBe("<html>Bad gateway</html>")
@@ -123,13 +139,15 @@ describe("errors", () => {
       },
     }
     const error = (await failure(
-      new Response(JSON.stringify(body), {
-        status: 502,
-        headers: {
-          "content-type": "application/json",
-          "x-request-id": "req_9",
-        },
-      })
+      raw(
+        new Response(JSON.stringify(body), {
+          status: 502,
+          headers: {
+            "content-type": "application/json",
+            "x-request-id": "req_9",
+          },
+        })
+      )
     )) as APIError
     expect(error).toBeInstanceOf(InternalServerError)
     expect(error.message).toBe(
@@ -147,7 +165,11 @@ describe("errors", () => {
       current_revision: 7,
     }
     const error = (await failure(
-      apiError(412, "precondition_failed", { details: [null, 1, "x", detail] })
+      raw(
+        apiError(412, "precondition_failed", {
+          details: [null, 1, "x", detail],
+        })
+      )
     )) as PreconditionFailedError
     expect(error.details).toEqual([detail])
     expect(error.currentRevision).toBe(7)
@@ -156,14 +178,14 @@ describe("errors", () => {
   it.each(["constructor", "toString", "__proto__"])(
     "maps a %s type to APIError, not to Object's",
     async (type) => {
-      const error = await failure(apiError(400, type))
+      const error = await failure(raw(apiError(400, type)))
       expect((error as APIError).constructor).toBe(APIError)
       expect((error as APIError).type).toBe(type)
     }
   )
 
   it("keeps unknown error types as APIError", async () => {
-    const error = await failure(apiError(418, "teapot_error"))
+    const error = await failure(raw(apiError(418, "teapot_error")))
     expect(error).toBeInstanceOf(APIError)
     expect((error as APIError).constructor).toBe(APIError)
     expect((error as APIError).type).toBe("teapot_error")

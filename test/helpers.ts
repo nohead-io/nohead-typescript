@@ -1,7 +1,14 @@
-import { vi } from "vitest"
+import { onTestFinished, vi } from "vitest"
 
 import { Nohead } from "../src/index.ts"
 import type { ClientOptions } from "../src/index.ts"
+import {
+  example,
+  replyProblems,
+  requestProblems,
+  routeOf,
+  routes,
+} from "./spec.ts"
 
 export interface Call {
   method: string
@@ -9,6 +16,22 @@ export interface Call {
   headers: Headers
   body: unknown
   signal?: AbortSignal
+  /** The request as fetch got it (`duplex`, for example). */
+  init: RequestInit
+}
+
+/** The host of `mockClient`'s API; requests to others (storage) go unchecked. */
+export const API_HOST = "api.test"
+
+const offContract = new WeakSet<Response>()
+
+/**
+ * A reply that `mockClient` doesn't check against the contract: one that
+ * breaks it on purpose (a gateway's HTML, an unknown error type).
+ */
+export function raw(response: Response): Response {
+  offContract.add(response)
+  return response
 }
 
 type Reply = Response | Error | ((call: Call) => Response | Promise<Response>)
@@ -47,13 +70,37 @@ export function apiError(
 
 /**
  * A client whose fetch answers from `replies` in order (the last one repeats)
- * and records every call.
+ * and records every call. Every request to the API, and every reply to one
+ * not marked `raw`, must match the contract (openapi.json): a mismatch fails
+ * the test when it ends.
  */
 export function mockClient(
   replies: Reply[],
   options: ClientOptions = {}
 ): { nohead: Nohead; calls: Call[] } {
+  const { fetch, calls } = mockFetch(replies)
+  const nohead = new Nohead({
+    apiKey: "nohead_sk_test",
+    baseUrl: `https://${API_HOST}`,
+    projectId: "prj_1",
+    fetch,
+    ...options,
+  })
+  return { nohead, calls }
+}
+
+/** The fetch of `mockClient`, for a client made otherwise. */
+export function mockFetch(replies: Reply[]): {
+  fetch: typeof fetch
+  calls: Call[]
+} {
   const calls: Call[] = []
+  const mismatches: string[] = []
+  onTestFinished(() => {
+    if (mismatches.length > 0) {
+      throw new Error(`Off the contract:\n${mismatches.join("\n")}`)
+    }
+  })
   let index = 0
   const fetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const raw = init.body
@@ -68,21 +115,33 @@ export function mockClient(
             ? undefined
             : raw,
       signal: init.signal ?? undefined,
+      init,
     }
     calls.push(call)
+    const api = call.url.host === API_HOST
+    const problems = api ? requestProblems(call) : []
+    mismatches.push(...problems)
     const reply = replies[Math.min(index++, replies.length - 1)]!
     if (reply instanceof Error) throw reply
     const response = typeof reply === "function" ? await reply(call) : reply
+    if (api && problems.length === 0 && !offContract.has(response)) {
+      mismatches.push(...(await checkReply(call, response)))
+    }
     return response.clone()
   }
-  const nohead = new Nohead({
-    apiKey: "nohead_sk_test",
-    baseUrl: "https://api.test",
-    projectId: "prj_1",
-    fetch,
-    ...options,
-  })
-  return { nohead, calls }
+  return { fetch, calls }
+}
+
+async function checkReply(call: Call, response: Response): Promise<string[]> {
+  const route = routeOf(call.method, call.url.pathname)
+  const text = await response.clone().text()
+  let body: unknown
+  try {
+    body = text ? JSON.parse(text) : undefined
+  } catch {
+    return [`${route.id} ${response.status}: a reply that isn't JSON (raw?)`]
+  }
+  return replyProblems(route, response.status, body)
 }
 
 /**
@@ -97,6 +156,19 @@ export async function settle<T>(promise: PromiseLike<T>): Promise<T> {
   const [result] = await outcome
   if (result.status === "rejected") throw result.reason
   return result.value
+}
+
+/**
+ * The contract's example of what `operation` answers, with `fields` changed:
+ * a reply that stays valid as the contract grows.
+ */
+export function exampleOf(
+  operation: string,
+  fields: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const route = routes.find((r) => r.id === operation)
+  if (!route) throw new Error(`No operation ${operation}`)
+  return { ...(example(route.response.schema) as object), ...fields }
 }
 
 export const record = (id: string, data: Record<string, unknown> = {}) => ({
@@ -115,8 +187,13 @@ export const record = (id: string, data: Record<string, unknown> = {}) => ({
   updated_at: "2026-10-02T12:00:00.000Z",
 })
 
-export const page = (items: unknown[], next: string | null) =>
+/** A list's page; `has_more` is whether there's a cursor, unless given. */
+export const page = (
+  items: unknown[],
+  next: string | null,
+  hasMore = next !== null
+) =>
   json(200, {
     data: items,
-    meta: { next_cursor: next, has_more: next !== null },
+    meta: { next_cursor: next, has_more: hasMore },
   })

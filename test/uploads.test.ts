@@ -1,17 +1,13 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { UploadError, ValidationError } from "../src/index.ts"
-import { apiError, json, mockClient, settle } from "./helpers.ts"
+import { apiError, exampleOf, json, mockClient, settle } from "./helpers.ts"
 
-const asset = (status: string) => ({
-  id: "ast_1",
-  object: "asset",
-  filename: "a.png",
-  status,
-})
+const asset = (status: string) =>
+  exampleOf("assets_get", { id: "ast_1", filename: "a.png", status })
 const createdUntil = (expiresAt: string) =>
   json(201, {
-    ...asset("pending"),
+    ...exampleOf("assets_upload", asset("pending")),
     upload: {
       method: "PUT",
       url: "https://storage.test/uploads/prj_1/ast_1?signature=x",

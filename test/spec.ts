@@ -3,6 +3,8 @@
 // made of.
 import { readFileSync } from "node:fs"
 
+import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js"
+
 import { OPERATIONS } from "../src/generated/operations.gen.ts"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema
@@ -82,6 +84,9 @@ export const routes = Object.entries(OPERATIONS).map(
       /** The first success status, and its body. */
       status: Number(status),
       response: json(`${operationAt}/responses/${status}`)!,
+      /** Where the operation's responses are, by status. */
+      responsesAt: `${operationAt}/responses`,
+      statuses: Object.keys(operation.responses).map(Number),
     }
   }
 )
@@ -94,6 +99,119 @@ export function routeOf(method: string, pathname: string): Route {
   )
   if (!route) throw new Error(`No operation for ${method} ${pathname}`)
   return route
+}
+
+const ajv = new Ajv2020({ strict: false, validateFormats: false })
+ajv.addSchema(spec, "openapi.json")
+
+/** The errors of `value` against the schema at `pointer` in the contract. */
+export function errors(pointer: string, value: unknown) {
+  const validate = ajv.getSchema(`openapi.json${pointer}`)!
+  return validate(value) ? [] : validate.errors!
+}
+
+/**
+ * A request's query parameters by name, as their schemas read them:
+ * `filter[a][b]=v` nests, and numbers and booleans are parsed when declared.
+ */
+export function queryValues(url: URL, params: Parameter[]) {
+  const values: Record<string, unknown> = {}
+  for (const [key, value] of url.searchParams) {
+    const [name, ...path] = key.split(/[[\]]+/).filter(Boolean) as [string]
+    if (path.length > 0) {
+      let node = (values[name] ??= {}) as Record<string, unknown>
+      for (const part of path.slice(0, -1)) {
+        node = (node[part] ??= {}) as Record<string, unknown>
+      }
+      node[path.at(-1)!] = value
+      continue
+    }
+    const type = params.find((p) => p.name === name)?.schema.type
+    values[name] =
+      (type === "integer" || type === "number") && /^-?\d+(\.\d+)?$/.test(value)
+        ? Number(value)
+        : type === "boolean" && (value === "true" || value === "false")
+          ? value === "true"
+          : value
+  }
+  return values
+}
+
+/** A request's query parameter names, without their `[…]` keys. */
+export const queryNames = (url: URL) => [
+  ...new Set([...url.searchParams.keys()].map((k) => k.replace(/\[.*$/, ""))),
+]
+
+const explain = (where: string, found: ErrorObject[]) =>
+  found.map(
+    (e) => `${where}${e.instancePath} ${e.message} ${JSON.stringify(e.params)}`
+  )
+
+/**
+ * How a request breaks the contract: no operation for its method and path,
+ * a query parameter its operation doesn't declare or a value that doesn't
+ * match, or a JSON body that doesn't match (or is missing).
+ */
+export function requestProblems(request: {
+  method: string
+  url: URL
+  body: unknown
+}): string[] {
+  const route = routes.find(
+    (r) => r.method === request.method && r.pattern.test(request.url.pathname)
+  )
+  if (!route)
+    return [`No operation for ${request.method} ${request.url.pathname}`]
+  const problems: string[] = []
+  const declared = route.query.map((p) => p.name)
+  for (const name of queryNames(request.url)) {
+    if (!declared.includes(name)) problems.push(`undeclared query ${name}`)
+  }
+  const values = queryValues(request.url, route.query)
+  for (const param of route.query.filter((p) => p.name in values)) {
+    problems.push(
+      ...explain(
+        `query ${param.name}`,
+        errors(param.schemaAt, values[param.name])
+      )
+    )
+  }
+  if (request.body === undefined) {
+    if (route.bodyRequired) problems.push("no body, which it needs")
+  } else if (!route.body) {
+    problems.push("a body, which it takes none of")
+  } else {
+    problems.push(...explain("body", errors(route.body.pointer, request.body)))
+  }
+  return problems.map((p) => `${route.id} request: ${p}`)
+}
+
+/**
+ * How a reply to an operation breaks the contract: a status the operation
+ * doesn't document, or a body that doesn't match the documented one. Any
+ * operation can fail with a 5xx, documented or not, with the error envelope.
+ */
+export function replyProblems(
+  route: Route,
+  status: number,
+  body: unknown
+): string[] {
+  let pointer: string
+  if (route.statuses.includes(status)) {
+    const response = at(`${route.responsesAt}/${status}`)
+    const content = response.value.content?.["application/json"]
+    if (!content) {
+      return body === undefined
+        ? []
+        : [`${route.id} ${status}: a body, which it documents none of`]
+    }
+    pointer = `${response.pointer}/content/application~1json/schema`
+  } else if (status >= 500) {
+    pointer = "#/components/schemas/Error"
+  } else {
+    return [`${route.id} does not document a ${status} response`]
+  }
+  return explain(`${route.id} ${status} reply`, errors(pointer, body))
 }
 
 /**

@@ -72,7 +72,14 @@ describe("the key's project", () => {
       object: "principal",
       type: "api_key",
       user: null,
-      api_key: { id: "key_1", project_id: "prj_9", scopes: [] },
+      api_key: {
+        id: "key_1",
+        name: "Site",
+        scopes: [],
+        published_only: false,
+        project_id: "prj_9",
+        expires_at: null,
+      },
     })
     const list = json(200, {
       data: [],
@@ -92,7 +99,7 @@ describe("the key's project", () => {
     const me = json(200, {
       object: "principal",
       type: "user",
-      user: {},
+      user: { id: "usr_1", email: "a@example.com", name: null, staff: false },
       api_key: null,
     })
     const { nohead } = mockClient([me], { projectId: undefined })
