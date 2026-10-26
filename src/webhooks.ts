@@ -77,8 +77,9 @@ export interface UnwrapOptions {
   /**
    * The webhook's signing secret (`whsec_…`). While a rotation overlaps,
    * requests carry a signature for each secret, so either one verifies.
+   * An unset one (as from a missing environment variable) throws.
    */
-  secret: string
+  secret: string | undefined
   /** Seconds a timestamp may be off from now. Default 300. */
   tolerance?: number
 }
@@ -116,7 +117,7 @@ export async function unwrapWebhook<D = RecordData>(
   }
 
   const text = typeof body === "string" ? body : new TextDecoder().decode(body)
-  const keyBytes = decodeBase64(secret.replace(/^whsec_/, ""), "secret")
+  const keyBytes = decodeBase64((secret ?? "").replace(/^whsec_/, ""), "secret")
   if (keyBytes.length === 0) {
     throw new WebhookVerificationError("The webhook secret is empty")
   }
