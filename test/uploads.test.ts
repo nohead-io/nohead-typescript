@@ -1,7 +1,20 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { ConnectionError, UploadError, ValidationError } from "../src/index.ts"
-import { apiError, exampleOf, json, mockClient, settle } from "./helpers.ts"
+import {
+  ConnectionError,
+  TimeoutError,
+  UploadError,
+  ValidationError,
+  type Uploadable,
+} from "../src/index.ts"
+import {
+  apiError,
+  exampleOf,
+  json,
+  mockClient,
+  settle,
+  type Call,
+} from "./helpers.ts"
 
 const asset = (status: string) =>
   exampleOf("assets_get", { id: "ast_1", filename: "a.png", status })
@@ -25,6 +38,14 @@ const bytes = () =>
       controller.close()
     },
   })
+
+// Storage that answers only when the request's signal aborts it.
+const hang = (call: Call) =>
+  new Promise<Response>((_, reject) =>
+    call.signal?.addEventListener("abort", () =>
+      reject(call.signal!.reason as Error)
+    )
+  )
 
 describe("assets.upload", () => {
   it("creates the upload, sends the bytes to storage, then completes it", async () => {
@@ -71,6 +92,9 @@ describe("assets.upload", () => {
     const put = calls[1]!
     expect(put.body).toBeInstanceOf(ReadableStream)
     expect(put.init).toHaveProperty("duplex", "half")
+    // The URL is signed for the size, which fetch wouldn't send for a stream.
+    expect(put.headers.get("content-length")).toBe("3")
+    expect(put.headers.get("content-type")).toBe("image/png")
     expect(calls[2]!.url.pathname).toBe("/v1/assets/ast_1/complete")
   })
 
@@ -127,6 +151,87 @@ describe("assets.upload", () => {
       content_type: "application/octet-stream",
       byte_size: 10,
     })
+  })
+
+  it("takes an empty filename and content type as unset", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+    ])
+    await nohead.assets.upload(new Blob(["x"]), {
+      filename: "",
+      content_type: "",
+    })
+    const file = new File(["x"], "a.png", { type: "image/png" })
+    await nohead.assets.upload(file, { filename: "", content_type: "" })
+    expect(calls[0]!.body).toMatchObject({
+      filename: "upload",
+      content_type: "application/octet-stream",
+    })
+    expect(calls[3]!.body).toMatchObject({
+      filename: "a.png",
+      content_type: "image/png",
+    })
+  })
+
+  it("refuses a string, which is never a file's path or content", async () => {
+    const { nohead, calls } = mockClient([created])
+    await expect(
+      nohead.assets.upload("a.png" as unknown as Uploadable)
+    ).rejects.toThrow(
+      new TypeError(
+        "upload takes a Blob, File, ArrayBuffer, Uint8Array or ReadableStream; to upload a file from disk, pass await fs.openAsBlob(path)"
+      )
+    )
+    expect(calls).toHaveLength(0)
+  })
+
+  it("gives the bytes as long as they take at 64 KiB/s", async () => {
+    vi.useFakeTimers()
+    try {
+      const { nohead } = mockClient([created, hang], {
+        timeout: 10,
+        maxRetries: 0,
+      })
+      let error: unknown
+      // 10 s at 64 KiB/s.
+      void nohead.assets
+        .upload(new Uint8Array(655_360))
+        .catch((e: unknown) => (error = e))
+      await vi.advanceTimersByTimeAsync(9_999)
+      expect(error).toBeUndefined()
+      await vi.advanceTimersByTimeAsync(1)
+      expect(error).toBeInstanceOf(UploadError)
+      expect((error as UploadError).message).toBe(
+        "Could not upload upload: The request timed out after 10000 ms"
+      )
+      expect((error as UploadError).cause).toBeInstanceOf(TimeoutError)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("refuses storage's redirect", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new Response(null, {
+        status: 307,
+        headers: { location: "https://elsewhere.test/" },
+      }),
+    ])
+    const error = await nohead.assets
+      .upload(new Blob(["x"]))
+      .catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(UploadError)
+    expect((error as UploadError).message).toBe(
+      "Storage refused the upload of upload (307)"
+    )
+    expect(calls).toHaveLength(2)
+    expect(calls[1]!.init.redirect).toBe("manual")
   })
 
   it("types a Blob without a type by its filename", async () => {
@@ -201,6 +306,9 @@ describe("assets.upload", () => {
       .upload(bytes(), { byte_size: 3 })
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(UploadError)
+    expect((error as UploadError).message).toBe(
+      "Could not upload upload: Could not reach storage.test: fetch failed"
+    )
     expect((error as UploadError).status).toBeUndefined()
     expect((error as UploadError).cause).toBeInstanceOf(ConnectionError)
     expect(calls).toHaveLength(2)
@@ -230,10 +338,14 @@ describe("assets.upload", () => {
       created,
       new Response("denied", { status: 403 }),
     ])
+    // Named as the caller named it, not as the API stored it.
     const error = await nohead.assets
-      .upload(new Blob(["x"]))
+      .upload(new Blob(["x"]), { filename: "cover.png" })
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(UploadError)
+    expect((error as UploadError).message).toBe(
+      "Storage refused the upload of cover.png (403)"
+    )
     expect((error as UploadError).status).toBe(403)
   })
 

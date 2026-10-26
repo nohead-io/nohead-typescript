@@ -17,7 +17,10 @@ export type Uploadable = Blob | ArrayBuffer | Uint8Array | ReadableStream
 export interface UploadParams {
   /** Defaults to a `File`'s name, else `upload`. */
   filename?: string
-  /** Defaults to the `Blob`'s type, else `application/octet-stream`. */
+  /**
+   * Defaults to the `Blob`'s type, else the filename's extension's for
+   * common files, else `application/octet-stream`.
+   */
   content_type?: string
   /** Required for a `ReadableStream`; known for everything else. */
   byte_size?: number
@@ -74,15 +77,22 @@ export class Assets extends Resource {
     params: UploadParams = {},
     options?: RequestOptions
   ): Promise<Asset> {
+    // Never a path: the Python and Ruby SDKs take one, so it would be easy
+    // to send its text instead.
+    if (typeof file === "string") {
+      throw new TypeError(
+        "upload takes a Blob, File, ArrayBuffer, Uint8Array or ReadableStream; to upload a file from disk, pass await fs.openAsBlob(path)"
+      )
+    }
     const byteSize = params.byte_size ?? sizeOf(file)
     if (byteSize === undefined) {
       throw new UploadError("Uploading a stream needs `byte_size`")
     }
+    // Empty ones count as unset.
     const filename =
-      params.filename ??
-      (typeof File !== "undefined" && file instanceof File
-        ? file.name
-        : "upload")
+      params.filename ||
+      (typeof File !== "undefined" && file instanceof File && file.name) ||
+      "upload"
     const { upload, ...asset } = await this.createUpload(
       {
         filename,
@@ -90,10 +100,10 @@ export class Assets extends Resource {
         // Blob from Node's openAsBlob has none), as the Python and Ruby
         // SDKs do.
         content_type:
-          params.content_type ??
-          ((file instanceof Blob && file.type) ||
-            contentTypeOf(filename) ||
-            "application/octet-stream"),
+          params.content_type ||
+          (file instanceof Blob && file.type) ||
+          contentTypeOf(filename) ||
+          "application/octet-stream",
         byte_size: byteSize,
       },
       options
@@ -109,7 +119,7 @@ export class Assets extends Resource {
       // The key replays the first run's upload URL, which expires sooner.
       if (Date.parse(upload.expires_at) <= Date.now()) {
         throw new UploadError(
-          `The upload of ${asset.filename} expired: start it again with a new idempotencyKey`
+          `The upload of ${filename} expired: start it again with a new idempotencyKey`
         )
       }
     }
@@ -120,7 +130,11 @@ export class Assets extends Resource {
         upload.url,
         {
           method: upload.method,
-          headers: upload.headers,
+          // The URL is signed for this size; fetch would send a stream
+          // in chunks, without one.
+          headers: stream
+            ? { ...upload.headers, "Content-Length": String(byteSize) }
+            : upload.headers,
           body: file as BodyInit,
           ...(stream ? { duplex: "half" } : {}),
         },
@@ -129,14 +143,14 @@ export class Assets extends Resource {
       .catch((error: unknown) => {
         if (error instanceof AbortError) throw error
         throw new UploadError(
-          `Could not upload ${asset.filename}: ${(error as Error).message}`,
+          `Could not upload ${filename}: ${(error as Error).message}`,
           undefined,
           { cause: error }
         )
       })
     if (!response.ok) {
       throw new UploadError(
-        `Storage refused the upload of ${asset.filename} (${response.status})`,
+        `Storage refused the upload of ${filename} (${response.status})`,
         response.status
       )
     }
