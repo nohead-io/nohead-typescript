@@ -51,17 +51,25 @@ const nohead = new Nohead({
 })
 ```
 
-| Option       | Default                                        |                                                                                    |
-| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required. |
-| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                                    |
-| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                                     |
-| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                                           |
-| `timeout`    | `60000`                                        | Milliseconds per attempt.                                                          |
-| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                                            |
-| `headers`    | `{}`                                           | Added to every request.                                                            |
-| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.                               |
-| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency).                 |
+| Option       | Default                                        |                                                                                           |
+| ------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
+| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                                           |
+| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                                            |
+| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                                                  |
+| `timeout`    | `60000`                                        | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
+| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                                                   |
+| `headers`    | `{}`                                           | Added to every request.                                                                   |
+| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.                                      |
+| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency).                        |
+
+An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`. A `baseUrl` that isn't an `http` or `https` URL throws.
+
+`withOptions` copies a client with another `timeout`, `maxRetries` or `onRetry`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
+
+```ts
+const patient = nohead.withOptions({ timeout: 120_000, maxRetries: 5 })
+```
 
 API keys belong to a project, so methods like `collections.list()` need no project ID. Collections can be named by ID or slug everywhere.
 
@@ -192,6 +200,8 @@ Every error is a `NoheadError`. API errors are `APIError`s with `status`, `type`
 
 An API error's `message` names the status, the type and the request ID along with the API's message, so logging it is enough to look the request up: `422 validation_error: Title is required (request req_…)`. The API's own text is `apiMessage`, to show a person.
 
+The client follows no redirects: a `3xx` is an `APIError` (`type` `redirect`) that names where it pointed, which usually means the base URL is wrong.
+
 Other errors: `ConnectionError`, `TimeoutError` (a `ConnectionError`), `AbortError` (your `signal` fired), `UploadError` and `WebhookVerificationError`.
 
 ```ts
@@ -242,6 +252,10 @@ Every method takes request options as its last argument:
 - `signal`, `timeout`, `maxRetries` and `headers`
 
 Writes that change records or the schema also take `changeNote`, a reason kept with the revision, schema change or migration they make. Record and draft writes take `ifMatch` (see [concurrency](#concurrency)).
+
+Headers are matched by name in any case, and each is sent once: a call's `headers` replace the client's, which replace the SDK's own (`Authorization`, `User-Agent`…). The headers the request options set (`Idempotency-Key`, `If-Match`, `Nohead-Change-Note`, and `Content-Type` for a body) always win.
+
+**Timeouts:** `timeout` is the longest an attempt may go without progress: to connect and get the response, then between chunks of its body. A response that keeps arriving never times out; one that stalls for `timeout` throws `TimeoutError`, and is retried. fetch shows no progress while it sends an upload's bytes, so storage gets as long as sending them at 64 KiB/s takes, when that is longer than `timeout`.
 
 ## Concurrency
 
@@ -304,7 +318,9 @@ Thumbnails: an image's `preview_url` fits in 640×640, as WebP.
 2. Sends the bytes straight to storage.
 3. Completes the upload, which checks the file, and returns the `ready` asset.
 
-**Errors:** `UploadError` if storage refuses the bytes; `ValidationError` if the file fails the checks.
+A string is neither a path nor the content: it throws `TypeError` (use `await openAsBlob(path)` from `node:fs`). A stream is sent with `Content-Length: byte_size`, which the upload URL is signed for.
+
+**Errors:** `UploadError` whenever the bytes don't reach storage: `Storage refused the upload of cover.jpg (403)` when it refuses them, with its `status`, or `Could not upload cover.jpg: …` when it can't be reached or times out, with that error as the `cause`. `ValidationError` if the file fails the checks.
 
 **Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again resumes it: an asset that is already `ready` comes back without sending the bytes again. Once the upload's URL has expired (its `upload.expires_at`), it throws `UploadError`: start over with a new key.
 
@@ -381,7 +397,7 @@ export async function POST(request: Request) {
     await request.text(),
     request.headers,
     {
-      secret: process.env.NOHEAD_WEBHOOK_SECRET!,
+      secret: process.env.NOHEAD_WEBHOOK_SECRET,
     }
   )
   if (event.type === "record.published" && event.data.record) {
@@ -393,7 +409,7 @@ export async function POST(request: Request) {
 
 With `"max"`, Next.js serves the old version to the next request while it fetches the new one; pass `{ expire: 0 }` instead to drop it at once.
 
-Event types are those of the activity log (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). Narrowing by `type` types `event.data`, and `unwrap<Post>` types the records and drafts in it. `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off. After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
+Event types are those of the activity log (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). Narrowing by `type` types `event.data`, and `unwrap<Post>` types the records and drafts in it. `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off, or if the secret is empty or unset (`The webhook secret is empty`). After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
 
 A receiver that never calls the API can use `unwrapWebhook` from `@nohead/sdk/webhooks` without a client. Events can arrive more than once, so deduplicate by the `webhook-id` header.
 

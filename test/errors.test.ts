@@ -159,7 +159,7 @@ describe("errors", () => {
     expect(error.details).toEqual([])
   })
 
-  it("keeps only details that are objects", async () => {
+  it("keeps details that aren't objects as their text", async () => {
     const detail = {
       code: "revision_mismatch",
       message: "x",
@@ -168,12 +168,47 @@ describe("errors", () => {
     const error = (await failure(
       raw(
         apiError(412, "precondition_failed", {
-          details: [null, 1, "x", detail],
+          details: [null, 1, "x", [2], detail],
         })
       )
     )) as PreconditionFailedError
-    expect(error.details).toEqual([detail])
+    expect(error.details).toEqual([
+      { code: "unknown", message: "null" },
+      { code: "unknown", message: "1" },
+      { code: "unknown", message: "x" },
+      { code: "unknown", message: "[2]" },
+      detail,
+    ])
     expect(error.currentRevision).toBe(7)
+  })
+
+  it.each([
+    [
+      "https://api.nohead.io/v1/records/rec_1",
+      "301 redirect: The API answered with a redirect to https://api.nohead.io/v1/records/rec_1; check the base URL",
+    ],
+    [
+      undefined,
+      "301 redirect: The API answered with a redirect; check the base URL",
+    ],
+  ])("refuses a redirect to %s", async (location, message) => {
+    const { nohead, calls } = mockClient([
+      raw(
+        new Response(null, {
+          status: 301,
+          headers: location ? { location } : {},
+        })
+      ),
+    ])
+    const error = await nohead.records.create("posts", { data: {} }).then(
+      () => undefined,
+      (e: unknown) => e
+    )
+    expect((error as APIError).constructor).toBe(APIError)
+    expect(error).toMatchObject({ status: 301, type: "redirect", message })
+    // Not followed, and not retried.
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.init.redirect).toBe("manual")
   })
 
   it.each(["constructor", "toString", "__proto__"])(

@@ -1,5 +1,10 @@
 import type { PagePromise } from "./api-promise.ts"
-import { Core, type ClientOptions, type RequestOptions } from "./core.ts"
+import {
+  Core,
+  type ClientOptions,
+  type CopyOptions,
+  type RequestOptions,
+} from "./core.ts"
 import type * as G from "./generated/types.gen.ts"
 import { Assets } from "./resources/assets.ts"
 import { Drafts } from "./resources/drafts.ts"
@@ -39,7 +44,7 @@ export class Nohead {
   readonly #core: Core
 
   constructor(options: ClientOptions = {}) {
-    const core = new Core(options)
+    const core = (options as CopyOf)[COPY_OF] ?? new Core(options)
     this.#core = core
     this.records = new Records(core)
     this.revisions = new RevisionsById(core)
@@ -53,6 +58,17 @@ export class Nohead {
     this.featureFlags = new FeatureFlags(core)
     this.me = new Me(core)
     this.health = new Health(core)
+  }
+
+  /**
+   * A copy of the client with another `timeout`, `maxRetries` or `onRetry`,
+   * or more `headers` (added to this client's). It shares the key's project,
+   * so it doesn't look it up again.
+   *
+   *   await nohead.withOptions({ timeout: 5_000 }).records.get(id)
+   */
+  withOptions(options: CopyOptions): Nohead {
+    return new Nohead({ [COPY_OF]: this.#core.withOptions(options) } as CopyOf)
   }
 
   /**
@@ -81,6 +97,10 @@ export class Nohead {
     )
   }
 }
+
+// The core a copy is made with (`withOptions`), out of ClientOptions' sight.
+const COPY_OF = Symbol("copyOf")
+type CopyOf = ClientOptions & { [COPY_OF]?: Core }
 
 /** The main types, also reachable as `Nohead.Record`, `Nohead.Collection`… */
 // A type-only namespace merged with the class: `Nohead.Record` cannot be a

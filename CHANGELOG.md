@@ -19,6 +19,69 @@ section is its GitHub release's notes.
 - `DEFAULT_BASE_URL` is exported: the API's address (`https://api.nohead.io`)
   that a client uses when neither `baseUrl` nor `NOHEAD_API_URL` is set.
 
+- `timeout` is now the longest an attempt may go without progress: to get
+  the response, then between chunks of its body. A large response that keeps
+  arriving no longer times out; one that stalls still does. An upload's bytes
+  get as long as sending them at 64 KiB/s takes, if that is longer.
+
+- `withOptions({ timeout, maxRetries, headers, onRetry })` copies a client
+  with other settings; the copy shares the key's project lookup. `headers`
+  are added to the client's.
+
+- Redirects are no longer followed, which could send the API key to another
+  host or a write as a GET: a `3xx` throws an `APIError` with `type`
+  `redirect` and the message
+  `301 redirect: The API answered with a redirect to <Location>; check the base URL`.
+  A redirect from storage fails an upload with `UploadError`.
+
+- Headers are matched by name in any case, and each is sent once. A call's
+  `headers` replace the client's, which replace the SDK's own; the headers
+  the request options set (`Idempotency-Key`, `If-Match`,
+  `Nohead-Change-Note`, `Content-Type`) always win. A client header
+  `authorization` was sent along with the SDK's `Authorization`.
+
+- Empty options count as unset: `apiKey`, `baseUrl` and `projectId` of `""`
+  fall back to the environment and the defaults, an `idempotencyKey` of
+  `""` gets a generated key, an upload's `filename` and `content_type` of
+  `""` their defaults, and `imageUrl`'s empty options are left out.
+
+- A `baseUrl` that isn't an `http` or `https` URL throws a `NoheadError`
+  when the client is made, not on its first request.
+
+- A path value of `.` or `..` (`records.get("..")`) throws a `NoheadError`,
+  `Invalid record_id: ".."`, before anything is sent: URLs resolve them.
+
+- `ifMatch` that isn't a revision number, or an object with one, throws a
+  `TypeError` before anything is sent, where an object without one sent
+  `If-Match: "undefined"`.
+
+- `NaN` and `Infinity` in a body throw a `TypeError`, where they were sent as
+  `null`.
+
+- A list whose response isn't the API's list (a proxy's page, say) throws a
+  `NoheadError`, `The API's response could not be read (HTTP 200)`, not a
+  `TypeError` or a page without items.
+
+- `Retry-After` is read as a number of seconds (`120`, `1.5`) or an HTTP
+  date, in all three of its forms, in GMT. Anything else (`1e3`, `0x10`,
+  `-1`, an ISO 8601 time) is ignored and the usual backoff applies.
+
+- An error's details that aren't objects are kept, as
+  `{ code: "unknown", message: <the value as text> }`, rather than dropped.
+
+- `assets.upload` sends a stream with `Content-Length: byte_size`, which the
+  upload URL is signed for; storage could refuse it without one. Given a string,
+  it throws a `TypeError`: pass `await fs.openAsBlob(path)` for a file. Its
+  `UploadError` messages name the filename you passed (or `upload`).
+
+- `unwrapWebhook` and `webhooks.unwrap` take an unset `secret` (`undefined`,
+  as from a missing environment variable) and throw `WebhookVerificationError`
+  `The webhook secret is empty`, not a `TypeError`.
+
+- `imageUrl` throws a `TypeError` for an unknown `fit`
+  (`fit must be one of contain, cover, fill`), where it wrote `rs:undefined`
+  into the URL.
+
 ## 0.8.0
 
 - `Asset` has `file_url`, the file as uploaded, which downloads under its

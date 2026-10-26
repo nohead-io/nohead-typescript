@@ -140,13 +140,16 @@ describe("webhook verification", () => {
     expect((error as Error).message).toMatch("not base64")
   })
 
-  it.each(["", "whsec_"])("rejects an empty secret (%j)", async (empty) => {
-    const error = await unwrapWebhook(body, sign(body), {
-      secret: empty,
-    }).catch((e: unknown) => e)
-    expect(error).toBeInstanceOf(WebhookVerificationError)
-    expect((error as Error).message).toMatch("empty")
-  })
+  it.each(["", "whsec_", undefined, null])(
+    "rejects an empty or unset secret (%j)",
+    async (empty) => {
+      const error = await unwrapWebhook(body, sign(body), {
+        secret: empty as string | undefined,
+      }).catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(WebhookVerificationError)
+      expect((error as Error).message).toBe("The webhook secret is empty")
+    }
+  )
 })
 
 // The official Standard Webhooks library signs every request above and

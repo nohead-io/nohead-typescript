@@ -39,16 +39,13 @@ export function imageUrl(
   const at = base.indexOf("/plain/")
   if (at < 0) throw new TypeError(`Not a Nohead image URL: ${base}`)
 
-  const {
-    width,
-    height,
-    fit = "contain",
-    format,
-    quality,
-    dpr,
-    gravity,
-  } = options
-  for (const option of [gravity, ...(options.options ?? [])])
+  // Empty options count as unset.
+  const { width, height, format, quality, dpr, gravity } = options
+  const fit = options.fit || "contain"
+  if (!Object.hasOwn(FITS, fit))
+    throw new TypeError(`fit must be one of ${Object.keys(FITS).join(", ")}`)
+  const others = (options.options ?? []).filter(Boolean)
+  for (const option of [gravity, ...others])
     if (option && /[/@?#]/.test(option))
       throw new TypeError(`Not an imgproxy option: ${option}`)
   const segments: string[] = []
@@ -57,7 +54,7 @@ export function imageUrl(
   if (gravity) segments.push(`g:${gravity}`)
   if (dpr) segments.push(`dpr:${dpr}`)
   if (quality) segments.push(`q:${quality}`)
-  segments.push(...(options.options ?? []))
+  segments.push(...others)
 
   // The source comes last; a format replaces any the URL already names.
   let source = base.slice(at)

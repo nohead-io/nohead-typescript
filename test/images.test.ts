@@ -6,6 +6,7 @@ import {
   imageUrl,
   nextImageLoader,
   nuxtImageProvider,
+  type ImageOptions,
 } from "../src/images.ts"
 
 const base =
@@ -43,6 +44,28 @@ describe("imageUrl", () => {
     expect(() => imageUrl(base, { options: ["bl:2@x"] })).toThrow(
       /Not an imgproxy option/
     )
+  })
+
+  it("refuses an unknown fit, and takes a missing one as contain", () => {
+    for (const fit of ["crop", "toString"])
+      expect(() =>
+        imageUrl(base, { width: 1, fit: fit as ImageOptions["fit"] })
+      ).toThrow(new TypeError("fit must be one of contain, cover, fill"))
+    for (const fit of [undefined, null, ""])
+      expect(
+        imageUrl(base, { width: 1, fit: fit as ImageOptions["fit"] })
+      ).toBe(at("rs:fit:1:0"))
+  })
+
+  it("leaves empty options out", () => {
+    expect(
+      imageUrl(base, {
+        width: 1,
+        gravity: "",
+        format: "" as ImageOptions["format"],
+        options: ["", "bl:2"],
+      })
+    ).toBe(at("rs:fit:1:0/bl:2"))
   })
 
   it("refuses what is not a ready image's URL", () => {

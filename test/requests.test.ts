@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
 
+import { NoheadError } from "../src/index.ts"
 import { exampleOf, json, mockClient, page, record } from "./helpers.ts"
 
 describe("requests", () => {
@@ -9,6 +10,14 @@ describe("requests", () => {
     expect(calls[0]!.url.pathname).toBe(
       "/v1/collections/my%20posts%2F1/records"
     )
+  })
+
+  it.each([".", ".."])("refuses %j as a path value", async (value) => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    const error = await nohead.records.get(value).catch((e: unknown) => e)
+    expect(error).toEqual(new NoheadError(`Invalid record_id: "${value}"`))
+    expect(error).toBeInstanceOf(NoheadError)
+    expect(calls).toHaveLength(0)
   })
 
   it("serializes filters, sorts and expansions as the API reads them", async () => {
@@ -92,6 +101,17 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ publish_at: "2027-01-01T09:00:00.000Z" })
   })
 
+  it.each([NaN, Infinity, -Infinity])(
+    "refuses %s, which JSON can't carry",
+    async (value) => {
+      const { nohead, calls } = mockClient([json(201, record("rec_1"))])
+      await expect(
+        nohead.records.create("posts", { data: { price: value } })
+      ).rejects.toThrow(new TypeError(`JSON can't carry ${value} (in price)`))
+      expect(calls).toHaveLength(0)
+    }
+  )
+
   it("sends the schedule as given: a time left out is cleared", async () => {
     const { nohead, calls } = mockClient([schedule])
     await nohead.records.schedule("rec_1", { unpublish_at: null })
@@ -110,6 +130,12 @@ describe("requests", () => {
     expect(first).toMatch(/^[0-9a-f-]{36}$/)
     expect(second).not.toBe(first)
     expect(read).toBeNull()
+  })
+
+  it("generates an idempotency key for an empty one", async () => {
+    const { nohead, calls } = mockClient([json(201, record("rec_1"))])
+    await nohead.records.create("posts", { data: {} }, { idempotencyKey: "" })
+    expect(calls[0]!.headers.get("idempotency-key")).toMatch(/^[0-9a-f-]{36}$/)
   })
 
   it("uses the caller's idempotency key", async () => {
@@ -131,6 +157,30 @@ describe("requests", () => {
     )
     await nohead.records.publish("rec_1", { ifMatch: { revision: 4 } })
     expect(calls.map((c) => c.headers.get("if-match"))).toEqual(['"3"', '"4"'])
+  })
+
+  it.each([
+    ["a string", "3"],
+    ["a fraction", 3.5],
+    ["NaN", NaN],
+    ["an object without a revision", {}],
+    ["a revision that isn't a number", { revision: "3" }],
+  ])("refuses an ifMatch of %s", async (_, ifMatch) => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    await expect(
+      nohead.records.publish("rec_1", { ifMatch: ifMatch as number })
+    ).rejects.toThrow(
+      new TypeError(
+        "ifMatch takes a revision number, or a record, draft or object with a revision"
+      )
+    )
+    expect(calls).toHaveLength(0)
+  })
+
+  it("sends no change note for an empty one", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    await nohead.records.delete("rec_1", { changeNote: "" })
+    expect(calls[0]!.headers.has("nohead-change-note")).toBe(false)
   })
 
   it("sends a change note in any language, percent-encoded", async () => {

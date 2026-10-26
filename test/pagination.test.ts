@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { NoheadError, Page } from "../src/index.ts"
-import { json, mockClient, page, record } from "./helpers.ts"
+import { json, mockClient, page, raw, record } from "./helpers.ts"
 
 describe("pagination", () => {
   it("awaits to the first page, then pages by hand", async () => {
@@ -138,5 +138,19 @@ describe("pagination", () => {
     expect(calls[0]!.url.searchParams.get("filter[collection][in]")).toBe(
       "posts,pages"
     )
+  })
+
+  it.each([
+    ["a string", json(200, "posts")],
+    ["null", json(200, null)],
+    ["an object without data", json(200, { meta: {} })],
+    ["a page", new Response("<html>OK</html>", { status: 200 })],
+  ])("can't read %s as a list", async (_, reply) => {
+    const { nohead } = mockClient([raw(reply)])
+    const error = await nohead.records.list("posts").catch((e: unknown) => e)
+    expect(error).toEqual(
+      new NoheadError("The API's response could not be read (HTTP 200)")
+    )
+    expect((error as Error).constructor).toBe(NoheadError)
   })
 })

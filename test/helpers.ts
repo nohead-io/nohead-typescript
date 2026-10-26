@@ -146,8 +146,7 @@ async function checkReply(call: Call, response: Response): Promise<string[]> {
 
 /**
  * What `promise` settles to, running fake timers (vi.useFakeTimers) until it
- * does, so the waits between attempts take no time. Real timers, such as
- * AbortSignal.timeout's, still fire: each run yields to the event loop.
+ * does, so the waits between attempts, and timeouts, take no time.
  */
 export async function settle<T>(promise: PromiseLike<T>): Promise<T> {
   let done = false
