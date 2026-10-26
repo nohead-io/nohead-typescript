@@ -10,6 +10,7 @@ export {
   type ClientOptions,
   type ConditionalRequestOptions,
   type ConditionalWriteOptions,
+  type CopyOptions,
   type RequestOptions,
   type RetryEvent,
   type WriteOptions,

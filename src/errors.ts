@@ -30,7 +30,9 @@ export class APIError extends NoheadError {
   readonly body: unknown
 
   constructor(status: number, body: unknown, headers: Headers) {
-    const error = errorEnvelope(body)
+    // Below 400 (and not 2xx) is a redirect, which the SDK doesn't follow:
+    // `0` is a browser's, which shows nothing of it.
+    const error = status < 400 ? redirect(headers) : errorEnvelope(body)
     const requestId =
       error?.request_id ?? headers.get("x-request-id") ?? undefined
     const apiMessage = error?.message || `Request failed with status ${status}`
@@ -153,6 +155,7 @@ export function apiError(
   body: unknown,
   headers: Headers
 ): APIError {
+  if (status < 400) return new APIError(status, body, headers)
   const type = errorEnvelope(body)?.type
   const Class =
     (type && CLASSES.get(type)) ||
@@ -164,15 +167,48 @@ export function apiError(
   return new Class(status, body, headers)
 }
 
+/**
+ * `Retry-After` in seconds: a number of seconds (`120`, `1.5`), or an HTTP
+ * date. Anything else (`-1`, `1e3`, `0x10`, an ISO 8601 time) is undefined,
+ * as the Python and Ruby SDKs read it.
+ */
 export function retryAfterSeconds(headers: Headers): number | undefined {
-  const value = headers.get("retry-after")
+  const value = headers.get("retry-after")?.trim()
   if (!value) return undefined
-  const seconds = Number(value)
-  if (Number.isFinite(seconds)) return Math.max(0, seconds)
-  const date = Date.parse(value)
-  return Number.isNaN(date)
+  if (/^\d+(\.\d+)?$/.test(value)) return Number(value)
+  const date = httpDate(value)
+  return date === undefined
     ? undefined
     : Math.max(0, (date - Date.now()) / 1000)
+}
+
+// The three forms of an HTTP date (RFC 9110), all in GMT. Not Date.parse,
+// which takes more than these, and asctime's in the local time zone.
+const HTTP_DATES = [
+  // IMF-fixdate: Sun, 06 Nov 1994 08:49:37 GMT
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), (?<day>\d{2}) (?<month>\w{3}) (?<year>\d{4}) (?<time>\d{2}:\d{2}:\d{2}) GMT$/,
+  // RFC 850: Sunday, 06-Nov-94 08:49:37 GMT
+  /^(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day, (?<day>\d{2})-(?<month>\w{3})-(?<year>\d{2}) (?<time>\d{2}:\d{2}:\d{2}) GMT$/,
+  // asctime: Sun Nov  6 08:49:37 1994
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?<month>\w{3}) (?<day>[ \d]\d) (?<time>\d{2}:\d{2}:\d{2}) (?<year>\d{4})$/,
+]
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")
+
+/** An HTTP date in milliseconds, or undefined if `value` isn't one. */
+function httpDate(value: string): number | undefined {
+  const date = HTTP_DATES.map((pattern) => pattern.exec(value)?.groups).find(
+    Boolean
+  )
+  const month = MONTHS.indexOf(date?.month ?? "")
+  if (!date || month < 0) return undefined
+  let year = Number(date.year)
+  // RFC 850's two digits: the latest such year not over 50 years ahead.
+  if (date.year!.length === 2) {
+    year += 2000
+    if (year > new Date().getUTCFullYear() + 50) year -= 100
+  }
+  const [hours, minutes, seconds] = date.time!.split(":").map(Number)
+  return Date.UTC(year, month, Number(date.day), hours, minutes, seconds)
 }
 
 interface Envelope {
@@ -191,12 +227,27 @@ function errorEnvelope(body: unknown): Envelope | undefined {
     type: typeof type === "string" ? type : undefined,
     message: typeof message === "string" ? message : undefined,
     request_id: typeof request_id === "string" ? request_id : undefined,
-    // Only objects: currentRevision reads each detail's fields.
-    details: Array.isArray(details)
-      ? (details.filter(isObject) as ErrorDetail[])
-      : undefined,
+    details: Array.isArray(details) ? details.map(errorDetail) : undefined,
   }
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
+// A detail that isn't an object is kept as its text, so currentRevision can
+// read every detail's fields.
+function errorDetail(detail: unknown): ErrorDetail {
+  if (isObject(detail) && !Array.isArray(detail)) return detail as ErrorDetail
+  const message = typeof detail === "string" ? detail : JSON.stringify(detail)
+  return { code: "unknown", message: String(message) }
+}
+
+// A redirect's error: following one would send the API key elsewhere, or a
+// write as a GET.
+function redirect(headers: Headers): Envelope {
+  const location = headers.get("location")
+  return {
+    type: "redirect",
+    message: `The API answered with a redirect${location ? ` to ${location}` : ""}; check the base URL`,
+  }
+}
+
+export const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null

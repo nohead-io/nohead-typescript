@@ -10,6 +10,7 @@ import {
   NoheadError,
   TimeoutError,
   apiError,
+  isObject,
   retryAfterSeconds,
   type APIError,
 } from "./errors.ts"
@@ -35,7 +36,10 @@ export interface ClientOptions {
   projectId?: string
   /** Retries of failed requests (see README, "Retries"). Default 2. */
   maxRetries?: number
-  /** Milliseconds per attempt. Default 60 000. */
+  /**
+   * Milliseconds an attempt may go without progress (connecting, waiting for
+   * the response, then between chunks of its body). Default 60 000.
+   */
   timeout?: number
   /** A `fetch` implementation, for proxies, instrumentation or tests. */
   fetch?: typeof fetch
@@ -46,6 +50,12 @@ export interface ClientOptions {
   /** Called before each retry, for example to report it. */
   onRetry?: (retry: RetryEvent) => void
 }
+
+/** What `withOptions` changes in a client's copy. */
+export type CopyOptions = Pick<
+  ClientOptions,
+  "timeout" | "maxRetries" | "headers" | "onRetry"
+>
 
 /** A retry about to happen (`onRetry`). */
 export interface RetryEvent {
@@ -65,7 +75,7 @@ export interface RequestOptions {
   /** Sent as `Idempotency-Key` on writes. Generated when omitted. */
   idempotencyKey?: string
   signal?: AbortSignal
-  /** Milliseconds per attempt, overriding the client's. */
+  /** Milliseconds without progress, overriding the client's `timeout`. */
   timeout?: number
   /** Retries, overriding the client's. */
   maxRetries?: number
@@ -138,20 +148,21 @@ export class Core {
   readonly #timeout: number
   readonly #warnings: boolean
   readonly #onRetry: ClientOptions["onRetry"]
-  #projectId: Promise<string> | undefined
+  // The project lookup, shared with the client's copies (`withOptions`).
+  readonly #project: { id?: Promise<string> }
 
-  constructor(options: ClientOptions) {
+  constructor(options: ClientOptions, project: { id?: Promise<string> } = {}) {
     const env = environment()
-    // Empty environment variables count as unset.
-    const apiKey = options.apiKey ?? (env.NOHEAD_API_KEY || undefined)
+    // Empty options and environment variables count as unset.
+    const apiKey = options.apiKey || env.NOHEAD_API_KEY
     if (!apiKey) {
       throw new NoheadError(
         "Missing API key: pass `apiKey` or set NOHEAD_API_KEY"
       )
     }
     this.#apiKey = apiKey
-    this.#baseUrl = withoutTrailingSlashes(
-      options.baseUrl ?? (env.NOHEAD_API_URL || DEFAULT_BASE_URL)
+    this.#baseUrl = baseUrlOf(
+      options.baseUrl || env.NOHEAD_API_URL || DEFAULT_BASE_URL
     )
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.#headers = options.headers ?? {}
@@ -159,12 +170,30 @@ export class Core {
     this.#timeout = options.timeout ?? 60_000
     this.#warnings = options.warnings ?? true
     this.#onRetry = options.onRetry
-    if (options.projectId) this.#projectId = Promise.resolve(options.projectId)
+    this.#project = project
+    if (options.projectId) project.id ??= Promise.resolve(options.projectId)
+  }
+
+  /** A copy with other settings, sharing the project lookup. */
+  withOptions(options: CopyOptions): Core {
+    return new Core(
+      {
+        apiKey: this.#apiKey,
+        baseUrl: this.#baseUrl,
+        fetch: this.#fetch,
+        headers: { ...this.#headers, ...options.headers },
+        maxRetries: options.maxRetries ?? this.#maxRetries,
+        timeout: options.timeout ?? this.#timeout,
+        warnings: this.#warnings,
+        onRetry: options.onRetry ?? this.#onRetry,
+      },
+      this.#project
+    )
   }
 
   /** The API key's project, from `GET /v1/me` the first time. */
   projectId(): Promise<string> {
-    this.#projectId ??= this.request("me_get", {}).then(
+    this.#project.id ??= this.request("me_get", {}).then(
       (me) => {
         if (!me.api_key) {
           throw new NoheadError("The credentials are not a project API key")
@@ -172,11 +201,11 @@ export class Core {
         return me.api_key.project_id
       },
       (error: unknown) => {
-        this.#projectId = undefined
+        this.#project.id = undefined
         throw error
       }
     )
-    return this.#projectId
+    return this.#project.id
   }
 
   request<Op extends OperationId>(
@@ -203,6 +232,16 @@ export class Core {
       const query = { ...input.query, ...(cursor ? { cursor } : {}) }
       const result = await this.#send(operation, { ...input, query }, options)
       const list = result.data as { data: Item[]; meta: Meta }
+      // A proxy's page, say, rather than the API's list.
+      if (
+        !isObject(list) ||
+        !Array.isArray(list.data) ||
+        !isObject(list.meta)
+      ) {
+        throw new NoheadError(
+          `The API's response could not be read (HTTP ${result.response.status})`
+        )
+      }
       const page = new Page<Item, Meta>(list.data, list.meta, (next) =>
         fetchPage(next).then((r) => r.data)
       )
@@ -212,19 +251,32 @@ export class Core {
     return new PagePromise(fetchPage(first))
   }
 
-  /** `fetch` with this client's timeout and retries, for presigned URLs. */
+  /**
+   * `fetch` with this client's retries, for an upload's presigned URL. fetch
+   * shows no upload progress, so each attempt may take as long as sending
+   * `byteSize` at 64 KiB/s, if that is longer than the timeout.
+   */
   async fetchWithRetries(
     url: string,
     init: RequestInit,
-    options: RequestOptions & { retry: boolean }
+    options: RequestOptions & { retry: boolean; byteSize: number }
   ): Promise<Response> {
     const maxRetries = options.retry
       ? (options.maxRetries ?? this.#maxRetries)
       : 0
+    const timeout = Math.max(
+      options.timeout ?? this.#timeout,
+      (options.byteSize / 65_536) * 1000
+    )
     for (let attempt = 0; ; attempt++) {
       let failed: { status?: number; error?: NoheadError }
       try {
-        const { response } = await this.#attempt(url, init, options, false)
+        const { response } = await this.#attempt(
+          url,
+          init,
+          { ...options, timeout },
+          false
+        )
         if (!RETRYABLE_STATUSES.has(response.status) || attempt >= maxRetries) {
           return response
         }
@@ -248,38 +300,42 @@ export class Core {
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))
     appendQuery(url.searchParams, input.query)
 
-    const headers: Record<string, string> = {
+    // Each name once, whatever its case: the defaults, then the client's
+    // headers, the call's, and those of the request options, which win.
+    const headers: Record<string, string> = {}
+    setHeaders(headers, {
       Accept: "application/json",
       Authorization: `Bearer ${this.#apiKey}`,
       "Nohead-Client": `sdk-typescript/${VERSION}`,
       ...USER_AGENT,
-      ...this.#headers,
-    }
-    if (input.body !== undefined) headers["Content-Type"] = "application/json"
+    })
+    setHeaders(headers, this.#headers)
+    setHeaders(headers, options.headers)
+    const own: Record<string, string> = {}
+    if (input.body !== undefined) own["Content-Type"] = "application/json"
     if (method !== "GET") {
-      headers["Idempotency-Key"] = options.idempotencyKey ?? crypto.randomUUID()
+      own["Idempotency-Key"] = options.idempotencyKey || crypto.randomUUID()
     }
-    if (options.ifMatch !== undefined) {
-      const revision =
-        typeof options.ifMatch === "object"
-          ? options.ifMatch.revision
-          : options.ifMatch
-      headers["If-Match"] = `"${revision}"`
+    if (options.ifMatch !== undefined && options.ifMatch !== null) {
+      own["If-Match"] = `"${revisionOf(options.ifMatch)}"`
     }
     // Percent-encoded UTF-8: header values are bytes, and fetch refuses
     // anything past Latin-1 (the API decodes it). Lone surrogates (half an
     // emoji, from cutting a string) become U+FFFD, so encodeURIComponent
     // can encode them.
     if (options.changeNote)
-      headers["Nohead-Change-Note"] = encodeURIComponent(
+      own["Nohead-Change-Note"] = encodeURIComponent(
         options.changeNote.toWellFormed()
       )
-    Object.assign(headers, options.headers)
+    setHeaders(headers, own)
 
     const init: RequestInit = {
       method,
       headers,
-      body: input.body === undefined ? undefined : JSON.stringify(input.body),
+      body:
+        input.body === undefined
+          ? undefined
+          : JSON.stringify(input.body, finiteNumbers),
     }
     const maxRetries = options.maxRetries ?? this.#maxRetries
 
@@ -336,14 +392,32 @@ export class Core {
     options: RequestOptions,
     readBody: boolean
   ): Promise<{ response: Response; body: unknown }> {
+    // The timeout is the longest wait for progress, so a response that
+    // keeps arriving never times out: the timer starts again when the
+    // response comes, and with each chunk of its body.
     const timeout = options.timeout ?? this.#timeout
-    const timer = AbortSignal.timeout(timeout)
+    const timer = new AbortController()
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const progress = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => timer.abort(), timeout)
+    }
     const signal = options.signal
-      ? AbortSignal.any([options.signal, timer])
-      : timer
+      ? AbortSignal.any([options.signal, timer.signal])
+      : timer.signal
     try {
-      const response = await this.#fetch(url, { ...init, signal })
-      const body = readBody ? await parseBody(response) : undefined
+      progress()
+      // Redirects aren't followed: one would send the API key to another
+      // host, or a write as a GET.
+      const response = await this.#fetch(url, {
+        ...init,
+        redirect: "manual",
+        signal,
+      })
+      progress()
+      const body = readBody
+        ? await parseBody(response, signal, progress)
+        : undefined
       return { response, body }
     } catch (error) {
       if (options.signal?.aborted) {
@@ -351,13 +425,15 @@ export class Core {
           cause: options.signal.reason,
         })
       }
-      if (timer.aborted) {
+      if (timer.signal.aborted) {
         throw new TimeoutError(`The request timed out after ${timeout} ms`)
       }
       throw new ConnectionError(
         `Could not reach ${new URL(url).host}: ${(error as Error).message}`,
         { cause: error }
       )
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -378,6 +454,10 @@ export class Core {
       }
       if (value === undefined || value === "") {
         throw new NoheadError(`Missing ${name}`)
+      }
+      // Encoding leaves these as they are, and URLs resolve them.
+      if (value === "." || value === "..") {
+        throw new NoheadError(`Invalid ${name}: "${value}"`)
       }
       path = path.replace(`{${name}}`, encodeURIComponent(String(value)))
     }
@@ -449,14 +529,45 @@ function sleep(seconds: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
-async function parseBody(response: Response): Promise<unknown> {
-  const text = await response.text()
+async function parseBody(
+  response: Response,
+  signal: AbortSignal,
+  progress: () => void
+): Promise<unknown> {
+  const text = await readText(response, signal, progress)
   if (!text) return undefined
   if (!response.headers.get("content-type")?.includes("json")) return text
   try {
     return JSON.parse(text)
   } catch {
     return text
+  }
+}
+
+/** The body's text, calling `progress` for each chunk that arrives. */
+async function readText(
+  response: Response,
+  signal: AbortSignal,
+  progress: () => void
+): Promise<string> {
+  if (!response.body) return ""
+  const reader = response.body.getReader()
+  // A fetch ends the body when the signal aborts, but not every fetch is
+  // the platform's.
+  const cancel = () => void reader.cancel().catch(() => undefined)
+  signal.addEventListener("abort", cancel, { once: true })
+  const decoder = new TextDecoder()
+  let text = ""
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      signal.throwIfAborted()
+      if (done) return text + decoder.decode()
+      progress()
+      text += decoder.decode(value, { stream: true })
+    }
+  } finally {
+    signal.removeEventListener("abort", cancel)
   }
 }
 
@@ -514,11 +625,53 @@ function runtimeVersion(): string | undefined {
   return undefined
 }
 
-/** `url` without trailing slashes; a loop, as a regex backtracks on long runs of them. */
-function withoutTrailingSlashes(url: string): string {
+/** `url` without trailing slashes, if it is an http or https URL. */
+function baseUrlOf(url: string): string {
+  // A loop, as a regex backtracks on long runs of slashes.
   let end = url.length
   while (end > 0 && url[end - 1] === "/") end--
-  return url.slice(0, end)
+  const base = url.slice(0, end)
+  let protocol: string | undefined
+  try {
+    protocol = new URL(base).protocol
+  } catch {
+    // Not a URL at all.
+  }
+  if (protocol !== "http:" && protocol !== "https:") {
+    throw new NoheadError("baseUrl must be an http or https URL")
+  }
+  return base
+}
+
+/** Sets each header, replacing one of the same name in any case. */
+function setHeaders(
+  headers: Record<string, string>,
+  values: Record<string, string> = {}
+): void {
+  for (const [name, value] of Object.entries(values)) {
+    for (const key of Object.keys(headers))
+      if (key.toLowerCase() === name.toLowerCase()) delete headers[key]
+    headers[name] = value
+  }
+}
+
+/** `ifMatch`'s revision: a number, or a record's or a draft's. */
+function revisionOf(ifMatch: unknown): number {
+  const revision = isObject(ifMatch) ? ifMatch.revision : ifMatch
+  if (!Number.isInteger(revision)) {
+    throw new TypeError(
+      "ifMatch takes a revision number, or a record, draft or object with a revision"
+    )
+  }
+  return revision as number
+}
+
+// JSON has no NaN or Infinity, which JSON.stringify would send as null.
+function finiteNumbers(key: string, value: unknown): unknown {
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    throw new TypeError(`JSON can't carry ${value}${key ? ` (in ${key})` : ""}`)
+  }
+  return value
 }
 
 function environment(): Record<string, string | undefined> {

@@ -124,7 +124,7 @@ export class Assets extends Resource {
           body: file as BodyInit,
           ...(stream ? { duplex: "half" } : {}),
         },
-        { ...options, retry: !stream }
+        { ...options, retry: !stream, byteSize }
       )
       .catch((error: unknown) => {
         if (error instanceof AbortError) throw error
