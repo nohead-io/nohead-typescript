@@ -5,12 +5,16 @@
 //
 //   npm run build && NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 import { randomUUID } from "node:crypto"
+import { openAsBlob, statSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 
 import {
   Nohead,
   NotFoundError,
   PreconditionFailedError,
   ValidationError,
+  type Uploadable,
+  type UploadParams,
 } from "../dist/index.js"
 
 function expect(condition: unknown, message: string): asserts condition {
@@ -34,7 +38,33 @@ const nohead = new Nohead()
 
 // What the test created and has not deleted yet: deleted at the end, also
 // when it fails.
-const left: Partial<Record<"collections" | "assets" | "webhooks", string>> = {}
+const left = {
+  collections: new Set<string>(),
+  assets: new Set<string>(),
+  webhooks: new Set<string>(),
+}
+
+// A 1×1 PNG, which the API checks is one.
+const PNG = Uint8Array.from(
+  atob(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+  ),
+  (c) => c.charCodeAt(0)
+)
+const text = (value: string) => new TextEncoder().encode(value)
+
+/** `size` bytes in 64 KiB chunks, as a stream (which fetch sends as it reads). */
+function stream(size: number): ReadableStream<Uint8Array> {
+  let sent = 0
+  return new ReadableStream({
+    pull(controller) {
+      const chunk = Math.min(65_536, size - sent)
+      controller.enqueue(new Uint8Array(chunk).fill(sent % 251))
+      sent += chunk
+      if (sent >= size) controller.close()
+    },
+  })
+}
 
 try {
   const me = await nohead.me.get()
@@ -45,7 +75,7 @@ try {
     slug: `sdk-typescript-${randomUUID().slice(0, 8)}`,
     fields: [{ name: "Title", key: "title", type: "text", required: true }],
   })
-  left.collections = collection.id
+  left.collections.add(collection.id)
 
   const key = randomUUID()
   const first = await nohead.records.create<Post>(
@@ -104,6 +134,28 @@ try {
   }
   expect(titles.sort().join() === "Two,Uno", "iterating walks every page")
 
+  // Enough records for three pages of two: every one comes back, once.
+  for (const title of ["Tres", "Cuatro", "Cinco"]) {
+    await nohead.records.create<Post>(collection.slug, { data: { title } })
+  }
+  let pages = 1
+  let walked = await nohead.records.list<Post>(collection.slug, { limit: 2 })
+  while (walked.hasNextPage()) {
+    walked = await walked.getNextPage()
+    pages++
+  }
+  expect(pages === 3, `five records are three pages of two (got ${pages})`)
+  const ids: string[] = []
+  for await (const post of nohead.records.list<Post>(collection.slug, {
+    limit: 2,
+  })) {
+    ids.push(post.id)
+  }
+  expect(
+    ids.length === 5 && new Set(ids).size === 5,
+    "iterating three pages returns every record once"
+  )
+
   // A comma inside a value is escaped, or "Two" would match too.
   const chosen = await nohead.records.list<Post>(collection.slug, {
     filter: { title: { in: ["Uno", "Two, or not"] } },
@@ -153,33 +205,82 @@ try {
     "API errors deserialize"
   )
 
-  const asset = await nohead.assets.upload(
-    new Blob(["hello"], { type: "text/plain" }),
-    {
-      filename: "hello.txt",
-    }
-  )
-  left.assets = asset.id
-  expect(
-    asset.status === "ready" && asset.byte_size === 5,
-    "assets upload to storage"
-  )
+  // Every kind of file upload takes, through storage's signature check.
+  const here = fileURLToPath(import.meta.url)
+  const uploads: [string, Uploadable, UploadParams, number, string][] = [
+    [
+      "a Blob",
+      new Blob(["hello"], { type: "text/plain" }),
+      { filename: "hello.txt" },
+      5,
+      "text/plain",
+    ],
+    [
+      "a File",
+      new File([PNG], "pixel.png", { type: "image/png" }),
+      {},
+      PNG.byteLength,
+      "image/png",
+    ],
+    [
+      "a Blob from disk (openAsBlob)",
+      await openAsBlob(here),
+      { filename: "smoke.ts" },
+      statSync(here).size,
+      "application/octet-stream",
+    ],
+    [
+      "an ArrayBuffer",
+      text("# Notes\n").buffer,
+      { filename: "notes.md" },
+      8,
+      "text/markdown",
+    ],
+    [
+      "a Uint8Array",
+      text('{"a":1}'),
+      { filename: "data.json" },
+      7,
+      "application/json",
+    ],
+    [
+      "a ReadableStream",
+      stream(200_000),
+      { filename: "stream.csv", byte_size: 200_000 },
+      200_000,
+      "text/csv",
+    ],
+  ]
+  for (const [kind, file, params, byteSize, contentType] of uploads) {
+    const uploaded = await nohead.assets.upload(file, params)
+    left.assets.add(uploaded.id)
+    expect(
+      uploaded.status === "ready" &&
+        uploaded.byte_size === byteSize &&
+        uploaded.content_type === contentType,
+      `${kind} uploads (${uploaded.status}, ${uploaded.byte_size} bytes, ${uploaded.content_type})`
+    )
+  }
+  const asset = await nohead.assets.get([...left.assets][0]!)
+  expect(asset.filename === "hello.txt", "assets get")
 
   const renamed = await nohead.assets.update(asset.id, {
     filename: "greeting.txt",
   })
   expect(renamed.filename === "greeting.txt", "assets rename")
 
-  const deletedAsset = await nohead.assets.delete(asset.id)
-  expect(deletedAsset.deleted_at, "assets soft-delete")
-  await nohead.assets.purge(asset.id)
-  delete left.assets
+  for (const id of left.assets) {
+    const deletedAsset = await nohead.assets.delete(id)
+    expect(deletedAsset.deleted_at, "assets soft-delete")
+    await nohead.assets.purge(id)
+    left.assets.delete(id)
+  }
 
   const webhook = await nohead.webhooks.create({
     url: "https://example.com/nohead-smoke",
     event_types: ["record.published"],
   })
-  left.webhooks = webhook.id
+  left.webhooks.add(webhook.id)
   const rotated = await nohead.webhooks.rotateSecret(webhook.id)
   expect(
     webhook.secret.startsWith("whsec_") && rotated.secret !== webhook.secret,
@@ -194,15 +295,17 @@ try {
     (await nohead.webhooks.delete(webhook.id)).deleted_at,
     "webhooks delete"
   )
-  delete left.webhooks
+  left.webhooks.delete(webhook.id)
 
   const deleted = await nohead.records.delete(first.id)
   expect(deleted.deleted_at, "delete soft-deletes")
   await nohead.collections.delete(collection.id)
-  delete left.collections
+  left.collections.delete(collection.id)
 } finally {
-  for (const [resource, id] of Object.entries(left)) {
-    await nohead[resource as keyof typeof left].delete(id).catch(() => {})
+  for (const [resource, ids] of Object.entries(left)) {
+    for (const id of ids) {
+      await nohead[resource as keyof typeof left].delete(id).catch(() => {})
+    }
   }
 }
 
