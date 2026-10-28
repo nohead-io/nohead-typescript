@@ -1758,7 +1758,7 @@ export type AssetUploadTarget = {
 };
 
 /**
- * What a project API key may do. `records:write` also publishes, unpublishes and schedules records (the `records:publish` permission). `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, unpublished records included; published-only keys cannot have them.
+ * What a project API key may do. `records:write` also publishes, unpublishes and schedules records. `webhooks:read` includes delivery payloads and `webhooks:write` can subscribe an endpoint to every event, so both give access to the record, schema and asset data in events, unpublished records included; published-only keys cannot have them.
  */
 export type ApiKeyScope = 'records:read' | 'records:write' | 'schema:read' | 'schema:write' | 'assets:read' | 'assets:write' | 'search:read' | 'webhooks:read' | 'webhooks:write' | 'audit:read';
 
