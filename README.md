@@ -468,9 +468,10 @@ The unit tests' mock client (`mockClient` in `test/helpers.ts`) checks every req
 
 **How the code is organized:**
 
-- `openapi.json` is the API's published contract. `npm run generate` derives two things from it:
+- `openapi.json` is the API's published contract. `npm run generate` derives three things from it:
   - the types, in `src/generated/types.gen.ts` (hey-api)
   - the operation table, in `src/generated/operations.gen.ts`
+  - the schema types the SDK exports, in `src/generated/schemas.gen.ts`
 - The methods in `src/resources` are written by hand.
 - `test/contract.test.ts` calls every public method. It fails when an API-key operation in the contract has no method, when a query parameter is never sent (no method takes it, or no call passes it), or when a request doesn't match its operation (method, path, query parameters and JSON body, against their schemas). Each call gets an example of its operation's response, built from the contract's schema, and must return it.
 
@@ -478,7 +479,7 @@ The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using t
 
 ## Releasing
 
-1. Bump the version in `package.json` and `src/version.ts`.
+1. Bump the version in `package.json` and `src/version.ts`, then `npm install --package-lock-only`, so `package-lock.json` records it.
 2. Add a section for it to `CHANGELOG.md` (`## 1.2.3`), which becomes the release's notes.
 3. Merge to `main`. Its ruleset requires the **CI passed** check, so the commit goes through a pull request or a branch whose CI passed, and force pushes are refused.
 4. Run the **SDK release** workflow in the Nohead API repository. It runs this commit's smoke test against the API and pushes the tag `v1.2.3`. Nobody else can push `v*` tags: a tag ruleset lets only that workflow's deploy key through.
