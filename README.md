@@ -325,8 +325,6 @@ A string is neither a path nor the content: it throws `TypeError` (use `await op
 
 **Resuming:** pass an `idempotencyKey` (`upload(file, {}, { idempotencyKey })`) and running the same upload again resumes it: an asset that is already `ready` comes back without sending the bytes again. Once the upload's URL has expired (its `upload.expires_at`), it throws `UploadError`: start over with a new key.
 
-**Uploading from a browser:** create the upload on your server with `createUpload`, `PUT` the file from the browser, then `complete` it.
-
 **Renaming and alt text:** `update` changes an asset's `filename` and `alt` text, the default wherever the asset is used (`expand` returns it with the asset). The file itself never changes.
 
 ```ts
