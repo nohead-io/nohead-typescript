@@ -46,22 +46,23 @@ The package is ESM; Node 22+ can also `require()` it. It runs on Node 22, 24 and
 
 ```ts
 const nohead = new Nohead({
-  apiKey: process.env.NOHEAD_API_KEY, // default: NOHEAD_API_KEY
-  baseUrl: "https://api.nohead.io", // default: NOHEAD_API_URL, else production
+  apiKey: process.env.NOHEAD_API_KEY, // the default
+  timeout: 10_000,
+  maxRetries: 3,
 })
 ```
 
-| Option       | Default                                        |                                                                                           |
-| ------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
-| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` |                                                                                           |
-| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                                            |
-| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                                                  |
-| `timeout`    | `60000`                                        | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
-| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                                                   |
-| `headers`    | `{}`                                           | Added to every request.                                                                   |
-| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.                                      |
-| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency).                        |
+| Option       | Default                 |                                                                                           |
+| ------------ | ----------------------- | ----------------------------------------------------------------------------------------- |
+| `apiKey`     | `NOHEAD_API_KEY`        | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
+| `baseUrl`    | `https://api.nohead.io` | For a proxy, or a mock server in tests.                                                   |
+| `projectId`  | the key's project       | Looked up once with `GET /v1/me` when omitted.                                            |
+| `maxRetries` | `2`                     | See [retries](#retries-and-idempotency).                                                  |
+| `timeout`    | `60000`                 | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
+| `fetch`      | `globalThis.fetch`      | For proxies, instrumentation and tests.                                                   |
+| `headers`    | `{}`                    | Added to every request.                                                                   |
+| `warnings`   | `true`                  | Logs deprecation and plan usage warnings, once each.                                      |
+| `onRetry`    |                         | Called before each retry. See [retries](#retries-and-idempotency).                        |
 
 An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`. A `baseUrl` that isn't an `http` or `https` URL throws.
 
