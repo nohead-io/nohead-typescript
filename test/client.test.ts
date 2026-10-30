@@ -42,6 +42,7 @@ describe("configuration", () => {
 
   it("treats empty options as unset", async () => {
     vi.stubEnv("NOHEAD_API_KEY", "nohead_sk_env")
+    vi.stubEnv("NOHEAD_API_URL", "https://env.test")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({ apiKey: "", baseUrl: "", fetch }).records.get("rec_1")
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]

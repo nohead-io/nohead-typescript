@@ -35,7 +35,11 @@ interface Post {
   title: string
 }
 
-const nohead = new Nohead({ baseUrl: process.env.NOHEAD_API_URL })
+// The API to test. Required, so that a missing variable doesn't run the test
+// against production.
+const baseUrl = process.env.NOHEAD_API_URL
+expect(baseUrl, "NOHEAD_API_URL is set to the API to test")
+const nohead = new Nohead({ baseUrl })
 
 // What the test created and has not deleted yet: deleted at the end, also
 // when it fails.
