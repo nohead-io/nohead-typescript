@@ -64,7 +64,7 @@ const nohead = new Nohead({
 | `warnings`   | `true`                  | Logs deprecation and plan usage warnings, once each.                                      |
 | `onRetry`    |                         | Called before each retry. See [retries](#retries-and-idempotency).                        |
 
-An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`. A `baseUrl` that isn't an `http` or `https` URL throws.
+An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`, and `baseUrl: ""` to `https://api.nohead.io`. The base URL comes only from `baseUrl`, never from the environment. A `baseUrl` that isn't an `http` or `https` URL throws.
 
 `withOptions` copies a client with another `timeout`, `maxRetries` or `onRetry`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
 

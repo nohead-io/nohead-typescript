@@ -7,6 +7,11 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- **Breaking:** the client no longer reads `NOHEAD_API_URL`: a stray value
+  sent requests, with the API key, to another host. The base URL is
+  `baseUrl`, else `https://api.nohead.io`; pass `baseUrl` to use another
+  API, as in `new Nohead({ baseUrl: process.env.NOHEAD_API_URL })`.
+
 - An `APIError`'s `message` names the status, the error type and the
   request ID along with the API's message, as in the Python and Ruby SDKs:
   `422 validation_error: Title is required (request req_…)`, where it was
@@ -17,7 +22,7 @@ section is its GitHub release's notes.
   variable), not the platform's `DOMException`.
 
 - `DEFAULT_BASE_URL` is exported: the API's address (`https://api.nohead.io`)
-  that a client uses when neither `baseUrl` nor `NOHEAD_API_URL` is set.
+  that a client uses when `baseUrl` isn't set.
 
 - `timeout` is now the longest an attempt may go without progress: to get
   the response, then between chunks of its body. A large response that keeps
@@ -41,7 +46,7 @@ section is its GitHub release's notes.
   `authorization` was sent along with the SDK's `Authorization`.
 
 - Empty options count as unset: `apiKey`, `baseUrl` and `projectId` of `""`
-  fall back to the environment and the defaults, an `idempotencyKey` of
+  fall back to `NOHEAD_API_KEY` and the defaults, an `idempotencyKey` of
   `""` gets a generated key, an upload's `filename` and `content_type` of
   `""` their defaults, and `imageUrl`'s empty options are left out.
 

@@ -1,7 +1,8 @@
 // Smoke test (Nohead spec §48.14): the core flow against a live API, using
-// the built package. Needs NOHEAD_API_URL and NOHEAD_API_KEY (a key with
-// schema, records, assets and webhooks read/write scopes). Exits non-zero on
-// failure, after deleting what it created.
+// the built package. Needs NOHEAD_API_URL (the API to test, passed as
+// `baseUrl`) and NOHEAD_API_KEY (a key with schema, records, assets and
+// webhooks read/write scopes). Exits non-zero on failure, after deleting what
+// it created.
 //
 //   npm run build && NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 import { randomUUID } from "node:crypto"
@@ -34,7 +35,11 @@ interface Post {
   title: string
 }
 
-const nohead = new Nohead()
+// The API to test. Required, so that a missing variable doesn't run the test
+// against production.
+const baseUrl = process.env.NOHEAD_API_URL
+expect(baseUrl, "NOHEAD_API_URL is set to the API to test")
+const nohead = new Nohead({ baseUrl })
 
 // What the test created and has not deleted yet: deleted at the end, also
 // when it fails.
