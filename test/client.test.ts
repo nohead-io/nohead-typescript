@@ -15,25 +15,37 @@ describe("configuration", () => {
     expect(() => new Nohead()).toThrow(NoheadError)
   })
 
-  it("reads the key and URL from the environment", async () => {
+  it("reads the key from the environment, not the URL", async () => {
     vi.stubEnv("NOHEAD_API_KEY", "nohead_sk_env")
     vi.stubEnv("NOHEAD_API_URL", "https://env.test/")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({ fetch }).records.get("rec_1")
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe("https://env.test/v1/records/rec_1")
+    expect(url).toBe("https://api.nohead.io/v1/records/rec_1")
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer nohead_sk_env"
     )
   })
 
+  it("takes the base URL from its option", async () => {
+    vi.stubEnv("NOHEAD_API_URL", "https://env.test")
+    const fetch = vi.fn(async () => json(200, record("rec_1")))
+    await new Nohead({
+      apiKey: "nohead_sk_x",
+      baseUrl: "https://api.test",
+      fetch,
+    }).records.get("rec_1")
+    expect(String((fetch.mock.calls[0] as unknown[])[0])).toBe(
+      "https://api.test/v1/records/rec_1"
+    )
+  })
+
   it("treats empty options as unset", async () => {
     vi.stubEnv("NOHEAD_API_KEY", "nohead_sk_env")
-    vi.stubEnv("NOHEAD_API_URL", "https://env.test")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({ apiKey: "", baseUrl: "", fetch }).records.get("rec_1")
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe("https://env.test/v1/records/rec_1")
+    expect(url).toBe("https://api.nohead.io/v1/records/rec_1")
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer nohead_sk_env"
     )
@@ -63,7 +75,6 @@ describe("configuration", () => {
   })
 
   it("defaults to the production API", async () => {
-    vi.stubEnv("NOHEAD_API_URL", "")
     const fetch = vi.fn(async () => json(200, record("rec_1")))
     await new Nohead({ apiKey: "nohead_sk_x", fetch }).records.get("rec_1")
     expect(String((fetch.mock.calls[0] as unknown[])[0])).toBe(

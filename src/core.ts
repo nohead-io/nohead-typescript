@@ -30,7 +30,10 @@ export interface ClientOptions {
    * Defaults to `NOHEAD_API_KEY`.
    */
   apiKey?: string
-  /** Defaults to `NOHEAD_API_URL`, else `https://api.nohead.io`. */
+  /**
+   * The API's address. Defaults to `https://api.nohead.io`; the environment
+   * isn't read for it, so the key only goes where the code says.
+   */
   baseUrl?: string
   /** The key's project. Looked up once with `GET /v1/me` when omitted. */
   projectId?: string
@@ -152,18 +155,15 @@ export class Core {
   readonly #project: { id?: Promise<string> }
 
   constructor(options: ClientOptions, project: { id?: Promise<string> } = {}) {
-    const env = environment()
     // Empty options and environment variables count as unset.
-    const apiKey = options.apiKey || env.NOHEAD_API_KEY
+    const apiKey = options.apiKey || environment().NOHEAD_API_KEY
     if (!apiKey) {
       throw new NoheadError(
         "Missing API key: pass `apiKey` or set NOHEAD_API_KEY"
       )
     }
     this.#apiKey = apiKey
-    this.#baseUrl = baseUrlOf(
-      options.baseUrl || env.NOHEAD_API_URL || DEFAULT_BASE_URL
-    )
+    this.#baseUrl = baseUrlOf(options.baseUrl || DEFAULT_BASE_URL)
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.#headers = options.headers ?? {}
     this.#maxRetries = options.maxRetries ?? 2
