@@ -1849,8 +1849,7 @@ export type Expand = string;
  * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
  * filters combine with AND. Keys are field keys, `published_at`,
  * `deleted` (`true` lists soft-deleted records instead) and, in record
- * lists and counts, `created_at` and `updated_at`. In search,
- * `published_at` takes only `exists`.
+ * lists and counts, `created_at` and `updated_at`.
  *
  * - `eq`, `ne`: equal, not equal. For fields with several values,
  * "contains" and "does not contain". `ne` matches records with no value.
@@ -2006,8 +2005,7 @@ export type RecordsListData = {
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
          * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at` and `updated_at`. In search,
-         * `published_at` takes only `exists`.
+         * lists and counts, `created_at` and `updated_at`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
@@ -2456,8 +2454,7 @@ export type RecordsCountData = {
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
          * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at` and `updated_at`. In search,
-         * `published_at` takes only `exists`.
+         * lists and counts, `created_at` and `updated_at`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
@@ -6420,8 +6417,7 @@ export type CollectionsSearchData = {
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
          * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
-         * lists and counts, `created_at` and `updated_at`. In search,
-         * `published_at` takes only `exists`.
+         * lists and counts, `created_at` and `updated_at`.
          *
          * - `eq`, `ne`: equal, not equal. For fields with several values,
          * "contains" and "does not contain". `ne` matches records with no value.
