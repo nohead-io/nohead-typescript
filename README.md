@@ -42,6 +42,8 @@ npm install @nohead/sdk
 
 The package is ESM; Node 22+ can also `require()` it. It runs on Node 22, 24 and 26, Bun, Deno, Cloudflare Workers and other runtimes with `fetch`, Web Crypto and ES2024. Use it on servers: API keys are secrets.
 
+Until 1.0, any release may break your code: pin a version, and read the changelog's **Breaking** entries before upgrading.
+
 ## Configuration
 
 ```ts
@@ -474,14 +476,14 @@ The unit tests' mock client (`mockClient` in `test/helpers.ts`) checks every req
 - The methods in `src/resources` are written by hand.
 - `test/contract.test.ts` calls every public method. It fails when an API-key operation in the contract has no method, when a query parameter is never sent (no method takes it, or no call passes it), or when a request doesn't match its operation (method, path, query parameters and JSON body, against their schemas). Each call gets an example of its operation's response, built from the contract's schema, and must return it.
 
-The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. Nohead's own CI runs it on every API contract change.
+The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. The Nohead API repository runs it in its end-to-end tests and before every release.
 
 ## Releasing
 
 1. Bump the version in `package.json` and `src/version.ts`, then `npm install --package-lock-only`, so `package-lock.json` records it.
 2. Add a section for it to `CHANGELOG.md` (`## 1.2.3`), which becomes the release's notes.
 3. Merge to `main`. Its ruleset requires the **CI passed** check, so the commit goes through a pull request or a branch whose CI passed, and force pushes are refused.
-4. Run the **SDK release** workflow in the Nohead API repository. It runs this commit's smoke test against the API and pushes the tag `v1.2.3`. Nobody else can push `v*` tags: a tag ruleset lets only that workflow's deploy key through.
+4. Run the **SDK release** workflow in the Nohead API repository. It runs this commit's smoke test against the API and pushes the tag `v1.2.3`. A tag ruleset lets only deploy keys push `v*` tags.
 5. The tag starts `.github/workflows/release.yml`. A build job checks the tag is on `main` and matches the version and its notes, and packs the package, with no publishing credential. Its publishing job runs in the `release` environment, which only `v*` tags can use, and the registry's trusted publisher accepts only that environment. It stages that package on npm with provenance through trusted publishing (no token), then creates a draft GitHub release.
 6. Approve the staged version with 2FA, on npmjs.com, or with `npm stage list @nohead/sdk` and `npm stage approve <stage-id>`. Only then is it installable. Publish the draft GitHub release.
 
