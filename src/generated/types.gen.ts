@@ -245,6 +245,9 @@ export type LongTextFieldConfiguration = {
     max_length?: number;
 };
 
+/**
+ * A rich text document up to 1,000,000 bytes (`too_large`).
+ */
 export type RichTextFieldConfiguration = {
     /**
      * Help text for editors.
@@ -422,6 +425,9 @@ export type RelationFieldConfiguration = {
     target_collection_id: string;
 };
 
+/**
+ * Any JSON value up to 100,000 bytes (`too_large`), nested at most 32 levels deep (`too_deep`): for data with a shape of its own, such as settings or another service's payload. Content belongs in typed fields, and large data in an asset.
+ */
 export type JsonFieldConfiguration = {
     /**
      * Help text for editors.
@@ -648,6 +654,9 @@ export type CollectionCreate = {
     slug: string;
     description?: string | null;
     public_search?: boolean;
+    /**
+     * At most 100 (`too_many`).
+     */
     fields?: Array<FieldCreate>;
 };
 
@@ -1057,7 +1066,9 @@ export type MergedDraft = {
  * a list or quote), at most 100 per document (`too_many_images`); a
  * newly shown image must be an uploaded JPEG, PNG, GIF, WebP or AVIF of
  * the project (`invalid_reference`, `type_not_accepted`). `expand` embeds the assets, and published-only
- * keys can read the images of published records.
+ * keys can read the images of published records. A record holds at
+ * most 2,000,000 bytes of values, all fields together (`too_large` on
+ * `data`); one already larger can still be edited without growing.
  *
  */
 export type RecordData = {
