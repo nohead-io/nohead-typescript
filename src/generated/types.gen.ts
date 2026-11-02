@@ -246,7 +246,7 @@ export type LongTextFieldConfiguration = {
 };
 
 /**
- * A rich text document up to 1,000,000 bytes (`too_large`).
+ * A rich text document up to 1,000,000 bytes (`too_large`), written as Markdown or a document (see `RecordData`).
  */
 export type RichTextFieldConfiguration = {
     /**
@@ -1059,14 +1059,36 @@ export type MergedDraft = {
 };
 
 /**
- * Field values keyed by field `key`. A rich text value is a
- * ProseMirror/Tiptap JSON document (`{"type": "doc", "content": [...]}`).
- * An image of an asset in it is `{"type": "image", "attrs": {"asset_id":
- * "ast_...", "alt": "..."}}`, between the document's blocks (not inside
- * a list or quote), at most 100 per document (`too_many_images`); a
- * newly shown image must be an uploaded JPEG, PNG, GIF, WebP or AVIF of
- * the project (`invalid_reference`, `type_not_accepted`). `expand` embeds the assets, and published-only
- * keys can read the images of published records. A record holds at
+ * Field values keyed by field `key`.
+ *
+ * A rich text value is written as Markdown (GitHub Flavored, a string)
+ * or as a ProseMirror JSON document (`{"type": "doc", "content": [...]}`),
+ * and stored and read as the document (`rich_text` reads it as HTML or
+ * Markdown). Markdown is converted as closely as the vocabulary allows:
+ * headings below h3 become h3, task list items plain items, footnotes and
+ * raw HTML text. A document uses the web editor's vocabulary (Tiptap's
+ * StarterKit and tables) and nothing else; another name is refused with
+ * `invalid_format`, naming ours where one fits (`strong` is `bold`):
+ *
+ * - blocks: `paragraph`, `heading` (`level` 1-3), `blockquote`,
+ * `bulletList` and `orderedList` (`start`, `type`) of `listItem`
+ * (starting with a paragraph), `codeBlock` (`language`),
+ * `horizontalRule`, and `table` of `tableRow` of `tableHeader` or
+ * `tableCell` (`colspan`, `rowspan`, `colwidth`, `align`); any block
+ * may have `dir` (`auto`, `ltr`, `rtl`);
+ * - inline: `text` (non-empty) and `hardBreak`;
+ * - marks on text: `bold`, `italic`, `strike`, `underline`, `code` (alone),
+ * and `link` (`href`, and `target`, `rel`, `class`, `title`); a link's
+ * `href` is an `http`, `https`, `mailto`, `tel` or relative URL.
+ *
+ * An image of an asset is `{"type": "image", "attrs": {"asset_id":
+ * "ast_...", "alt": "..."}}` (in Markdown `![alt](ast_...)`, or the
+ * asset's `image_url`), between the document's blocks (not inside a list,
+ * quote or table), at most 100 per document (`too_many_images`); a newly
+ * shown image must be an uploaded JPEG, PNG, GIF, WebP, AVIF or SVG of
+ * the project (`invalid_reference`, `type_not_accepted`). `expand` embeds
+ * the assets, and published-only keys can read the images of published
+ * records. A record holds at
  * most 2,000,000 bytes of values, all fields together (`too_large` on
  * `data`); one already larger can still be edited without growing.
  *
@@ -1663,9 +1685,11 @@ export type AssetProperties = {
      */
     purge_after: NullableTimestamp;
     /**
-     * The URL of the whole image, for ready images (JPEG, PNG, GIF, WebP
-     * or AVIF), deleted ones included until they are purged; null
-     * otherwise. Image URLs are open and never expire. For a rendition,
+     * The URL of the whole image, for ready images (JPEG, PNG, GIF, WebP,
+     * AVIF or SVG), deleted ones included until they are purged; null
+     * otherwise. Image URLs are open and never expire. An SVG is served
+     * as SVG without its scripts, unless a format such as `@webp`
+     * rasterizes it. For a rendition,
      * write [imgproxy processing options](https://docs.imgproxy.net/usage/processing)
      * before `/plain/`, and a format after `@`: for example
      * `https://images.nohead.io/rs:fill:800:600/g:sm/plain/…@webp`. Renditions
@@ -1676,7 +1700,7 @@ export type AssetProperties = {
      */
     image_url: string | null;
     /**
-     * The URL of a small rendition (fits in 640×640, WebP), for ready images and SVGs (rasterized; SVGs have no `image_url`), deleted ones included until they are purged; null otherwise.
+     * The URL of a small rendition (fits in 640×640, WebP), for ready images and SVGs (rasterized), deleted ones included until they are purged; null otherwise.
      */
     preview_url: string | null;
     /**
@@ -1852,6 +1876,11 @@ export type RevisionId = string;
 export type RevisionNumber = number;
 
 /**
+ * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+ */
+export type RichText = 'document' | 'html' | 'markdown';
+
+/**
  * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
  */
 export type Expand = string;
@@ -2013,6 +2042,10 @@ export type RecordsListData = {
     };
     query?: {
         /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+        /**
          * `filter[<key>]=value` (equal), or `filter[<key>][<operator>]=value`;
          * filters combine with AND. Keys are field keys, `published_at`,
          * `deleted` (`true` lists soft-deleted records instead) and, in record
@@ -2144,7 +2177,12 @@ export type RecordsCreateData = {
          */
         collection_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/collections/{collection_id}/records';
 };
 
@@ -2248,7 +2286,12 @@ export type RecordsDeleteData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}';
 };
 
@@ -2309,6 +2352,10 @@ export type RecordsGetData = {
         record_id: string;
     };
     query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
         /**
          * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
@@ -2393,7 +2440,12 @@ export type RecordsUpdateData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}';
 };
 
@@ -2569,7 +2621,12 @@ export type RecordsBulkData = {
          */
         collection_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/collections/{collection_id}/record-batches';
 };
 
@@ -2657,7 +2714,12 @@ export type RecordsRestoreData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}/restore';
 };
 
@@ -2753,7 +2815,12 @@ export type RecordsUnpublishData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}/publication';
 };
 
@@ -2893,7 +2960,12 @@ export type RecordsPublishData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}/publication';
 };
 
@@ -3419,6 +3491,10 @@ export type RecordRevisionsRevertData = {
         revision: number;
     };
     query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
         dry_run?: boolean;
     };
     url: '/v1/records/{record_id}/revisions/{revision}/revert';
@@ -3539,6 +3615,10 @@ export type RecordDraftsListData = {
     };
     query?: {
         /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+        /**
          * Page size.
          */
         limit?: number;
@@ -3612,7 +3692,12 @@ export type DraftsCreateData = {
     path: {
         record_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/records/{record_id}/drafts';
 };
 
@@ -3674,6 +3759,10 @@ export type DraftsListData = {
         collection_id: string;
     };
     query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
         sort?: 'updated_at' | '-updated_at';
         /**
          * Page size.
@@ -3753,7 +3842,12 @@ export type DraftsDiscardData = {
     path: {
         draft_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/drafts/{draft_id}';
 };
 
@@ -3814,6 +3908,10 @@ export type DraftsGetData = {
         draft_id: string;
     };
     query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
         /**
          * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
@@ -3888,7 +3986,12 @@ export type DraftsUpdateData = {
     path: {
         draft_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/drafts/{draft_id}';
 };
 
@@ -3982,7 +4085,12 @@ export type DraftsMergeData = {
     path: {
         draft_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/drafts/{draft_id}/merge';
 };
 
@@ -4062,7 +4170,12 @@ export type DraftsUnscheduleData = {
     path: {
         draft_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/drafts/{draft_id}/schedule';
 };
 
@@ -4132,7 +4245,12 @@ export type DraftsScheduleData = {
     path: {
         draft_id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+    };
     url: '/v1/drafts/{draft_id}/schedule';
 };
 
@@ -6413,6 +6531,10 @@ export type CollectionsSearchData = {
     };
     query?: {
         /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
+        /**
          * The words to search for; empty matches everything.
          */
         q?: string;
@@ -6517,6 +6639,10 @@ export type ProjectsSearchData = {
         project_id: string;
     };
     query?: {
+        /**
+         * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
         /**
          * The words to search for; empty matches everything.
          */

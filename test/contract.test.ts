@@ -5,9 +5,10 @@
 // parameter in openapi.json fails this test until a method takes it (and a
 // call in calls.ts or below passes it). Each call gets the contract's examples
 // of its operation's response, one per `oneOf` variant, and must return them.
-// Methods offer `ifMatch` and `changeNote` exactly where their operation
-// declares `If-Match` and `Nohead-Change-Note`: sent there (below), and not
-// accepted elsewhere (by type, in Core.request; spot checks below).
+// Methods offer `ifMatch`, `changeNote` and `richText` exactly where their
+// operation declares `If-Match`, `Nohead-Change-Note` and `rich_text`: sent
+// there (below), and not accepted elsewhere (by type, in Core.request; spot
+// checks below). The client's `richText` is sent exactly there too.
 import { describe, expect, it } from "vitest"
 
 import { OPERATIONS } from "../src/generated/operations.gen.ts"
@@ -61,14 +62,16 @@ const everyParameter: ((nohead: Nohead) => unknown)[] = [
     }),
 ]
 
-// Calls with the options sent as headers, for every operation that declares
-// them.
+// Calls with the options sent as headers or as `rich_text`, for every
+// operation that declares them.
 const conditional = { ifMatch: 1, changeNote: "Why" }
 const note = { changeNote: "Why" }
 const rec = "rec_01J9ZQ3F8X"
 const drf = "drf_01J9ZQ3F8X"
 const fld = "fld_01J9ZQ3F8X"
-const everyHeader: ((nohead: Nohead) => unknown)[] = [
+const html = { richText: "html" } as const
+const markdown = { richText: "markdown" } as const
+const everyOption: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.records.create("posts", { data: {} }, conditional),
   (nohead) => nohead.records.update(rec, { data: {} }, conditional),
   (nohead) => nohead.records.delete(rec, conditional),
@@ -105,6 +108,33 @@ const everyHeader: ((nohead: Nohead) => unknown)[] = [
       { field_id: fld, type: "long_text" },
       note
     ),
+  (nohead) => nohead.records.list("posts", {}, html),
+  (nohead) => nohead.records.get(rec, {}, markdown),
+  (nohead) => nohead.records.create("posts", { data: {} }, html),
+  (nohead) => nohead.records.update(rec, { data: {} }, html),
+  (nohead) => nohead.records.delete(rec, html),
+  (nohead) => nohead.records.restore(rec, html),
+  (nohead) => nohead.records.publish(rec, html),
+  (nohead) => nohead.records.unpublish(rec, html),
+  (nohead) =>
+    nohead.records.bulk(
+      "posts",
+      { action: "publish", record_ids: [rec] },
+      html
+    ),
+  (nohead) => nohead.records.revisions.revert(rec, 1, {}, html),
+  (nohead) => nohead.records.drafts(rec, {}, html),
+  (nohead) => nohead.records.search("posts", "hello", {}, html),
+  (nohead) => nohead.search("hello", {}, html),
+  (nohead) => nohead.drafts.create(rec, {}, html),
+  (nohead) => nohead.drafts.list("posts", {}, html),
+  (nohead) => nohead.drafts.get(drf, {}, html),
+  (nohead) => nohead.drafts.update(drf, { data: {} }, html),
+  (nohead) => nohead.drafts.discard(drf, html),
+  (nohead) => nohead.drafts.merge(drf, html),
+  (nohead) =>
+    nohead.drafts.schedule(drf, { merge_at: "2027-01-01T09:00:00Z" }, html),
+  (nohead) => nohead.drafts.unschedule(drf, html),
 ]
 
 // The query parameters and option headers each operation was sent with,
@@ -125,7 +155,7 @@ const named = (call: (nohead: Nohead) => unknown) =>
   ] as const
 
 describe("the contract", () => {
-  it.each([...everyCall, ...everyParameter, ...everyHeader].map(named))(
+  it.each([...everyCall, ...everyParameter, ...everyOption].map(named))(
     "is met by %s",
     async (_, call) => {
       let variant = 0
@@ -199,7 +229,26 @@ describe("the contract", () => {
     )
   })
 
-  it("offers ifMatch and changeNote only where declared, by type", () => {
+  it("sends the client's richText exactly where rich_text is declared", async () => {
+    const { nohead, calls } = mockClient([(c) => mockReply(c, 0)], {
+      richText: "markdown",
+    })
+    for (const call of everyCall) await call(nohead)
+    const withRichText = new Set(
+      calls
+        .filter((c) => c.url.searchParams.get("rich_text") === "markdown")
+        .map((c) => routeOf(c.method, c.url.pathname).id)
+    )
+    expect(
+      routes.filter(({ id }) => withRichText.has(id)).map(({ id }) => id)
+    ).toEqual(
+      routes
+        .filter(({ query }) => query.some((p) => p.name === "rich_text"))
+        .map(({ id }) => id)
+    )
+  })
+
+  it("offers ifMatch, changeNote and richText only where declared, by type", () => {
     // Never called: `npm run typecheck` fails if one of these compiles.
     const undeclared = (nohead: Nohead) => [
       // @ts-expect-error Assets keep no change note.
@@ -210,6 +259,10 @@ describe("the contract", () => {
       nohead.records.unschedule("rec_1", { ifMatch: 1 }),
       // @ts-expect-error Nor do schema writes.
       nohead.fields.delete("fld_1", { ifMatch: 1 }),
+      // @ts-expect-error Counts return no records to read rich text in.
+      nohead.records.count("posts", {}, { richText: "html" }),
+      // @ts-expect-error History keeps documents.
+      nohead.records.revisions.get("rec_1", 1, { richText: "html" }),
     ]
     expect(undeclared).toBeTypeOf("function")
   })

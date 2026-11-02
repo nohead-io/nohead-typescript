@@ -3,7 +3,7 @@ import {
   Core,
   type ClientOptions,
   type CopyOptions,
-  type RequestOptions,
+  type RichTextOptions,
 } from "./core.ts"
 import type * as G from "./generated/types.gen.ts"
 import { Assets } from "./resources/assets.ts"
@@ -61,8 +61,8 @@ export class Nohead {
   }
 
   /**
-   * A copy of the client with another `timeout`, `maxRetries` or `onRetry`,
-   * or more `headers` (added to this client's). It shares the key's project,
+   * A copy of the client with another `timeout`, `maxRetries`, `onRetry` or
+   * `richText`, or more `headers` (added to this client's). It shares the key's project,
    * so it doesn't look it up again.
    *
    *   await nohead.withOptions({ timeout: 5_000 }).records.get(id)
@@ -78,7 +78,7 @@ export class Nohead {
   search<D = RecordData>(
     query: string,
     params: ProjectSearchParams = {},
-    options?: RequestOptions
+    options?: RichTextOptions
   ): PagePromise<NoheadRecord<D>, SearchMeta> {
     const { collections, filter, ...rest } = params
     return this.#core.paginate(

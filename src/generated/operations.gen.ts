@@ -87,6 +87,31 @@ export const OPERATIONS = {
 
 export type OperationId = keyof typeof OPERATIONS
 
+/** The operations that take `rich_text`: those returning records or drafts. */
+export const RICH_TEXT_OPERATIONS: ReadonlySet<OperationId> = new Set([
+  "collections_search",
+  "drafts_create",
+  "drafts_discard",
+  "drafts_get",
+  "drafts_list",
+  "drafts_merge",
+  "drafts_schedule",
+  "drafts_unschedule",
+  "drafts_update",
+  "projects_search",
+  "record_drafts_list",
+  "record_revisions_revert",
+  "records_bulk",
+  "records_create",
+  "records_delete",
+  "records_get",
+  "records_list",
+  "records_publish",
+  "records_restore",
+  "records_unpublish",
+  "records_update",
+])
+
 export interface Operations {
   assets_complete: { data: T.AssetsCompleteData; response: T.AssetsCompleteResponse }
   assets_delete: { data: T.AssetsDeleteData; response: T.AssetsDeleteResponse }

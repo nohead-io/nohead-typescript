@@ -4,15 +4,28 @@
 // API keys, billing) belong to the web app and are left out.
 import { readFileSync, writeFileSync } from "node:fs"
 
+interface Parameter {
+  $ref?: string
+  name?: string
+  in?: string
+}
+
 interface Operation {
   operationId: string
   security?: Record<string, string[]>[]
+  parameters?: Parameter[]
 }
 
 interface Spec {
   security: Record<string, string[]>[]
-  paths: Record<string, Record<string, Operation>>
-  components: { schemas: Record<string, unknown> }
+  paths: Record<
+    string,
+    Record<string, Operation> & { parameters?: Parameter[] }
+  >
+  components: {
+    schemas: Record<string, unknown>
+    parameters: Record<string, Parameter>
+  }
 }
 
 const METHODS = ["get", "post", "put", "patch", "delete"] as const
@@ -27,7 +40,22 @@ const callableWithApiKey = (operation: Operation) => {
   return security.length === 0 || security.some((s) => "apiKey" in s)
 }
 
-const operations: { id: string; method: string; path: string }[] = []
+const parameter = (p: Parameter) =>
+  p.$ref ? spec.components.parameters[p.$ref.split("/").at(-1)!]! : p
+
+// An operation's query parameters, with those of its path.
+const queryOf = (item: { parameters?: Parameter[] }, operation: Operation) =>
+  [...(item.parameters ?? []), ...(operation.parameters ?? [])]
+    .map(parameter)
+    .filter((p) => p.in === "query")
+    .map((p) => p.name!)
+
+const operations: {
+  id: string
+  method: string
+  path: string
+  query: string[]
+}[] = []
 for (const [path, item] of Object.entries(spec.paths)) {
   for (const method of METHODS) {
     const operation = item[method]
@@ -36,6 +64,7 @@ for (const [path, item] of Object.entries(spec.paths)) {
         id: operation.operationId,
         method: method.toUpperCase(),
         path,
+        query: queryOf(item, operation),
       })
     }
   }
@@ -50,6 +79,14 @@ ${operations.map((o) => `  ${o.id}: { method: "${o.method}", path: "${o.path}" }
 } as const
 
 export type OperationId = keyof typeof OPERATIONS
+
+/** The operations that take \`rich_text\`: those returning records or drafts. */
+export const RICH_TEXT_OPERATIONS: ReadonlySet<OperationId> = new Set([
+${operations
+  .filter((o) => o.query.includes("rich_text"))
+  .map((o) => `  "${o.id}",`)
+  .join("\n")}
+])
 
 export interface Operations {
 ${operations.map((o) => `  ${o.id}: { data: T.${pascal(o.id)}Data; response: T.${pascal(o.id)}Response }`).join("\n")}

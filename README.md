@@ -22,6 +22,7 @@ for await (const post of nohead.records.list("posts", {
 - [Configuration](#configuration)
 - [Records](#records)
 - [Drafts](#drafts)
+- [Rich text](#rich-text)
 - [Pagination](#pagination)
 - [Errors](#errors)
 - [Retries and idempotency](#retries-and-idempotency)
@@ -65,10 +66,11 @@ const nohead = new Nohead({
 | `headers`    | `{}`                    | Added to every request.                                                                   |
 | `warnings`   | `true`                  | Logs deprecation and plan usage warnings, once each.                                      |
 | `onRetry`    |                         | Called before each retry. See [retries](#retries-and-idempotency).                        |
+| `richText`   | `"document"`            | How rich text reads: `"html"` or `"markdown"`. See [rich text](#rich-text).               |
 
 An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`, and `baseUrl: ""` to `https://api.nohead.io`. The base URL comes only from `baseUrl`, never from the environment. A `baseUrl` that isn't an `http` or `https` URL throws.
 
-`withOptions` copies a client with another `timeout`, `maxRetries` or `onRetry`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
+`withOptions` copies a client with another `timeout`, `maxRetries`, `onRetry` or `richText`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
 
 ```ts
 const patient = nohead.withOptions({ timeout: 120_000, maxRetries: 5 })
@@ -141,6 +143,24 @@ await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at }
 - `records.drafts(id)` lists a record's draft, and `drafts.list(collection)` a collection's.
 - `drafts.discard` deletes one for good.
 - Drafts take the type of their data as records do: `drafts.get<Post>(id)` is a `Nohead.Draft<Post>` (also exported as `NoheadDraft`).
+
+## Rich text
+
+A rich text field takes Markdown or a ProseMirror document, and reads as the document. To read it as HTML or Markdown, set `richText` on the client, or on one request:
+
+```ts
+await nohead.records.update(id, { data: { body: "Hello **world**" } })
+
+const site = nohead.withOptions({ richText: "html" })
+const post = await site.records.get<{ body: string }>(id)
+const html = `<article>${post.data.body}</article>` // safe to put in a page as it is
+
+await nohead.drafts.get(draftId, {}, { richText: "markdown" })
+```
+
+- A rich text field's value is then a string: type it as one in the data's type, as above.
+- It applies to the methods that return records or drafts, and to the records they embed with `expand`; a request's `richText` overrides the client's. History (`revisions`) and webhooks keep documents.
+- A string you write is read as Markdown, so write back Markdown or the document, never the HTML: with `richText: "html"` on the client, writes answer with HTML too.
 
 ## Pagination
 

@@ -5,6 +5,15 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- Rich text reads as HTML or Markdown: `richText: "html"` (or `"markdown"`)
+  on the client, or in a request's options, sends the API's `rich_text`
+  query parameter on the methods that return records or drafts, so a rich
+  text field's value in `data` is a string instead of the document. A
+  request's `richText` overrides the client's, and `withOptions` can change
+  it. Writing Markdown already worked: `data` is sent as it is.
+
 ## 0.9.0
 
 - **Breaking:** the client no longer reads `NOHEAD_API_URL`: a stray value
