@@ -160,6 +160,7 @@ await nohead.drafts.get(draftId, {}, { richText: "markdown" })
 
 - A rich text field's value is then a string: type it as one in the data's type, as above.
 - It applies to the methods that return records or drafts, and to the records they embed with `expand`; a request's `richText` overrides the client's. History (`revisions`) and webhooks keep documents.
+- A string you write is read as Markdown, so write back Markdown or the document, never the HTML: with `richText: "html"` on the client, writes answer with HTML too.
 
 ## Pagination
 

@@ -216,7 +216,7 @@ export class Core {
         timeout: options.timeout ?? this.#timeout,
         warnings: this.#warnings,
         onRetry: options.onRetry ?? this.#onRetry,
-        richText: options.richText ?? this.#richText,
+        richText: options.richText || this.#richText,
       },
       this.#project
     )
@@ -335,7 +335,7 @@ export class Core {
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))
     appendQuery(url.searchParams, input.query)
     // The call's, else the client's, and only where the operation takes it.
-    const richText = options.richText ?? this.#richText
+    const richText = options.richText || this.#richText
     if (richText && RICH_TEXT_OPERATIONS.has(operation)) {
       url.searchParams.set("rich_text", richText)
     }

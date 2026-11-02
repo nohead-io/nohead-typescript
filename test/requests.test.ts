@@ -288,9 +288,12 @@ describe("requests", () => {
       { richText: "html" }
     )
     await nohead.records.get("rec_1")
+    // An empty value is no value, as for the other options.
+    await nohead.records.get("rec_1", {}, { richText: "" as "html" })
     expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
       "document",
       "html",
+      "markdown",
       "markdown",
     ])
   })
