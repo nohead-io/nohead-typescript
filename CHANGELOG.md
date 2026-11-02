@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.10.0
 
 - Rich text reads as HTML or Markdown: `richText: "html"` (or `"markdown"`)
   on the client, or in a request's options, sends the API's `rich_text`
