@@ -13,6 +13,7 @@ export {
   type CopyOptions,
   type RequestOptions,
   type RetryEvent,
+  type RichTextOptions,
   type WriteOptions,
 } from "./core.ts"
 export {

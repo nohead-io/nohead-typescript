@@ -226,6 +226,20 @@ describe("withOptions", () => {
     expect(calls[3]!.headers.get("x-b")).toBe("copy")
     expect(calls[4]!.headers.get("x-b")).toBe("client")
   })
+
+  it("keeps the client's richText, or changes it", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))], {
+      richText: "html",
+    })
+    await nohead.withOptions({ timeout: 5_000 }).records.get("rec_1")
+    await nohead.withOptions({ richText: "markdown" }).records.get("rec_1")
+    await nohead.records.get("rec_1")
+    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
+      "html",
+      "markdown",
+      "html",
+    ])
+  })
 })
 
 describe("withResponse", () => {

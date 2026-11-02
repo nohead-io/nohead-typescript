@@ -16,10 +16,12 @@ import {
 } from "./errors.ts"
 import {
   OPERATIONS,
+  RICH_TEXT_OPERATIONS,
   type OperationId,
   type Operations,
 } from "./generated/operations.gen.ts"
 import type { ListMeta } from "./generated/types.gen.ts"
+import type { RichText } from "./types.ts"
 import { VERSION } from "./version.ts"
 
 export const DEFAULT_BASE_URL = "https://api.nohead.io"
@@ -52,12 +54,18 @@ export interface ClientOptions {
   warnings?: boolean
   /** Called before each retry, for example to report it. */
   onRetry?: (retry: RetryEvent) => void
+  /**
+   * How rich text fields read in the records and drafts returned: as HTML
+   * or Markdown strings, or as the stored document (the API's default). A
+   * request's `richText` overrides it.
+   */
+  richText?: RichText
 }
 
 /** What `withOptions` changes in a client's copy. */
 export type CopyOptions = Pick<
   ClientOptions,
-  "timeout" | "maxRetries" | "headers" | "onRetry"
+  "timeout" | "maxRetries" | "headers" | "onRetry" | "richText"
 >
 
 /** A retry about to happen (`onRetry`). */
@@ -83,6 +91,16 @@ export interface RequestOptions {
   /** Retries, overriding the client's. */
   maxRetries?: number
   headers?: Record<string, string>
+}
+
+/** Options of operations that return records or drafts. */
+export interface RichTextOptions extends RequestOptions {
+  /**
+   * How rich text fields read in the records or drafts returned (and in
+   * records they embed with `expand`), overriding the client's `richText`:
+   * `"html"` or `"markdown"` strings, or the stored `"document"`.
+   */
+  richText?: RichText
 }
 
 /** Options of writes that change records or the schema. */
@@ -115,10 +133,17 @@ type HeadersOf<Op extends OperationId> = Operations[Op]["data"] extends {
   ? keyof NonNullable<H>
   : never
 
+/** The query parameters an operation declares. */
+type QueryOf<Op extends OperationId> = Operations[Op]["data"] extends {
+  query?: infer Q
+}
+  ? keyof NonNullable<Q>
+  : never
+
 /**
- * The options an operation takes: `ifMatch` and `changeNote` only where it
- * declares `If-Match` and `Nohead-Change-Note`, so a method can't offer them
- * elsewhere.
+ * The options an operation takes: `ifMatch`, `changeNote` and `richText`
+ * only where it declares `If-Match`, `Nohead-Change-Note` and `rich_text`,
+ * so a method can't offer them elsewhere.
  */
 export type OptionsOf<Op extends OperationId> = RequestOptions &
   ("If-Match" extends HeadersOf<Op>
@@ -126,7 +151,10 @@ export type OptionsOf<Op extends OperationId> = RequestOptions &
     : { ifMatch?: never }) &
   ("Nohead-Change-Note" extends HeadersOf<Op>
     ? Pick<WriteOptions, "changeNote">
-    : { changeNote?: never })
+    : { changeNote?: never }) &
+  ("rich_text" extends QueryOf<Op>
+    ? Pick<RichTextOptions, "richText">
+    : { richText?: never })
 
 export interface RequestInput {
   path?: Record<string, string | number | undefined>
@@ -151,6 +179,7 @@ export class Core {
   readonly #timeout: number
   readonly #warnings: boolean
   readonly #onRetry: ClientOptions["onRetry"]
+  readonly #richText: RichText | undefined
   // The project lookup, shared with the client's copies (`withOptions`).
   readonly #project: { id?: Promise<string> }
 
@@ -170,6 +199,7 @@ export class Core {
     this.#timeout = options.timeout ?? 60_000
     this.#warnings = options.warnings ?? true
     this.#onRetry = options.onRetry
+    this.#richText = options.richText
     this.#project = project
     if (options.projectId) project.id ??= Promise.resolve(options.projectId)
   }
@@ -186,6 +216,7 @@ export class Core {
         timeout: options.timeout ?? this.#timeout,
         warnings: this.#warnings,
         onRetry: options.onRetry ?? this.#onRetry,
+        richText: options.richText ?? this.#richText,
       },
       this.#project
     )
@@ -221,10 +252,14 @@ export class Core {
   }
 
   /** A list operation as pages of `Item`. */
-  paginate<Item, Meta extends ListMeta = ListMeta>(
-    operation: OperationId,
+  paginate<
+    Item,
+    Meta extends ListMeta = ListMeta,
+    Op extends OperationId = OperationId,
+  >(
+    operation: Op,
     input: RequestInput,
-    options: RequestOptions = {}
+    options: OptionsOf<Op> = {}
   ): PagePromise<Item, Meta> {
     const fetchPage = async (
       cursor: string | undefined
@@ -294,11 +329,16 @@ export class Core {
   async #send(
     operation: OperationId,
     input: RequestInput,
-    options: ConditionalWriteOptions
+    options: ConditionalWriteOptions & RichTextOptions
   ): Promise<APIResponse<unknown>> {
     const { method, path } = OPERATIONS[operation]
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))
     appendQuery(url.searchParams, input.query)
+    // The call's, else the client's, and only where the operation takes it.
+    const richText = options.richText ?? this.#richText
+    if (richText && RICH_TEXT_OPERATIONS.has(operation)) {
+      url.searchParams.set("rich_text", richText)
+    }
 
     // Each name once, whatever its case: the defaults, then the client's
     // headers, the call's, and those of the request options, which win.

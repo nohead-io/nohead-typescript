@@ -253,6 +253,54 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ field_id: "fld_1", type: "integer" })
   })
 
+  it("reads rich text as the client's richText where the operation takes it", async () => {
+    const { nohead, calls } = mockClient(
+      [
+        json(200, record("rec_1")),
+        page([record("rec_1")], "c2"),
+        page([], null),
+        json(200, exampleOf("records_count")),
+        json(200, exampleOf("record_revisions_get")),
+      ],
+      { richText: "html" }
+    )
+    await nohead.records.get("rec_1")
+    await (await nohead.records.list("posts")).getNextPage()
+    await nohead.records.count("posts")
+    await nohead.records.revisions.get("rec_1", 1)
+    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
+      "html",
+      "html",
+      "html",
+      null,
+      null,
+    ])
+  })
+
+  it("lets a request's richText override the client's", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))], {
+      richText: "markdown",
+    })
+    await nohead.records.get("rec_1", {}, { richText: "document" })
+    await nohead.records.update(
+      "rec_1",
+      { data: { body: "Hello **world**" } },
+      { richText: "html" }
+    )
+    await nohead.records.get("rec_1")
+    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
+      "document",
+      "html",
+      "markdown",
+    ])
+  })
+
+  it("sends no rich_text unless asked", async () => {
+    const { nohead, calls } = mockClient([json(200, record("rec_1"))])
+    await nohead.records.get("rec_1")
+    expect(calls[0]!.url.searchParams.has("rich_text")).toBe(false)
+  })
+
   it("sends a diff's revisions as from and to", async () => {
     const { nohead, calls } = mockClient([
       json(200, exampleOf("records_diff", { from: 1, to: 2 })),

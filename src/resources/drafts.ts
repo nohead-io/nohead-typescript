@@ -2,7 +2,7 @@ import type { APIPromise, PagePromise } from "../api-promise.ts"
 import type {
   ConditionalRequestOptions,
   ConditionalWriteOptions,
-  RequestOptions,
+  RichTextOptions,
 } from "../core.ts"
 import type { RecordData } from "../generated/types.gen.ts"
 import type {
@@ -33,7 +33,7 @@ export class Drafts extends Resource {
   create<D = RecordData>(
     record: string,
     params: DraftCreateParams<D> = {},
-    options?: RequestOptions
+    options?: RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_create",
@@ -49,7 +49,7 @@ export class Drafts extends Resource {
   list<D = RecordData>(
     collection: string,
     params: DraftListParams = {},
-    options?: RequestOptions
+    options?: RichTextOptions
   ): PagePromise<NoheadDraft<D>> {
     return this.core.paginate(
       "drafts_list",
@@ -62,7 +62,7 @@ export class Drafts extends Resource {
   get<D = RecordData>(
     draft: string,
     params: DraftGetParams = {},
-    options?: RequestOptions
+    options?: RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_get",
@@ -75,7 +75,7 @@ export class Drafts extends Resource {
   update<D = RecordData>(
     draft: string,
     params: DraftUpdateParams<D>,
-    options?: ConditionalRequestOptions
+    options?: ConditionalRequestOptions & RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_update",
@@ -87,7 +87,7 @@ export class Drafts extends Resource {
   /** Deletes the draft for good; returns it as it was. */
   discard<D = RecordData>(
     draft: string,
-    options?: ConditionalRequestOptions
+    options?: ConditionalRequestOptions & RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_discard",
@@ -102,7 +102,7 @@ export class Drafts extends Resource {
    */
   merge<D = RecordData>(
     draft: string,
-    options?: ConditionalWriteOptions
+    options?: ConditionalWriteOptions & RichTextOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "drafts_merge",
@@ -115,7 +115,7 @@ export class Drafts extends Resource {
   schedule<D = RecordData>(
     draft: string,
     params: DraftScheduleParams,
-    options?: RequestOptions
+    options?: RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_schedule",
@@ -126,7 +126,7 @@ export class Drafts extends Resource {
 
   unschedule<D = RecordData>(
     draft: string,
-    options?: RequestOptions
+    options?: RichTextOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_unschedule",

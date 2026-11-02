@@ -26,6 +26,14 @@ export type NoheadDraft<D = G.RecordData> = Omit<G.Draft, "data"> & {
 /** Field values to write: `null` clears a field. */
 export type RecordDataUpdate<D> = { [K in keyof D]?: D[K] | null }
 
+/**
+ * How rich text fields read (`richText`): `"document"`, the stored
+ * ProseMirror JSON document (the default); `"html"`, an HTML fragment safe
+ * to put in a page as it is; or `"markdown"` (GitHub Flavored). As HTML or
+ * Markdown, a rich text field's value is a string.
+ */
+export type RichText = G.RichText
+
 export type FilterValue = string | number | boolean | Date
 
 /**
