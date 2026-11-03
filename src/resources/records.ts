@@ -268,11 +268,14 @@ export class Records extends Resource {
     )
   }
 
-  /** The changes between two revisions. */
+  /**
+   * The changes between two revisions; with `richText`, rich text fields'
+   * `before` and `after` read as HTML or Markdown.
+   */
   diff(
     record: string,
     params: RecordDiffParams,
-    options?: RequestOptions
+    options?: RichTextOptions
   ): APIPromise<RecordDiff> {
     return this.core.request(
       "records_diff",

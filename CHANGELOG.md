@@ -5,6 +5,12 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `records.diff` takes `richText`, and the client's `richText` now applies to
+  it: a rich text field's `before` and `after` read as HTML or Markdown
+  instead of documents. A revert preview's `changes` follow `richText` too.
+
 ## 0.10.0
 
 - Rich text reads as HTML or Markdown: `richText: "html"` (or `"markdown"`)
