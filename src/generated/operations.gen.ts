@@ -104,6 +104,7 @@ export const RICH_TEXT_OPERATIONS: ReadonlySet<OperationId> = new Set([
   "records_bulk",
   "records_create",
   "records_delete",
+  "records_diff",
   "records_get",
   "records_list",
   "records_publish",

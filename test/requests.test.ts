@@ -315,4 +315,16 @@ describe("requests", () => {
       to: "2",
     })
   })
+
+  it("sends a diff's richText as rich_text", async () => {
+    const { nohead, calls } = mockClient([
+      json(200, exampleOf("records_diff", { from: 1, to: 2 })),
+    ])
+    await nohead.records.diff(
+      "rec_1",
+      { from: 1, to: 2 },
+      { richText: "markdown" }
+    )
+    expect(calls[0]!.url.searchParams.get("rich_text")).toBe("markdown")
+  })
 })
