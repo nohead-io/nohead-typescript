@@ -1171,8 +1171,14 @@ export type RecordList = {
  *
  */
 export type Change = {
+    /**
+     * The field's key now, after any rename (its last key if it was deleted); null if the field no longer exists.
+     */
     field?: string | null;
     field_id?: string;
+    /**
+     * Whether the field has been deleted since.
+     */
     field_deleted?: boolean;
     attribute?: 'published_at' | 'deleted_at';
     kind: 'added' | 'changed' | 'removed';
@@ -1235,6 +1241,9 @@ export type RevertPreview = {
     record_id: string;
     to_revision: number;
     data: RecordData;
+    /**
+     * What the revert would change. Rich text values read as `rich_text` asks, like `data`; a change that HTML or Markdown can't show (an underline, in Markdown) reads the same on both sides.
+     */
     changes: Array<Change>;
 };
 
@@ -3563,6 +3572,10 @@ export type RecordsDiffData = {
     query: {
         from: number;
         to: number;
+        /**
+         * How rich text values read in `changes`: `document`, the stored ProseMirror JSON document, or written as `html` or `markdown`, as records read with `rich_text`. Record history and webhooks keep documents. A change that HTML or Markdown can't show (an underline, in Markdown) reads the same on both sides. In HTML and Markdown, text from before a field became rich text reads as paragraphs; an older value that is no document of today's vocabulary, or a redacted one, is kept as stored.
+         */
+        rich_text?: 'document' | 'html' | 'markdown';
     };
     url: '/v1/records/{record_id}/diff';
 };
