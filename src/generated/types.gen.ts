@@ -1333,6 +1333,10 @@ export type WebhookProperties = {
      * The subscribed event types and wildcards (`record.*`, or `*` for all).
      */
     event_types: Array<WebhookSubscription>;
+    /**
+     * Send only events that change what a published-only API key can read: a record's change while it is published (or that publishes, unpublishes, deletes or restores it), schema changes, and changes to assets that published records use. Drafts, schedules, history redactions, uploads and purges are never sent. `webhook.test` always is.
+     */
+    published_only: boolean;
     enabled: boolean;
     /**
      * When the webhook was deleted; null unless it is.
@@ -1447,9 +1451,18 @@ export type AuditEvent = {
      */
     via: null | Via;
     /**
+     * The change note (`Nohead-Change-Note`) the change was made with,
+     * read from the revision or schema change the event references, so
+     * record and schema events have one when their change did; null
+     * otherwise, and once a revision's history is pruned.
+     *
+     */
+    note: string | null;
+    /**
      * Small, action-specific references, e.g. `revision_id` and
      * `collection_id` for record events, `schema_change_id` for schema
-     * events, `changed` attribute names for updates. Never content.
+     * events, `changed` attribute names for updates (field keys for a
+     * draft's). Never content.
      *
      */
     metadata: {
@@ -1476,6 +1489,10 @@ export type WebhookCreate = {
     url: string;
     description?: string | null;
     event_types: Array<WebhookSubscription>;
+    /**
+     * Send only events that change what a published-only API key can read (`false` by default). It can't be combined with event types it never sends, such as `draft.*`.
+     */
+    published_only?: boolean;
     enabled?: boolean;
 };
 
@@ -1483,6 +1500,10 @@ export type WebhookUpdate = {
     url?: string;
     description?: string | null;
     event_types?: Array<WebhookSubscription>;
+    /**
+     * Send only events that change what a published-only API key can read (`false` by default). It can't be combined with event types it never sends, such as `draft.*`.
+     */
+    published_only?: boolean;
     enabled?: boolean;
 };
 
