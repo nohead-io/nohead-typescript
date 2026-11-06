@@ -97,7 +97,7 @@ describe("noheadLoader", () => {
         page([published("rec_1", { title: "One", date: "2026-10-01" })], "c2"),
         page([published("rec_2", { title: "Two", date: "2026-10-02" })], null),
       ],
-      { sort: "-date", expand: ["cover"] }
+      { expand: ["cover"] }
     )
     const { context, entries } = astro(
       z.object({ title: z.string(), date: z.coerce.date() })
@@ -123,7 +123,7 @@ describe("noheadLoader", () => {
     expect(calls[0]!.url.pathname).toBe("/v1/collections/posts/records")
     expect(first!.get("filter[published_at][exists]")).toBe("true")
     expect(first!.get("limit")).toBe("100")
-    expect(first!.get("sort")).toBe("-date")
+    expect(first!.has("sort")).toBe(false)
     expect(first!.get("expand")).toBe("cover")
     expect(first!.get("rich_text")).toBe("html")
     expect(second!.get("cursor")).toBe("c2")

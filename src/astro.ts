@@ -20,7 +20,7 @@ import { Nohead } from "./client.ts"
 import { environment, type ClientOptions } from "./core.ts"
 import { NoheadError } from "./errors.ts"
 import type * as G from "./generated/types.gen.ts"
-import type { RecordFilter, RecordSort } from "./types.ts"
+import type { RecordFilter } from "./types.ts"
 
 export interface NoheadLoaderOptions extends ClientOptions {
   /** The collection's slug or ID. */
@@ -31,8 +31,6 @@ export interface NoheadLoaderOptions extends ClientOptions {
    * `published_at` to change that: `undefined` loads every record.
    */
   filter?: RecordFilter
-  /** The order of the entries, as `records.list` takes it: `"-date"`. */
-  sort?: RecordSort
   /**
    * Asset (or relation) fields whose IDs to replace with what they point
    * at: an asset as an `EmbeddedAsset`, a published record as an
@@ -88,7 +86,6 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
   const {
     collection,
     filter,
-    sort,
     expand,
     body,
     richText = "html",
@@ -116,7 +113,6 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
       for await (const record of nohead.records.list(collection, {
         limit: 100,
         filter: { published_at: { exists: true }, ...filter },
-        sort,
         expand,
       })) {
         records.push(record)
