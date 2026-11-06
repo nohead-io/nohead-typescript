@@ -31,6 +31,10 @@
       "types": "./dist/images.d.ts",
       "default": "./dist/images.js"
     },
+    "./search": {
+      "types": "./dist/search.d.ts",
+      "default": "./dist/search.js"
+    },
     "./astro": {
       "types": "./dist/astro.d.ts",
       "default": "./dist/astro.js"

@@ -376,7 +376,34 @@ const results = await nohead.search("content model", { collections: ["posts", "p
 results.meta.total_estimate
 ```
 
-Search needs the `search:read` scope and covers every collection the key can read, matching their `searchable` fields. It pages through the first 1,000 hits. For search straight from a site's browser, without the API, use a search token from the web app with Meilisearch's own clients or InstantSearch.
+Search needs the `search:read` scope and covers every collection the key can read, matching their `searchable` fields. It pages through the first 1,000 hits.
+
+**Public search.** A site's browser code searches with a search token instead of an API key, straight from the search engine ([public search](https://docs.nohead.io/guides/public-search)). `@nohead/sdk/search` sends those searches and has no dependencies, so it suits browser bundles:
+
+```ts
+import { searchPublic, snippet } from "@nohead/sdk/search"
+
+const { hits, total } = await searchPublic<Post>({
+  token, // the site's search token: public, so it can go in page source
+  index, // the collection's public search index name
+  q: "lentil",
+  highlight: ["title", "summary"],
+  signal, // an AbortSignal, to cancel a search when the next keystroke comes
+})
+
+for (const hit of hits) {
+  hit.data.slug // fields as the index holds them: dates as Unix seconds, assets and relations as IDs
+  hit.highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
+  snippet(hit.highlights.summary ?? [], { length: 120 }) // the part around the first match
+}
+```
+
+- **Highlights** are segments rather than HTML, so a field's text never becomes markup: render each segment as text, and the matched ones in a `<mark>`. Every field `highlight` names is in `highlights`, unmarked when nothing in it matched and `[]` when the record leaves it empty.
+- **An empty `q`** finds every record, for a list of the latest ones: `searchPublic({ token, index, limit: 5, sort: ["data.date:desc"] })`.
+- **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
+- **Errors** are a `SearchError`, with the `status` and the search engine's `code` (`invalid_search_filter`). A search its signal cancels rejects with an `AbortError`.
+
+Meilisearch's own clients and InstantSearch work with search tokens too, for facets and federated searches.
 
 ## Astro
 
