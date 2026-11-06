@@ -81,8 +81,8 @@ export interface EmbeddedRecord {
 /**
  * An Astro content loader for a Nohead collection. It reads the key from
  * `apiKey` or `NOHEAD_API_KEY`, and takes the other client options too
- * (`baseUrl`, `timeout`…). Empty fields are left out of an entry's data, so
- * a schema's `.optional()` fits them.
+ * (`timeout`, `maxRetries`, `headers`…). Empty fields are left out of an
+ * entry's data, so a schema's `.optional()` fits them.
  */
 export function noheadLoader(options: NoheadLoaderOptions): Loader {
   const {
