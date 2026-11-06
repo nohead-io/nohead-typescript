@@ -22,6 +22,10 @@ section is its GitHub release's notes.
   otherwise, and takes Astro's quality presets (`"high"`).
 - Nuxt Image's `format: "jpg"` gives a JPEG, as `"jpeg"` does, instead of
   the image's own format.
+- Nuxt Image (and the Astro image service) crop to a box of both sizes when
+  no `fit` is given, as their own services do. They used to fit the image
+  inside it, so an image of another shape came back smaller and the browser
+  stretched it to the `<img>`'s width and height.
 
 ## 0.12.0
 

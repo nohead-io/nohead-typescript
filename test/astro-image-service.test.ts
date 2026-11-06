@@ -41,7 +41,7 @@ async function image(props: ImageTransform) {
 }
 
 describe("the Astro image service", () => {
-  it("renders an <Image> with its alt, size and srcset, as WebP", async () => {
+  it("renders an <Image> with its alt, size and srcset, as WebP, cropped to its box", async () => {
     const rendered = await image({
       src: base,
       width: 800,
@@ -50,7 +50,7 @@ describe("the Astro image service", () => {
       widths: [400, 800],
       class: "cover",
     })
-    expect(rendered.src).toBe(`${at("rs:fit:800:600")}@webp`)
+    expect(rendered.src).toBe(`${at("rs:fill:800:600")}@webp`)
     expect(rendered.attributes).toEqual({
       alt: "A chalkboard",
       class: "cover",
@@ -60,25 +60,31 @@ describe("the Astro image service", () => {
       decoding: "async",
     })
     expect(rendered.srcset).toEqual([
-      [`${at("rs:fit:400:300")}@webp`, "400w", { type: "image/webp" }],
-      [`${at("rs:fit:800:600")}@webp`, "800w", { type: "image/webp" }],
+      [`${at("rs:fill:400:300")}@webp`, "400w", { type: "image/webp" }],
+      [`${at("rs:fill:800:600")}@webp`, "800w", { type: "image/webp" }],
     ])
   })
 
   it("takes Astro's formats, fits and qualities", async () => {
     const url = async (props: Partial<ImageTransform>) =>
       (await image({ src: base, width: 300, height: 200, ...props })).src
-    expect(await url({ format: "avif" })).toBe(`${at("rs:fit:300:200")}@avif`)
-    expect(await url({ format: "jpg" })).toBe(`${at("rs:fit:300:200")}@jpeg`)
-    expect(await url({ fit: "cover", quality: "high" })).toBe(
-      `${at("rs:fill:300:200/q:80")}@webp`
+    expect(await url({ format: "avif" })).toBe(`${at("rs:fill:300:200")}@avif`)
+    expect(await url({ format: "jpg" })).toBe(`${at("rs:fill:300:200")}@jpeg`)
+    expect(await url({ fit: "contain", quality: "high" })).toBe(
+      `${at("rs:fit:300:200/q:80")}@webp`
     )
-    expect(await url({ quality: 70 })).toBe(`${at("rs:fit:300:200/q:70")}@webp`)
+    expect(await url({ fit: "scale-down" })).toBe(
+      `${at("rs:fit:300:200")}@webp`
+    )
+    expect(await url({ fit: "somehow" })).toBe(`${at("rs:fit:300:200")}@webp`)
+    expect(await url({ quality: 70 })).toBe(
+      `${at("rs:fill:300:200/q:70")}@webp`
+    )
     expect(await url({ quality: "60" })).toBe(
-      `${at("rs:fit:300:200/q:60")}@webp`
+      `${at("rs:fill:300:200/q:60")}@webp`
     )
     // An SVG kept as a vector: no format, so the image's own.
-    expect(await url({ format: "svg" })).toBe(at("rs:fit:300:200"))
+    expect(await url({ format: "svg" })).toBe(at("rs:fill:300:200"))
   })
 
   it("serves the site's own images as they are", () => {

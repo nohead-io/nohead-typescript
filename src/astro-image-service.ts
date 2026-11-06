@@ -38,7 +38,7 @@ const imageService: ExternalImageService = {
     return imageUrl(src, {
       width: options.width,
       height: options.height,
-      fit: fitOf(options.fit),
+      fit: fitOf(options.fit, options.width, options.height),
       format: formatOf(options.format ?? "webp"),
       quality: qualityOf(options.quality),
     })

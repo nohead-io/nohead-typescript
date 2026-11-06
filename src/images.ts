@@ -101,11 +101,13 @@ export function getImage(
   { modifiers = {} }: { modifiers?: Record<string, unknown> } = {}
 ): { url: string } {
   if (!isImageUrl(src)) return { url: src }
+  const width = numberOf(modifiers.width)
+  const height = numberOf(modifiers.height)
   return {
     url: imageUrl(src, {
-      width: numberOf(modifiers.width),
-      height: numberOf(modifiers.height),
-      fit: fitOf(modifiers.fit),
+      width,
+      height,
+      fit: fitOf(modifiers.fit, width, height),
       format: formatOf(modifiers.format),
       quality: numberOf(modifiers.quality),
     }),

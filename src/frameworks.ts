@@ -16,6 +16,7 @@ const FITS: Record<string, ImageOptions["fit"]> = {
   fill: "fill",
   inside: "contain",
   outside: "cover",
+  "scale-down": "contain",
 }
 // Astro's quality presets, as its own services read them.
 const QUALITIES: Record<string, number> = {
@@ -25,8 +26,20 @@ const QUALITIES: Record<string, number> = {
   max: 100,
 }
 
-export const fitOf = (fit: unknown) =>
-  typeof fit === "string" && Object.hasOwn(FITS, fit) ? FITS[fit] : undefined
+/**
+ * The fit asked for (an unknown one as `contain`, as Astro reads it), else
+ * `cover` for a box of both sizes, as Astro's and Nuxt Image's own services
+ * crop to it: an image fitted inside would be stretched to the <img>'s width
+ * and height.
+ */
+export const fitOf = (fit: unknown, width?: number, height?: number) =>
+  typeof fit === "string" && fit
+    ? Object.hasOwn(FITS, fit)
+      ? FITS[fit]
+      : "contain"
+    : width && height
+      ? "cover"
+      : undefined
 
 /** Any other format (an SVG's `svg`) leaves the image in its own. */
 export const formatOf = (format: unknown) =>

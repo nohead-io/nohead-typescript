@@ -91,6 +91,13 @@ describe("framework loaders", () => {
     expect(
       getImage(base, { modifiers: { width: 300, format: "jpg" } })
     ).toEqual({ url: `${at("rs:fit:300:0")}@jpeg` })
+    // A box of both sizes is cropped to, as Nuxt Image's own provider does.
+    expect(
+      getImage(base, { modifiers: { width: 300, height: "300" } })
+    ).toEqual({ url: at("rs:fill:300:300") })
+    expect(
+      getImage(base, { modifiers: { width: 300, height: 300, fit: "inside" } })
+    ).toEqual({ url: at("rs:fit:300:300") })
   })
 
   it("take a local image service's URLs, with their signature segment", () => {
