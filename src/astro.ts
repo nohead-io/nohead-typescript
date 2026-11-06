@@ -121,8 +121,14 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
       })) {
         records.push(record)
       }
-      // Unless a filter says otherwise, embedded records are published too.
-      const publishedOnly = !filter || !("published_at" in filter)
+      // Embedded records are published too, unless entries may not be.
+      const publishedAt =
+        filter && "published_at" in filter
+          ? filter.published_at
+          : { exists: true }
+      const publishedOnly = !(
+        publishedAt === undefined || publishedAt.exists === false
+      )
 
       // Every entry is made before the store changes, so a failure leaves
       // the entries as they were.

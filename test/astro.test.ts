@@ -231,6 +231,27 @@ describe("noheadLoader", () => {
     })
   })
 
+  it("leaves unpublished records out when the filter keeps entries published", async () => {
+    const { load } = loader(
+      [
+        page(
+          [
+            published(
+              "rec_1",
+              { editor: "rec_8" },
+              { editor: record("rec_8", { name: "Draft" }) }
+            ),
+          ],
+          null
+        ),
+      ],
+      { filter: { published_at: { gte: "2026-01-01" } } }
+    )
+    const { context, entries } = astro()
+    await load(context)
+    expect(entries.get("rec_1")!.data).toEqual({})
+  })
+
   it("renders the body as HTML, moving it out of the data", async () => {
     const { load } = loader(
       [page([published("rec_1", { title: "One", body: "<p>Hi</p>" })], null)],
