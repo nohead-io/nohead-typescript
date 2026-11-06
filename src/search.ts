@@ -170,7 +170,8 @@ export async function searchPublic<D = Record<string, unknown>, E = Expanded>(
   if (!token) throw new TypeError("A search token is required")
   if (!index) throw new TypeError("An index is required")
   const highlight = options.highlight ?? []
-  const base = (options.baseUrl ?? SEARCH_URL).replace(/\/+$/, "")
+  let base = options.baseUrl ?? SEARCH_URL
+  while (base.endsWith("/")) base = base.slice(0, -1)
 
   const response = await fetch(`${base}/multi-search`, {
     method: "POST",
