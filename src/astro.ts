@@ -12,13 +12,15 @@
  *   }
  *
  * Every published record becomes an entry, by its record ID, when the site
- * builds (and when `astro dev` starts or syncs).
+ * builds (and when `astro dev` starts or syncs). On Astro 6 and later, the
+ * collection's fields give the entries their schema and TypeScript type.
  */
 import type { Loader, LoaderContext } from "astro/loaders"
 
 import { Nohead } from "./client.ts"
 import { environment, type ClientOptions } from "./core.ts"
-import { NoheadError } from "./errors.ts"
+import { collectionSchema } from "./astro-schema.ts"
+import { AuthorizationError, NoheadError } from "./errors.ts"
 import type * as G from "./generated/types.gen.ts"
 import type { RecordFilter } from "./types.ts"
 
@@ -98,17 +100,53 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
     )
   }
 
+  const connect = () => {
+    // Astro reads .env into import.meta.env, not process.env.
+    if (!client.apiKey && !environment().NOHEAD_API_KEY) {
+      throw new NoheadError(
+        "Missing API key: pass `apiKey: import.meta.env.NOHEAD_API_KEY` to noheadLoader, or set NOHEAD_API_KEY in the environment"
+      )
+    }
+    return new Nohead({ ...client, richText })
+  }
+
   return {
     name: "nohead",
-    async load(context: LoaderContext) {
-      const { store, logger } = context
-      // Astro reads .env into import.meta.env, not process.env.
-      if (!client.apiKey && !environment().NOHEAD_API_KEY) {
+    // Astro 6 and later: the entries' schema and type, from the collection's
+    // fields. A schema given to defineCollection takes its place.
+    async createSchema() {
+      const nohead = connect()
+      const { z } = await import("astro/zod")
+      try {
+        // Relations name their target by ID; references need its slug.
+        const slugsById = async () => {
+          const slugs = new Map<string, string>()
+          for await (const each of nohead.collections.list()) {
+            slugs.set(each.id, each.slug)
+          }
+          return slugs
+        }
+        const [fields, slugs] = await Promise.all([
+          nohead.collections.get(collection),
+          slugsById(),
+        ])
+        return collectionSchema(z, fields, {
+          expand: expand ?? [],
+          body,
+          richText,
+          slugs,
+        })
+      } catch (error) {
+        if (!(error instanceof AuthorizationError)) throw error
         throw new NoheadError(
-          "Missing API key: pass `apiKey: import.meta.env.NOHEAD_API_KEY` to noheadLoader, or set NOHEAD_API_KEY in the environment"
+          `noheadLoader reads the ${collection} collection's fields for its schema, which takes the key's schema:read scope: add it, or pass a schema to defineCollection`,
+          { cause: error }
         )
       }
-      const nohead = new Nohead({ ...client, richText })
+    },
+    async load(context: LoaderContext) {
+      const { store, logger } = context
+      const nohead = connect()
       const records = []
       for await (const record of nohead.records.list(collection, {
         limit: 100,

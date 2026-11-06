@@ -5,6 +5,19 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `noheadLoader` gives each collection its schema and TypeScript type, from
+  the collection's fields in Nohead (Astro 6 or later, through its
+  `createSchema`), so `defineCollection({ loader: noheadLoader(…) })` is
+  typed without a hand-written Zod schema. Relations are `reference()`s to
+  the collection named like their target's slug, dates are `Date`s, and
+  expanded assets and relations are `EmbeddedAsset`s and `EmbeddedRecord`s.
+  It takes the key's `schema:read` scope. A `schema` given to
+  `defineCollection` still takes its place.
+- The Astro image service takes defaults for every image from its `config`
+  in astro.config: `quality` and `format`. An image's own options win.
+
 ## 0.13.0
 
 - `@nohead/sdk/astro`: `noheadLoader`, a loader for Astro's content

@@ -17,26 +17,26 @@ const logger = {} as Logger
  * getImage): validate them, then ask for the srcset, the URLs and the
  * attributes.
  */
-async function image(props: ImageTransform) {
+async function image(props: ImageTransform, using: Config = config) {
   const options = await imageService.validateOptions!(
     { ...props },
-    config,
+    using,
     logger
   )
-  const srcSet = await imageService.getSrcSet!(options, config, logger)
+  const srcSet = await imageService.getSrcSet!(options, using, logger)
   return {
-    src: await imageService.getURL(options, config, logger),
+    src: await imageService.getURL(options, using, logger),
     srcset: await Promise.all(
       srcSet.map(
         async ({ transform, descriptor, attributes }) =>
           [
-            await imageService.getURL(transform, config, logger),
+            await imageService.getURL(transform, using, logger),
             descriptor,
             attributes,
           ] as const
       )
     ),
-    attributes: await imageService.getHTMLAttributes!(options, config, logger),
+    attributes: await imageService.getHTMLAttributes!(options, using, logger),
   }
 }
 
@@ -85,6 +85,46 @@ describe("the Astro image service", () => {
     )
     // An SVG kept as a vector: no format, so the image's own.
     expect(await url({ format: "svg" })).toBe(at("rs:fill:300:200"))
+  })
+
+  it("takes defaults from the service's config, which an image's own options override", async () => {
+    const using = {
+      service: { config: { quality: 70, format: "avif" } },
+    } as unknown as Config
+    const rendered = await image(
+      { src: base, width: 400, height: 300, widths: [400] },
+      using
+    )
+    expect(rendered.src).toBe(`${at("rs:fill:400:300/q:70")}@avif`)
+    expect(rendered.srcset).toEqual([
+      [`${at("rs:fill:400:300/q:70")}@avif`, "400w", { type: "image/avif" }],
+    ])
+    expect(
+      (
+        await image(
+          {
+            src: base,
+            width: 400,
+            height: 300,
+            quality: "high",
+            format: "jpg",
+          },
+          using
+        )
+      ).src
+    ).toBe(`${at("rs:fill:400:300/q:80")}@jpeg`)
+    const jpg = { service: { config: { format: "jpg" } } } as unknown as Config
+    const asJpeg = await image(
+      { src: base, width: 400, height: 300, widths: [400] },
+      jpg
+    )
+    expect(asJpeg.srcset[0]![2]).toEqual({ type: "image/jpeg" })
+    const presetOnly = {
+      service: { config: { quality: "low" } },
+    } as unknown as Config
+    expect(
+      (await image({ src: base, width: 400, height: 300 }, presetOnly)).src
+    ).toBe(`${at("rs:fill:400:300/q:25")}@webp`)
   })
 
   it("serves the site's own images as they are", () => {
