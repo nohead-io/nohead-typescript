@@ -390,10 +390,7 @@ import { z } from "astro/zod"
 import { noheadLoader } from "@nohead/sdk/astro"
 
 // Astro reads .env into import.meta.env, not process.env.
-const nohead = {
-  apiKey: import.meta.env.NOHEAD_API_KEY,
-  baseUrl: import.meta.env.NOHEAD_API_URL,
-}
+const apiKey = import.meta.env.NOHEAD_API_KEY
 const image = z.object({
   image_url: z.string(),
   width: z.number(),
@@ -403,7 +400,7 @@ const image = z.object({
 
 export const collections = {
   people: defineCollection({
-    loader: noheadLoader({ collection: "people", sort: "order", ...nohead }),
+    loader: noheadLoader({ collection: "people", sort: "order", apiKey }),
     schema: z.object({ name: z.string(), slug: z.string() }),
   }),
   posts: defineCollection({
@@ -412,7 +409,7 @@ export const collections = {
       sort: "-date",
       expand: ["cover"],
       body: "body",
-      ...nohead,
+      apiKey,
     }),
     schema: z.object({
       title: z.string(),
@@ -449,7 +446,7 @@ const { cover } = post.data
 - **Relations** stay record IDs, for `reference("people")` and `getEntry`.
 - **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the Astro image service (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record, unless `filter` loads unpublished entries too.
 - **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Dates and times are strings: `z.coerce.date()` makes them `Date`s.
-- **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`baseUrl`, `timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass them from there as above.
+- **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass the key from there as above.
 
 ## Schema
 
