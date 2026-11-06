@@ -57,20 +57,19 @@ const nohead = new Nohead({
 })
 ```
 
-| Option       | Default                 |                                                                                           |
-| ------------ | ----------------------- | ----------------------------------------------------------------------------------------- |
-| `apiKey`     | `NOHEAD_API_KEY`        | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
-| `baseUrl`    | `https://api.nohead.io` | For a proxy, or a mock server in tests.                                                   |
-| `projectId`  | the key's project       | Looked up once with `GET /v1/me` when omitted.                                            |
-| `maxRetries` | `2`                     | See [retries](#retries-and-idempotency).                                                  |
-| `timeout`    | `60000`                 | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
-| `fetch`      | `globalThis.fetch`      | For proxies, instrumentation and tests.                                                   |
-| `headers`    | `{}`                    | Added to every request.                                                                   |
-| `warnings`   | `true`                  | Logs deprecation and plan usage warnings, once each.                                      |
-| `onRetry`    |                         | Called before each retry. See [retries](#retries-and-idempotency).                        |
-| `richText`   | `"document"`            | How rich text reads: `"html"` or `"markdown"`. See [rich text](#rich-text).               |
+| Option       | Default            |                                                                                           |
+| ------------ | ------------------ | ----------------------------------------------------------------------------------------- |
+| `apiKey`     | `NOHEAD_API_KEY`   | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
+| `projectId`  | the key's project  | Looked up once with `GET /v1/me` when omitted.                                            |
+| `maxRetries` | `2`                | See [retries](#retries-and-idempotency).                                                  |
+| `timeout`    | `60000`            | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
+| `fetch`      | `globalThis.fetch` | For proxies, instrumentation and tests.                                                   |
+| `headers`    | `{}`               | Added to every request.                                                                   |
+| `warnings`   | `true`             | Logs deprecation and plan usage warnings, once each.                                      |
+| `onRetry`    |                    | Called before each retry. See [retries](#retries-and-idempotency).                        |
+| `richText`   | `"document"`       | How rich text reads: `"html"` or `"markdown"`. See [rich text](#rich-text).               |
 
-An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`, and `baseUrl: ""` to `https://api.nohead.io`. The base URL comes only from `baseUrl`, never from the environment. A `baseUrl` that isn't an `http` or `https` URL throws.
+An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`.
 
 `withOptions` copies a client with another `timeout`, `maxRetries`, `onRetry` or `richText`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
 
@@ -225,7 +224,7 @@ Every error is a `NoheadError`. API errors are `APIError`s with `status`, `type`
 
 An API error's `message` names the status, the type and the request ID along with the API's message, so logging it is enough to look the request up: `422 validation_error: Title is required (request req_…)`. The API's own text is `apiMessage`, to show a person.
 
-The client follows no redirects: a `3xx` is an `APIError` (`type` `redirect`) that names where it pointed, which usually means the base URL is wrong.
+The client follows no redirects: a `3xx` is an `APIError` (`type` `redirect`) that names where it pointed.
 
 Other errors: `ConnectionError`, `TimeoutError` (a `ConnectionError`), `AbortError` (your `signal` fired), `UploadError` and `WebhookVerificationError`.
 
