@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.13.0
 
 - `@nohead/sdk/astro`: `noheadLoader`, a loader for Astro's content
   collections (Astro 5.9 or later). It loads a collection's published records
