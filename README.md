@@ -329,7 +329,7 @@ imageUrl(asset.image_url!, { width: 400, dpr: 2, options: ["bl:2"] })
 Frameworks' image components, with `srcset` and all, take a loader from it:
 
 - **Next.js:** a file named by `images.loaderFile` in next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`, then `<Image src={asset.image_url} … />`.
-- **Astro:** a module named by `image.service.entrypoint` in astro.config: `export { astroImageService as default } from "@nohead/sdk/images"`.
+- **Astro:** `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }` in astro.config, then `<Image src={asset.image_url} width={…} height={…} alt={…} />`. It serves WebP unless a `format` says otherwise, and needs Astro 5.9 or later.
 - **Nuxt Image:** a custom provider file in nuxt.config's `image.providers`: `export { nuxtImageProvider as default } from "@nohead/sdk/images"` (Nuxt Image 1: `export { getImage } from "@nohead/sdk/images"`).
 
 The loaders leave other images, the site's own, as they are.
@@ -444,7 +444,7 @@ const { cover } = post.data
 - **Published only.** Only published records load, whatever the key may read, so a published-only key (`nohead_pk_…`) is enough. `filter` adds conditions (`{ featured: true }`); `filter: { published_at: undefined }` loads every record.
 - **Rich text** reads as HTML (or Markdown with `richText: "markdown"`). `body` names the field that `render(entry)` renders: it moves out of `data` into the entry's rendered content. As Markdown, it goes through Astro's own Markdown pipeline (your plugins, syntax highlighting, `headings`). A record can have several rich text fields and an entry renders one; the others stay in `data` as HTML, for `<Fragment set:html={post.data.summary} />`.
 - **Relations** stay record IDs, for `reference("people")` and `getEntry`.
-- **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the Astro image service (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record, unless `filter` loads unpublished entries too.
+- **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the image service, `@nohead/sdk/astro/image-service` (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record, unless `filter` loads unpublished entries too.
 - **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Dates and times are strings: `z.coerce.date()` makes them `Date`s.
 - **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass the key from there as above.
 

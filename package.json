@@ -35,6 +35,10 @@
       "types": "./dist/astro.d.ts",
       "default": "./dist/astro.js"
     },
+    "./astro/image-service": {
+      "types": "./dist/astro-image-service.d.ts",
+      "default": "./dist/astro-image-service.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

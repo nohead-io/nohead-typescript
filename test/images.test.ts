@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  astroImageService,
   getImage,
   imageUrl,
   nextImageLoader,
@@ -77,19 +76,10 @@ describe("imageUrl", () => {
 })
 
 describe("framework loaders", () => {
-  it("serve Next.js, Astro and Nuxt Image", () => {
+  it("serve Next.js and Nuxt Image", () => {
     expect(nextImageLoader({ src: base, width: 640, quality: 75 })).toBe(
       at("rs:fit:640:0/q:75")
     )
-    expect(
-      astroImageService.getURL({
-        src: base,
-        width: 400,
-        height: 300,
-        format: "avif",
-        quality: "high",
-      })
-    ).toBe(`${at("rs:fit:400:300")}@avif`)
     expect(
       getImage(base, {
         modifiers: { width: "200", fit: "cover", format: "webp" },
@@ -99,13 +89,8 @@ describe("framework loaders", () => {
       url: base,
     })
     expect(
-      astroImageService.getURL({
-        src: base,
-        width: 300,
-        height: 300,
-        fit: "cover",
-      })
-    ).toBe(at("rs:fill:300:300"))
+      getImage(base, { modifiers: { width: 300, format: "jpg" } })
+    ).toEqual({ url: `${at("rs:fit:300:0")}@jpeg` })
   })
 
   it("take a local image service's URLs, with their signature segment", () => {
@@ -120,9 +105,6 @@ describe("framework loaders", () => {
 
   it("leave the site's own images alone", () => {
     expect(nextImageLoader({ src: "/logo.png", width: 640 })).toBe("/logo.png")
-    expect(
-      astroImageService.getURL({ src: { src: "/_astro/logo.png" }, width: 100 })
-    ).toBe("/_astro/logo.png")
     expect(getImage("https://example.com/cat.png")).toEqual({
       url: "https://example.com/cat.png",
     })

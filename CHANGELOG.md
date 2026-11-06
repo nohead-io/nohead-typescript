@@ -12,6 +12,16 @@ section is its GitHub release's notes.
   as entries, by record ID, with rich text as HTML, expanded assets in place
   of their IDs and relations kept as IDs for `reference()`; `body` renders a
   rich text field for `render(entry)`.
+- **Breaking:** Astro's image service has its own entry point, which
+  astro.config names directly:
+  `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }`.
+  `astroImageService` is gone from `@nohead/sdk/images`. The service now
+  builds on Astro's base service, so `<Image>` and `<Picture>` render `alt`,
+  `width`, `height`, `loading` and the `srcset` for `widths` and `densities`
+  (before, a bare `<img src>`). It serves WebP unless a `format` says
+  otherwise, and takes Astro's quality presets (`"high"`).
+- Nuxt Image's `format: "jpg"` gives a JPEG, as `"jpeg"` does, instead of
+  the image's own format.
 
 ## 0.12.0
 
