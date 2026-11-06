@@ -113,6 +113,12 @@ describe("the Astro image service", () => {
         )
       ).src
     ).toBe(`${at("rs:fill:400:300/q:80")}@jpeg`)
+    const jpg = { service: { config: { format: "jpg" } } } as unknown as Config
+    const asJpeg = await image(
+      { src: base, width: 400, height: 300, widths: [400] },
+      jpg
+    )
+    expect(asJpeg.srcset[0]![2]).toEqual({ type: "image/jpeg" })
     const presetOnly = {
       service: { config: { quality: "low" } },
     } as unknown as Config

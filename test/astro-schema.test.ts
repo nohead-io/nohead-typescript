@@ -239,6 +239,44 @@ describe("noheadLoader's schema", () => {
     expect(types).toMatch(/export type Entry = \{/)
   })
 
+  it("types documents, expanded relations, and relations to a collection it can't find", async () => {
+    const odd = exampleOf("collections_get", {
+      id: IDS.posts,
+      slug: "posts",
+      fields: [
+        field("notes", "rich_text"),
+        field(
+          "category",
+          "relation",
+          { target_collection_id: IDS.categories },
+          required
+        ),
+        field("elsewhere", "relation", { target_collection_id: "col_gone" }),
+      ],
+    })
+    const { schema, types } = await schemaOf(
+      { expand: ["category"], body: undefined, richText: "document" },
+      json(200, odd)
+    )
+    expect(types).toContain('  "notes"?: Record<string, unknown>')
+    expect(types).toContain('  "category"?: EmbeddedRecord')
+    expect(types).toContain('  "elsewhere"?: string')
+    expect(types).toContain(
+      'import type { EmbeddedRecord } from "@nohead/sdk/astro"'
+    )
+    expect(
+      schema.parse({
+        notes: { type: "doc", content: [] },
+        category: { id: "rec_c", data: { name: "Studio" } },
+        elsewhere: "rec_x",
+      })
+    ).toEqual({
+      notes: { type: "doc", content: [] },
+      category: { id: "rec_c", data: { name: "Studio" } },
+      elsewhere: "rec_x",
+    })
+  })
+
   it("says which scope it needs when the key can't read the schema", async () => {
     await expect(
       schemaOf({}, apiError(403, "authorization_error"))

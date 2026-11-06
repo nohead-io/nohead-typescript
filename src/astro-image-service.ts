@@ -42,7 +42,9 @@ const imageService: ExternalImageService<ImageServiceConfig> = {
     )
     // So the srcset's <source type> says what the URLs serve.
     if (isImageUrl(validated.src)) {
-      validated.format ??= imageConfig?.service?.config?.format ?? "webp"
+      // A Picture's <source type> needs `jpeg`, not `jpg`.
+      validated.format ??=
+        formatOf(imageConfig?.service?.config?.format) ?? "webp"
     }
     return validated
   },

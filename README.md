@@ -380,7 +380,7 @@ Search needs the `search:read` scope and covers every collection the key can rea
 
 ## Astro
 
-`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5.9 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`. On Astro 6 or later, the loader also gives each collection its schema and TypeScript type, from the collection's fields in Nohead:
+`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5.9 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`. On Astro 6 or later, the loader also gives each collection its schema and TypeScript type, from the collection's fields in Nohead (on Astro 5, give each collection a `schema`, under [Schema and types](#schema-and-types)):
 
 ```ts
 // src/content.config.ts
@@ -426,7 +426,9 @@ const { cover } = post.data // an image field's assets have their URL and size
 <Content />
 ```
 
-**Schema and types.** Before, each collection repeated its fields as a Zod schema:
+### Schema and types
+
+Before, each collection repeated its fields as a Zod schema:
 
 ```ts
 posts: defineCollection({
@@ -445,7 +447,7 @@ Now the loader reads the collection's fields when Astro syncs (`astro dev`, `ast
 
 - Text fields are strings; integers and decimals, numbers; dates, `Date`s; enums, their options; booleans, `boolean` (`false` when unset); JSON, `unknown`. A multiple field is an array.
 - A required field is required, others optional. An expanded asset or relation is always optional, since one deleted or unpublished since is left out.
-- A relation is a `reference()` to the Astro collection named like its target's slug, so name your collections after their slugs. Expanded, it is an `EmbeddedRecord`, and an expanded asset an `EmbeddedAsset`. An asset that isn't expanded stays its ID.
+- A relation is a `reference()` to the Astro collection named like its target's slug, so name your collections after their slugs, and define one for every target that relations point to (`categories` for a post's `category`), or `getEntry` has nothing to find. Expanded, it is an `EmbeddedRecord`, and an expanded asset an `EmbeddedAsset`. An asset that isn't expanded stays its ID.
 - The `body` field isn't in the data: `render(entry)` has it.
 - The schema takes the key's `schema:read` scope, which published-only keys can have; without it the sync fails and says so.
 - A `schema` given to `defineCollection` takes its place, as in any Astro loader. Use one to transform values, or on Astro 5, which doesn't ask loaders for a schema.
