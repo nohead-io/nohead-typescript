@@ -74,6 +74,11 @@ describe("the Astro image service", () => {
       `${at("rs:fill:300:200/q:80")}@webp`
     )
     expect(await url({ quality: 70 })).toBe(`${at("rs:fit:300:200/q:70")}@webp`)
+    expect(await url({ quality: "60" })).toBe(
+      `${at("rs:fit:300:200/q:60")}@webp`
+    )
+    // An SVG kept as a vector: no format, so the image's own.
+    expect(await url({ format: "svg" })).toBe(at("rs:fit:300:200"))
   })
 
   it("serves the site's own images as they are", () => {

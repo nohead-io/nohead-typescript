@@ -329,7 +329,7 @@ imageUrl(asset.image_url!, { width: 400, dpr: 2, options: ["bl:2"] })
 Frameworks' image components, with `srcset` and all, take a loader from it:
 
 - **Next.js:** a file named by `images.loaderFile` in next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`, then `<Image src={asset.image_url} … />`.
-- **Astro:** `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }` in astro.config, then `<Image src={asset.image_url} width={…} height={…} alt={…} />`. It serves WebP unless a `format` says otherwise, and needs Astro 5.9 or later.
+- **Astro:** `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }` in astro.config, then `<Image src={asset.image_url} width={…} height={…} alt={…} />`. It serves WebP unless a `format` says otherwise: give an SVG `format="svg"` to keep it a vector (an asset's `content_type` tells). Pass `width` and `height`, which expanded assets carry; `inferSize` would need the image host in Astro's `image.domains`. Needs Astro 5.9 or later.
 - **Nuxt Image:** a custom provider file in nuxt.config's `image.providers`: `export { nuxtImageProvider as default } from "@nohead/sdk/images"` (Nuxt Image 1: `export { getImage } from "@nohead/sdk/images"`).
 
 The loaders leave other images, the site's own, as they are.
