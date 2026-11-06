@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.14.0
 
 - `noheadLoader` gives each collection its schema and TypeScript type, from
   the collection's fields in Nohead (Astro 6 or later, through its
