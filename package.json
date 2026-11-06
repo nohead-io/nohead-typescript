@@ -31,6 +31,10 @@
       "types": "./dist/images.d.ts",
       "default": "./dist/images.js"
     },
+    "./astro": {
+      "types": "./dist/astro.d.ts",
+      "default": "./dist/astro.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -53,11 +57,20 @@
     "samples": "node scripts/samples.ts",
     "typecheck:smoke": "tsc -p smoke"
   },
+  "peerDependencies": {
+    "astro": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "^26.6.4",
     "ajv": "^8.20.0",
+    "astro": "^7.4.7",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
     "prettier": "^3.9.9",

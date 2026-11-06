@@ -5,6 +5,14 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/astro`: `noheadLoader`, a loader for Astro's content
+  collections (Astro 5 or later). It loads a collection's published records
+  as entries, by record ID, with rich text as HTML, expanded assets in place
+  of their IDs and relations kept as IDs for `reference()`; `body` renders a
+  rich text field for `render(entry)`.
+
 ## 0.12.0
 
 - `webhooks.create` and `webhooks.update` take `published_only`, and every
