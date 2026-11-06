@@ -5,6 +5,31 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/astro`: `noheadLoader`, a loader for Astro's content
+  collections (Astro 5.9 or later). It loads a collection's published records
+  as entries, by record ID, with rich text as HTML, expanded assets in place
+  of their IDs and relations kept as IDs for `reference()`; `body` renders a
+  rich text field for `render(entry)`.
+- **Breaking:** Astro's image service has its own entry point, which
+  astro.config names directly:
+  `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }`.
+  `astroImageService` is gone from `@nohead/sdk/images`. The service now
+  builds on Astro's base service, so `<Image>` and `<Picture>` render `alt`,
+  `width`, `height`, `loading` and the `srcset` for `widths` and `densities`
+  (before, a bare `<img src>`). It serves WebP unless a `format` says
+  otherwise, and takes Astro's quality presets (`"high"`).
+- Nuxt Image's `format: "jpg"` gives a JPEG, as `"jpeg"` does, instead of
+  the image's own format.
+- `nextImageLoader` serves WebP, as Next.js's own optimizer would, where it
+  served each image in its own format (a JPEG at twice the size). A format
+  the URL names stays: `@svg` keeps an SVG a vector.
+- **Breaking:** Nuxt Image (and the Astro image service) crop to a box of
+  both sizes when no `fit` is given, as their own services do. They used to
+  fit the image inside it, so an image of another shape came back smaller
+  and the browser stretched it to the `<img>`'s width and height.
+
 ## 0.12.0
 
 - `webhooks.create` and `webhooks.update` take `published_only`, and every

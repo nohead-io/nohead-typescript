@@ -3,10 +3,12 @@
  * open: an image asset's `image_url` serves the whole image, and any of
  * imgproxy's processing options written into it transform it
  * (https://docs.imgproxy.net/usage/processing). No dependencies, so it suits
- * browser bundles and frameworks' image components.
+ * browser bundles and frameworks' image components (Astro's image service is
+ * `@nohead/sdk/astro/image-service`).
  *
  *   imageUrl(asset, { width: 800, height: 600, fit: "cover", format: "webp" })
  */
+import { fitOf, formatOf, numberOf } from "./frameworks.ts"
 
 export interface ImageOptions {
   width?: number
@@ -28,6 +30,8 @@ export interface ImageOptions {
 export type ImageSource = string | { image_url: string | null }
 
 const FITS = { contain: "fit", cover: "fill", fill: "force" } as const
+// The format an image URL names, after its source: `…@webp`.
+const FORMAT = /@[a-z]+$/
 
 /** A rendition of an image: its `image_url` with these options. */
 export function imageUrl(
@@ -58,7 +62,7 @@ export function imageUrl(
 
   // The source comes last; a format replaces any the URL already names.
   let source = base.slice(at)
-  if (format) source = `${source.replace(/@[a-z]+$/, "")}@${format}`
+  if (format) source = `${source.replace(FORMAT, "")}@${format}`
   return `${base.slice(0, at)}${segments.map((s) => `/${s}`).join("")}${source}`
 }
 
@@ -73,6 +77,8 @@ export function isImageUrl(src: unknown): src is string {
  * A Next.js image loader. In a file named by `images.loaderFile` in
  * next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`,
  * then `<Image src={asset.image_url} width={…} height={…} alt={asset.alt} />`.
+ * As WebP, which Next.js's own optimizer would pick, unless the URL names a
+ * format: `${asset.image_url}@png`, or `@svg` to keep an SVG a vector.
  * Other images (the site's own) are left as they are.
  */
 export function nextImageLoader({
@@ -84,55 +90,10 @@ export function nextImageLoader({
   width: number
   quality?: number
 }): string {
-  return isImageUrl(src) ? imageUrl(src, { width, quality }) : src
-}
-
-const FORMATS = new Set<string>(["webp", "avif", "jpeg", "png"])
-// Astro's and Nuxt Image's fits, as imgproxy has them.
-const FRAMEWORK_FITS: Record<string, ImageOptions["fit"]> = {
-  cover: "cover",
-  contain: "contain",
-  fill: "fill",
-  inside: "contain",
-  outside: "cover",
-}
-const fitOf = (fit: unknown) =>
-  typeof fit === "string" ? FRAMEWORK_FITS[fit] : undefined
-const formatOf = (format: unknown) =>
-  typeof format === "string" && FORMATS.has(format)
-    ? (format as ImageOptions["format"])
-    : undefined
-
-/**
- * An Astro image service (an external one: Astro never fetches the image).
- * In a module named by `image.service.entrypoint` in astro.config:
- * `export { astroImageService as default } from "@nohead/sdk/images"`.
- * Other images (the site's own, imported or remote) are served as they are.
- */
-export const astroImageService = {
-  getURL(options: {
-    src: unknown
-    width?: number
-    height?: number
-    format?: string
-    quality?: number | string
-    fit?: string
-  }): string {
-    const { src } = options
-    if (!isImageUrl(src)) {
-      const own =
-        typeof src === "string" ? src : (src as { src?: unknown } | null)?.src
-      return typeof own === "string" ? own : ""
-    }
-    return imageUrl(src, {
-      width: options.width,
-      height: options.height,
-      fit: fitOf(options.fit),
-      format: formatOf(options.format),
-      quality:
-        typeof options.quality === "number" ? options.quality : undefined,
-    })
-  },
+  if (!isImageUrl(src)) return src
+  // A loader is given no format: one the URL names stays.
+  const format = FORMAT.test(src) ? undefined : "webp"
+  return imageUrl(src, { width, quality, format })
 }
 
 /**
@@ -146,20 +107,16 @@ export function getImage(
   src: string,
   { modifiers = {} }: { modifiers?: Record<string, unknown> } = {}
 ): { url: string } {
-  const number = (value: unknown) =>
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value
-        ? Number(value)
-        : undefined
   if (!isImageUrl(src)) return { url: src }
+  const width = numberOf(modifiers.width)
+  const height = numberOf(modifiers.height)
   return {
     url: imageUrl(src, {
-      width: number(modifiers.width),
-      height: number(modifiers.height),
-      fit: fitOf(modifiers.fit),
+      width,
+      height,
+      fit: fitOf(modifiers.fit, width, height),
       format: formatOf(modifiers.format),
-      quality: number(modifiers.quality),
+      quality: numberOf(modifiers.quality),
     }),
   }
 }
