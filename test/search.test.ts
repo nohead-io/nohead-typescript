@@ -7,10 +7,14 @@ import {
   SearchError,
   searchPublic,
   snippet,
+  type Expanded,
+  type ExpandedAsset,
+  type ExpandedRecord,
   type SearchHit,
   type Segment,
   type TextField,
 } from "../src/search.ts"
+import { imageUrl } from "../src/images.ts"
 import { localServer, sendJson } from "./server.ts"
 
 interface Post {
@@ -18,6 +22,13 @@ interface Post {
   slug: string
   summary?: string
   date: number
+  cover?: string
+  authors?: string[]
+}
+
+interface PostExpanded {
+  cover?: ExpandedAsset | null
+  authors?: ExpandedRecord[]
 }
 
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJzZWFyY2hSdWxlcyI6e319.c2lnbmF0dXJl"
@@ -33,6 +44,19 @@ const record = {
     slug: "red-lentil-soup",
     summary: "A soup of red lentils, cumin and lemon.",
     date: 1790812800,
+    cover: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
+    authors: ["rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W"],
+  },
+  expanded: {
+    cover: {
+      id: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
+      image_url:
+        "https://images.nohead.io/plain/0199f5c2-7b1e-7c3a-9d4f-2a6b8c0e1f3d/0199f5c2-8a2d-7e4b-b1c3-5d7e9f1a2b4c",
+      alt: "A bowl of soup",
+      width: 1600,
+      height: 1067,
+    },
+    authors: [{ id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W", title: "Leela Rao" }],
   },
 }
 
@@ -176,13 +200,14 @@ describe("searchPublic", () => {
     expect(hits[0]).not.toHaveProperty("_formatted")
     // Only text fields can be highlighted.
     expectTypeOf<TextField<Post>>().toEqualTypeOf<
-      "title" | "slug" | "summary"
+      "title" | "slug" | "summary" | "cover"
     >()
     expectTypeOf<TextField<{ [key: string]: unknown }>>().toBeString()
     expectTypeOf<SearchHit<Post>["highlights"]>().toEqualTypeOf<{
       title?: Segment[]
       slug?: Segment[]
       summary?: Segment[]
+      cover?: Segment[]
     }>()
     expect(hits[1]?.highlights.summary).toEqual([
       { text: "Lentils", match: true },
@@ -194,6 +219,30 @@ describe("searchPublic", () => {
     expect(hits[1]?.highlights.title).toEqual([
       { text: "Red lentil soup", match: false },
     ])
+  })
+
+  it("gives the hits' assets and relations, typed as described", async () => {
+    const older: Partial<typeof record> = { ...record }
+    delete older.expanded
+    const server = await engine(200, results([record, older]))
+    const { hits } = await searchPublic<Post, PostExpanded>({
+      token,
+      index,
+      q: "leela",
+      baseUrl: server.url,
+    })
+    const cover = hits[0]?.expanded.cover
+    expect(cover?.alt).toBe("A bowl of soup")
+    expect(imageUrl(cover!, { width: 144 })).toContain("/rs:fit:144:0/plain/")
+    expect(hits[0]?.expanded.authors?.map((a) => a.title)).toEqual([
+      "Leela Rao",
+    ])
+    // An index built before display fields has none.
+    expect(hits[1]?.expanded).toEqual({})
+    expectTypeOf<SearchHit<Post>["expanded"]>().toEqualTypeOf<Expanded>()
+    expectTypeOf<
+      SearchHit<Post, PostExpanded>["expanded"]
+    >().toEqualTypeOf<PostExpanded>()
   })
 
   it("reads highlighted fields from data when the engine formats none", async () => {

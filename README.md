@@ -381,9 +381,19 @@ Search needs the `search:read` scope and covers every collection the key can rea
 **Public search.** A site's browser code searches with a search token instead of an API key, straight from the search engine ([public search](https://docs.nohead.io/guides/public-search)). `@nohead/sdk/search` sends those searches and has no dependencies, so it suits browser bundles:
 
 ```ts
-import { searchPublic, snippet } from "@nohead/sdk/search"
+import {
+  searchPublic,
+  snippet,
+  type ExpandedAsset,
+  type ExpandedRecord,
+} from "@nohead/sdk/search"
+import { imageUrl } from "@nohead/sdk/images"
 
-const { hits, total } = await searchPublic<Post>({
+// The collection's fields, and (optionally) its asset and relation fields as hits show them
+const { hits, total } = await searchPublic<
+  Post,
+  { cover?: ExpandedAsset | null; authors?: ExpandedRecord[] }
+>({
   token, // the site's search token: public, so it can go in page source
   index, // the collection's public search index name
   q: "lentil",
@@ -395,10 +405,15 @@ for (const hit of hits) {
   hit.data.slug // fields as the index holds them: dates as Unix seconds, assets and relations as IDs
   hit.highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
   snippet(hit.highlights.summary ?? [], { length: 120 }) // the part around the first match
+  const cover = hit.expanded.cover // { id, image_url, alt, width, height }
+  if (cover?.image_url)
+    imageUrl(cover, { width: 144, height: 108, fit: "cover" })
+  hit.expanded.authors?.map((author) => author.title) // ["Leela Rao"]
 }
 ```
 
 - **Highlights** are segments rather than HTML, so a field's text never becomes markup: render each segment as text, and the matched ones in a `<mark>`. Every field `highlight` names is in `highlights`, unmarked when nothing in it matched and `[]` when the record leaves it empty.
+- **`expanded`** shows a hit's asset and relation fields without a request: an asset's `image_url`, `alt`, `width` and `height` (`image_url` is `null` for a file that isn't an image), and a related record's `title`, its first text field. Only published records and ready assets show: a list leaves the others out, and a single value is `null`. Search words match related records' titles too, so a name finds the posts that link to that person.
 - **An empty `q`** finds every record, for a list of the latest ones: `searchPublic({ token, index, limit: 5, sort: ["data.date:desc"] })`.
 - **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
 - **Errors** are a `SearchError`, with the `status` and the search engine's `code` (`invalid_search_filter`). A search its signal cancels rejects with an `AbortError`.

@@ -8,6 +8,7 @@
  *     token, index, q: "lentil", highlight: ["title", "summary"],
  *   })
  *   hits[0].highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
+ *   hits[0].expanded.cover   // { id, image_url, alt, width, height }
  */
 
 /** Where search tokens search. */
@@ -54,8 +55,40 @@ export interface Segment {
   match: boolean
 }
 
+/** An asset field's asset, in a hit's `expanded`. */
+export interface ExpandedAsset {
+  /** The asset's ID (`ast_…`). */
+  id: string
+  /** The image, for `imageUrl` from `@nohead/sdk/images`; `null` for a file that isn't an image. */
+  image_url: string | null
+  alt: string | null
+  /** In pixels. */
+  width: number | null
+  /** In pixels. */
+  height: number | null
+}
+
+/** A relation field's record, in a hit's `expanded`. */
+export interface ExpandedRecord {
+  /** The record's ID (`rec_…`). */
+  id: string
+  /** The record's first text field: its name or title, or `null` when it has none. */
+  title: string | null
+}
+
+/**
+ * A hit's asset and relation fields, by key. A list leaves out what isn't
+ * published (or ready), and a single value is then `null`; a field with no
+ * value has no key. Describe a collection's as
+ * `{ cover?: ExpandedAsset | null; authors?: ExpandedRecord[] }`.
+ */
+export type Expanded = Record<
+  string,
+  ExpandedAsset | ExpandedRecord | ExpandedAsset[] | ExpandedRecord[] | null
+>
+
 /** A published record that matched. */
-export interface SearchHit<D = Record<string, unknown>> {
+export interface SearchHit<D = Record<string, unknown>, E = Expanded> {
   /** The record's ID (`rec_…`). */
   id: string
   /** Unix seconds. */
@@ -69,6 +102,8 @@ export interface SearchHit<D = Record<string, unknown>> {
    * JSON as a string, assets and relations as IDs. Empty fields are left out.
    */
   data: D
+  /** The published assets and records that `data`'s asset and relation fields name, to show without a request. */
+  expanded: E
   /**
    * Each field named in `highlight`, as segments to render, a `<mark>` for
    * each match: `[]` for a field the record leaves empty, and the whole text
@@ -77,8 +112,8 @@ export interface SearchHit<D = Record<string, unknown>> {
   highlights: Partial<Record<TextField<D>, Segment[]>>
 }
 
-export interface SearchResult<D = Record<string, unknown>> {
-  hits: SearchHit<D>[]
+export interface SearchResult<D = Record<string, unknown>, E = Expanded> {
+  hits: SearchHit<D, E>[]
   /** How many records match: an estimate past the first thousand or so. */
   total: number
   /** The words searched for. */
@@ -113,6 +148,7 @@ interface RawHit {
   created_at: number
   updated_at: number
   data: Record<string, unknown>
+  expanded?: Record<string, unknown>
   _formatted?: { data?: Record<string, unknown> }
 }
 
@@ -122,10 +158,14 @@ interface RawResult {
   estimatedTotalHits?: number
 }
 
-/** Searches one collection's published records with a search token. */
-export async function searchPublic<D = Record<string, unknown>>(
+/**
+ * Searches one collection's published records with a search token. Type the
+ * hits with the collection's fields and, optionally, its asset and relation
+ * fields: `searchPublic<Post, { cover?: ExpandedAsset | null }>(…)`.
+ */
+export async function searchPublic<D = Record<string, unknown>, E = Expanded>(
   options: SearchOptions<D>
-): Promise<SearchResult<D>> {
+): Promise<SearchResult<D, E>> {
   const { token, index, q = "", signal } = options
   if (!token) throw new TypeError("A search token is required")
   if (!index) throw new TypeError("An index is required")
@@ -149,8 +189,9 @@ export async function searchPublic<D = Record<string, unknown>>(
           filter: options.filter,
           sort: options.sort,
           ...(highlight.length > 0 && {
-            // Nested paths ("data.title") return no highlights: the whole of
-            // data is marked, and the fields asked for are read from it.
+            // All of data, which every index highlights (older ones don't by
+            // path); the fields asked for are read from it. The engine
+            // formats every field whichever paths are named.
             attributesToHighlight: ["data"],
             highlightPreTag: MARK,
             highlightPostTag: UNMARK,
@@ -166,13 +207,13 @@ export async function searchPublic<D = Record<string, unknown>>(
     throw new SearchError(response.status, "Search returned no results")
 
   return {
-    hits: result.hits.map((hit) => hitOf<D>(hit, highlight)),
+    hits: result.hits.map((hit) => hitOf<D, E>(hit, highlight)),
     total: result.estimatedTotalHits ?? result.hits.length,
     query: result.query ?? q,
   }
 }
 
-function hitOf<D>(raw: RawHit, highlight: string[]): SearchHit<D> {
+function hitOf<D, E>(raw: RawHit, highlight: string[]): SearchHit<D, E> {
   const { _formatted: formatted, ...hit } = raw
   const highlights: Record<string, Segment[]> = {}
   for (const field of highlight) {
@@ -180,7 +221,13 @@ function hitOf<D>(raw: RawHit, highlight: string[]): SearchHit<D> {
     const value = typeof marked === "string" ? marked : hit.data[field]
     highlights[field] = typeof value === "string" ? segments(value) : []
   }
-  return { ...hit, data: hit.data as D, highlights }
+  // Indexes built before display fields have no `expanded`.
+  return {
+    ...hit,
+    data: hit.data as D,
+    expanded: (hit.expanded ?? {}) as E,
+    highlights,
+  }
 }
 
 /** Text with the engine's marks, as segments. */
