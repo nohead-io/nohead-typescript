@@ -328,7 +328,7 @@ imageUrl(asset.image_url!, { width: 400, dpr: 2, options: ["bl:2"] })
 Frameworks' image components, with `srcset` and all, take a loader from it:
 
 - **Next.js:** a file named by `images.loaderFile` in next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`, then `<Image src={asset.image_url} … />`. It serves WebP, as Next.js's own optimizer does by default, unless the URL names a format (`@avif` for AVIF, which `images.formats` can't ask a loader for): ``src={`${asset.image_url}@svg`}`` keeps an SVG a vector.
-- **Astro:** `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }` in astro.config, then `<Image src={asset.image_url} width={…} height={…} alt={…} />`. It serves WebP unless a `format` says otherwise: give an SVG `format="svg"` to keep it a vector (an asset's `content_type` tells). Pass `width` and `height`, which expanded assets carry; `inferSize` would need the image host in Astro's `image.domains`. Needs Astro 5.9 or later.
+- **Astro:** `image: { service: { entrypoint: "@nohead/sdk/astro/image-service" } }` in astro.config, then `<Image src={asset.image_url} width={…} height={…} alt={…} />`. It serves WebP unless a `format` says otherwise: give an SVG `format="svg"` to keep it a vector (an asset's `content_type` tells). Pass `width` and `height`, which expanded assets carry; `inferSize` would need the image host in Astro's `image.domains`. Defaults for every image go in the service's `config`, and an image's own options win: `service: { entrypoint: "@nohead/sdk/astro/image-service", config: { quality: 70 } }` (`format` too). Needs Astro 5.9 or later.
 - **Nuxt Image:** a custom provider file in nuxt.config's `image.providers`: `export { nuxtImageProvider as default } from "@nohead/sdk/images"` (Nuxt Image 1: `export { getImage } from "@nohead/sdk/images"`).
 
 The loaders leave other images, the site's own, as they are.
@@ -380,27 +380,19 @@ Search needs the `search:read` scope and covers every collection the key can rea
 
 ## Astro
 
-`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5.9 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`:
+`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5.9 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`. On Astro 6 or later, the loader also gives each collection its schema and TypeScript type, from the collection's fields in Nohead:
 
 ```ts
 // src/content.config.ts
-import { defineCollection, reference } from "astro:content"
-import { z } from "astro/zod"
+import { defineCollection } from "astro:content"
 import { noheadLoader } from "@nohead/sdk/astro"
 
 // Astro reads .env into import.meta.env, not process.env.
 const apiKey = import.meta.env.NOHEAD_API_KEY
-const image = z.object({
-  image_url: z.string(),
-  width: z.number(),
-  height: z.number(),
-  alt: z.string().optional(),
-})
 
 export const collections = {
   people: defineCollection({
     loader: noheadLoader({ collection: "people", apiKey }),
-    schema: z.object({ name: z.string(), slug: z.string() }),
   }),
   posts: defineCollection({
     loader: noheadLoader({
@@ -409,13 +401,6 @@ export const collections = {
       body: "body",
       apiKey,
     }),
-    schema: z.object({
-      title: z.string(),
-      slug: z.string(),
-      date: z.coerce.date(),
-      authors: z.array(reference("people")),
-      cover: image.optional(),
-    }),
   }),
 }
 ```
@@ -423,28 +408,55 @@ export const collections = {
 ```astro
 ---
 // src/pages/posts/[slug].astro
-import { getCollection, render } from "astro:content"
+import { getCollection, getEntry, render } from "astro:content"
 import { Image } from "astro:assets"
 
 export async function getStaticPaths() {
   const posts = await getCollection("posts")
   return posts.map((post) => ({ params: { slug: post.data.slug }, props: { post } }))
 }
-const { post } = Astro.props
+const { post } = Astro.props // post.data.title: string, post.data.date: Date
 const { Content } = await render(post)
-const { cover } = post.data
+const authors = await Promise.all(post.data.authors.map((author) => getEntry(author)))
+const { cover } = post.data // an image field's assets have their URL and size
 ---
-{cover && <Image src={cover.image_url} width={cover.width} height={cover.height} alt={cover.alt ?? ""} />}
+<h1>{post.data.title}</h1>
+<p>By {authors.map((author) => author?.data.name).join(" and ")}</p>
+{cover && <Image src={cover.image_url!} width={cover.width!} height={cover.height!} alt={cover.alt ?? ""} />}
 <Content />
 ```
 
-- **Entries.** Each record becomes an entry whose `id` is the record ID and whose `data` is its fields, checked by the collection's `schema`. Collections load when the site builds and when `astro dev` starts. Each load lists the whole collection, removes the entries of records that are gone, and skips records that haven't changed.
+**Schema and types.** Before, each collection repeated its fields as a Zod schema:
+
+```ts
+posts: defineCollection({
+  loader: noheadLoader({ collection: "posts", expand: ["cover"], body: "body", apiKey }),
+  schema: z.object({
+    title: z.string(),
+    date: z.coerce.date(),
+    authors: z.array(reference("people")),
+    cover: z.object({ image_url: z.string(), width: z.number(), height: z.number() }).optional(),
+    // …and every other field
+  }),
+}),
+```
+
+Now the loader reads the collection's fields when Astro syncs (`astro dev`, `astro build`, `astro sync`) and writes both the schema and the type, so `getCollection("posts")` is typed with none of that:
+
+- Text fields are strings; integers and decimals, numbers; dates, `Date`s; enums, their options; booleans, `boolean` (`false` when unset); JSON, `unknown`. A multiple field is an array.
+- A required field is required, others optional. An expanded asset or relation is always optional, since one deleted or unpublished since is left out.
+- A relation is a `reference()` to the Astro collection named like its target's slug, so name your collections after their slugs. Expanded, it is an `EmbeddedRecord`, and an expanded asset an `EmbeddedAsset`. An asset that isn't expanded stays its ID.
+- The `body` field isn't in the data: `render(entry)` has it.
+- The schema takes the key's `schema:read` scope, which published-only keys can have; without it the sync fails and says so.
+- A `schema` given to `defineCollection` takes its place, as in any Astro loader. Use one to transform values, or on Astro 5, which doesn't ask loaders for a schema.
+
+- **Entries.** Each record becomes an entry whose `id` is the record ID and whose `data` is its fields, checked by the collection's schema. Collections load when the site builds and when `astro dev` starts. Each load lists the whole collection, removes the entries of records that are gone, and skips records that haven't changed.
 - **Published only.** Only published records load, whatever the key may read, so a published-only key (`nohead_pk_…`) is enough. `filter` adds conditions (`{ featured: true }`); `filter: { published_at: undefined }` loads every record.
 - **Rich text** reads as HTML (or Markdown with `richText: "markdown"`). `body` names the field that `render(entry)` renders: it moves out of `data` into the entry's rendered content. As Markdown, it goes through Astro's own Markdown pipeline (your plugins, syntax highlighting, `headings`). A record can have several rich text fields and an entry renders one; the others stay in `data` as HTML, for `<Fragment set:html={post.data.summary} />`.
 - **Order.** Astro doesn't keep an order for a collection (from Astro 6, `getCollection` returns entries by ID), so sort what it returns: `posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())`.
 - **Relations** stay record IDs, for `reference("people")` and `getEntry`.
 - **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the image service, `@nohead/sdk/astro/image-service` (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record, unless `filter` loads unpublished entries too.
-- **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Dates and times are strings: `z.coerce.date()` makes them `Date`s.
+- **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Without the loader's schema, dates and times are strings: `z.coerce.date()` makes them `Date`s.
 - **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass the key from there as above.
 
 ## Schema

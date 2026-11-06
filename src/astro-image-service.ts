@@ -11,6 +11,11 @@
  * attributes, `srcset` for `widths` and `densities`). WebP unless a
  * `format` says otherwise. Other images (the site's own, imported or
  * remote) are served as they are.
+ *
+ * Defaults for every image go in the service's `config`, and an image's own
+ * `quality` or `format` wins:
+ *
+ *   service: { entrypoint: "@nohead/sdk/astro/image-service", config: { quality: 70 } }
  */
 import type { ExternalImageService, ImageTransform } from "astro"
 import { baseService } from "astro/assets"
@@ -18,7 +23,15 @@ import { baseService } from "astro/assets"
 import { fitOf, formatOf, qualityOf } from "./frameworks.ts"
 import { imageUrl, isImageUrl } from "./images.ts"
 
-const imageService: ExternalImageService = {
+/** The service's `config` in astro.config: defaults for every image. */
+export interface ImageServiceConfig {
+  /** 1 to 100, or one of Astro's presets (`"high"` is 80). */
+  quality?: number | "low" | "mid" | "high" | "max"
+  /** `"webp"` unless set. */
+  format?: "webp" | "avif" | "jpeg" | "jpg" | "png"
+}
+
+const imageService: ExternalImageService<ImageServiceConfig> = {
   getHTMLAttributes: baseService.getHTMLAttributes,
   getSrcSet: baseService.getSrcSet,
   async validateOptions(options, imageConfig, logger) {
@@ -28,10 +41,13 @@ const imageService: ExternalImageService = {
       logger
     )
     // So the srcset's <source type> says what the URLs serve.
-    if (isImageUrl(validated.src)) validated.format ??= "webp"
+    if (isImageUrl(validated.src)) {
+      validated.format ??= imageConfig?.service?.config?.format ?? "webp"
+    }
     return validated
   },
-  getURL(options) {
+  getURL(options, imageConfig) {
+    const defaults = imageConfig?.service?.config
     const { src } = options
     // An imported image's metadata, or another URL.
     if (!isImageUrl(src)) return typeof src === "string" ? src : src.src
@@ -39,8 +55,8 @@ const imageService: ExternalImageService = {
       width: options.width,
       height: options.height,
       fit: fitOf(options.fit, options.width, options.height),
-      format: formatOf(options.format ?? "webp"),
-      quality: qualityOf(options.quality),
+      format: formatOf(options.format ?? defaults?.format ?? "webp"),
+      quality: qualityOf(options.quality ?? defaults?.quality),
     })
   },
 }
