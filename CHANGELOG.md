@@ -22,6 +22,9 @@ section is its GitHub release's notes.
   otherwise, and takes Astro's quality presets (`"high"`).
 - Nuxt Image's `format: "jpg"` gives a JPEG, as `"jpeg"` does, instead of
   the image's own format.
+- `nextImageLoader` serves WebP, as Next.js's own optimizer would, where it
+  served each image in its own format (a JPEG at twice the size). A format
+  the URL names stays: `@svg` keeps an SVG a vector.
 - **Breaking:** Nuxt Image (and the Astro image service) crop to a box of
   both sizes when no `fit` is given, as their own services do. They used to
   fit the image inside it, so an image of another shape came back smaller

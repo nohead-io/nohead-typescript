@@ -78,7 +78,11 @@ describe("imageUrl", () => {
 describe("framework loaders", () => {
   it("serve Next.js and Nuxt Image", () => {
     expect(nextImageLoader({ src: base, width: 640, quality: 75 })).toBe(
-      at("rs:fit:640:0/q:75")
+      `${at("rs:fit:640:0/q:75")}@webp`
+    )
+    // A format the URL names stays: `@svg` keeps an SVG a vector.
+    expect(nextImageLoader({ src: `${base}@svg`, width: 640 })).toBe(
+      `${at("rs:fit:640:0")}@svg`
     )
     expect(
       getImage(base, {
@@ -106,7 +110,7 @@ describe("framework loaders", () => {
       "http://localhost:8081/_/"
     )
     expect(nextImageLoader({ src: local, width: 64 })).toBe(
-      local.replace("/_/plain/", "/_/rs:fit:64:0/plain/")
+      `${local.replace("/_/plain/", "/_/rs:fit:64:0/plain/")}@webp`
     )
   })
 

@@ -75,6 +75,8 @@ export function isImageUrl(src: unknown): src is string {
  * A Next.js image loader. In a file named by `images.loaderFile` in
  * next.config: `export { nextImageLoader as default } from "@nohead/sdk/images"`,
  * then `<Image src={asset.image_url} width={…} height={…} alt={asset.alt} />`.
+ * As WebP, which Next.js's own optimizer would pick, unless the URL names a
+ * format: `${asset.image_url}@png`, or `@svg` to keep an SVG a vector.
  * Other images (the site's own) are left as they are.
  */
 export function nextImageLoader({
@@ -86,7 +88,10 @@ export function nextImageLoader({
   width: number
   quality?: number
 }): string {
-  return isImageUrl(src) ? imageUrl(src, { width, quality }) : src
+  if (!isImageUrl(src)) return src
+  // A loader is given no format: one the URL names stays.
+  const format = /@[a-z]+$/.test(src) ? undefined : "webp"
+  return imageUrl(src, { width, quality, format })
 }
 
 /**
