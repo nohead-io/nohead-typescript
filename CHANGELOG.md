@@ -8,7 +8,7 @@ section is its GitHub release's notes.
 ## Unreleased
 
 - `@nohead/sdk/astro`: `noheadLoader`, a loader for Astro's content
-  collections (Astro 5 or later). It loads a collection's published records
+  collections (Astro 5.9 or later). It loads a collection's published records
   as entries, by record ID, with rich text as HTML, expanded assets in place
   of their IDs and relations kept as IDs for `reference()`; `body` renders a
   rich text field for `render(entry)`.

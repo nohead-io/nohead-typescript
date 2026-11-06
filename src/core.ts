@@ -714,7 +714,7 @@ function finiteNumbers(key: string, value: unknown): unknown {
   return value
 }
 
-function environment(): Record<string, string | undefined> {
+export function environment(): Record<string, string | undefined> {
   const process = (
     globalThis as { process?: { env?: Record<string, string | undefined> } }
   ).process

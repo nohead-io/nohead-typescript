@@ -58,7 +58,7 @@
     "typecheck:smoke": "tsc -p smoke"
   },
   "peerDependencies": {
-    "astro": ">=5.0.0"
+    "astro": ">=5.9.0"
   },
   "peerDependenciesMeta": {
     "astro": {

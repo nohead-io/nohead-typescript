@@ -381,7 +381,7 @@ Search needs the `search:read` scope and covers every collection the key can rea
 
 ## Astro
 
-`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`:
+`@nohead/sdk/astro` loads collections into Astro's content collections (Astro 5.9 or later), so pages read them with `getCollection`, `getEntry`, `reference()` and `render()`:
 
 ```ts
 // src/content.config.ts
@@ -447,7 +447,7 @@ const { cover } = post.data
 - **Published only.** Only published records load, whatever the key may read, so a published-only key (`nohead_pk_…`) is enough. `filter` adds conditions (`{ featured: true }`); `filter: { published_at: undefined }` loads every record.
 - **Rich text** reads as HTML (or Markdown with `richText: "markdown"`). `body` names the field that `render(entry)` renders: it moves out of `data` into the entry's rendered content. As Markdown, it goes through Astro's own Markdown pipeline (your plugins, syntax highlighting, `headings`). A record can have several rich text fields and an entry renders one; the others stay in `data` as HTML, for `<Fragment set:html={post.data.summary} />`.
 - **Relations** stay record IDs, for `reference("people")` and `getEntry`.
-- **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the Astro image service (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. One deleted since is left out. An expanded relation becomes `{ id, data }`.
+- **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the Astro image service (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record unless `filter` sets `published_at`.
 - **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Dates and times are strings: `z.coerce.date()` makes them `Date`s.
 - **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`baseUrl`, `timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass them from there as above.
 

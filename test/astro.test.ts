@@ -161,6 +161,8 @@ describe("noheadLoader", () => {
               gallery: ["ast_2", "ast_3"],
               photo: "ast_gone",
               category: "rec_9",
+              editor: "rec_8",
+              related: ["rec_5", "rec_6"],
               authors: ["rec_7"],
               body: '<p><img src="https://images.nohead.io/plain/ast_4"></p>',
             },
@@ -169,6 +171,9 @@ describe("noheadLoader", () => {
               gallery: [image("ast_2"), image("ast_3")],
               photo: null,
               category: published("rec_9", { name: "Studio", about: null }),
+              // Unpublished, so left out as entries are.
+              editor: record("rec_8", { name: "Draft" }),
+              related: [published("rec_5", { title: "Five" }), record("rec_6")],
               body: [image("ast_4")],
             }
           ),
@@ -195,10 +200,34 @@ describe("noheadLoader", () => {
         expect.objectContaining({ id: "ast_3", width: 1200, height: 800 }),
       ],
       category: { id: "rec_9", data: { name: "Studio" } },
+      related: [{ id: "rec_5", data: { title: "Five" } }],
       // Not expanded: an ID, for reference("people").
       authors: ["rec_7"],
       // A rich text field keeps its text, not the images it shows.
       body: '<p><img src="https://images.nohead.io/plain/ast_4"></p>',
+    })
+  })
+
+  it("embeds unpublished records when the filter sets published_at", async () => {
+    const { load } = loader(
+      [
+        page(
+          [
+            published(
+              "rec_1",
+              { editor: "rec_8" },
+              { editor: record("rec_8", { name: "Draft" }) }
+            ),
+          ],
+          null
+        ),
+      ],
+      { filter: { published_at: undefined } }
+    )
+    const { context, entries } = astro()
+    await load(context)
+    expect(entries.get("rec_1")!.data).toEqual({
+      editor: { id: "rec_8", data: { name: "Draft" } },
     })
   })
 
@@ -297,10 +326,24 @@ describe("noheadLoader", () => {
     expect(context.store.delete).not.toHaveBeenCalled()
   })
 
-  it("fails the load when the schema rejects a record", async () => {
-    const { load } = loader([page([published("rec_1", { title: 1 })], null)])
-    await expect(
-      load(astro(z.object({ title: z.string() })).context)
-    ).rejects.toThrow(z.ZodError)
+  it("fails the load, changing nothing, when the schema rejects a record", async () => {
+    const { context, entries } = astro(z.object({ title: z.string() }))
+    await loader([page([published("rec_1", { title: "One" })], null)]).load(
+      context
+    )
+    context.store.set.mockClear()
+    const { load } = loader([
+      page(
+        [
+          published("rec_2", { title: "Two" }),
+          published("rec_3", { title: 3 }),
+        ],
+        null
+      ),
+    ])
+    await expect(load(context)).rejects.toThrow(z.ZodError)
+    expect([...entries.keys()]).toEqual(["rec_1"])
+    expect(context.store.set).not.toHaveBeenCalled()
+    expect(context.store.delete).not.toHaveBeenCalled()
   })
 })

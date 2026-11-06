@@ -17,7 +17,7 @@
 import type { Loader, LoaderContext } from "astro/loaders"
 
 import { Nohead } from "./client.ts"
-import type { ClientOptions } from "./core.ts"
+import { environment, type ClientOptions } from "./core.ts"
 import { NoheadError } from "./errors.ts"
 import type * as G from "./generated/types.gen.ts"
 import type { RecordFilter, RecordSort } from "./types.ts"
@@ -35,8 +35,9 @@ export interface NoheadLoaderOptions extends ClientOptions {
   sort?: RecordSort
   /**
    * Asset (or relation) fields whose IDs to replace with what they point
-   * at: an asset as an `EmbeddedAsset`, a record as an `EmbeddedRecord`.
-   * At most 5. Relations otherwise stay record IDs, for `reference()`.
+   * at: an asset as an `EmbeddedAsset`, a published record as an
+   * `EmbeddedRecord`. At most 5. Relations otherwise stay record IDs, for
+   * `reference()`.
    */
   expand?: string[]
   /**
@@ -105,14 +106,12 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
     async load(context: LoaderContext) {
       const { store, logger } = context
       // Astro reads .env into import.meta.env, not process.env.
-      if (!client.apiKey && !globalThis.process?.env?.NOHEAD_API_KEY) {
+      if (!client.apiKey && !environment().NOHEAD_API_KEY) {
         throw new NoheadError(
           "Missing API key: pass `apiKey: import.meta.env.NOHEAD_API_KEY` to noheadLoader, or set NOHEAD_API_KEY in the environment"
         )
       }
       const nohead = new Nohead({ ...client, richText })
-      // Everything is read first, so a failed request leaves the entries as
-      // they were.
       const records = []
       for await (const record of nohead.records.list(collection, {
         limit: 100,
@@ -122,30 +121,35 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
       })) {
         records.push(record)
       }
+      // Unless a filter says otherwise, embedded records are published too.
+      const publishedOnly = !filter || !("published_at" in filter)
+
+      // Every entry is made before the store changes, so a failure leaves
+      // the entries as they were.
+      const entries = await Promise.all(
+        records.map(async (record) => {
+          const data = entryData(record, publishedOnly)
+          const digest = context.generateDigest(data)
+          if (store.get(record.id)?.digest === digest) return undefined
+          let rendered
+          if (body !== undefined) {
+            const value = data[body]
+            delete data[body]
+            if (typeof value === "string") {
+              rendered =
+                richText === "markdown"
+                  ? await context.renderMarkdown(value)
+                  : { html: value }
+            }
+          }
+          const parsed = await context.parseData({ id: record.id, data })
+          return { id: record.id, data: parsed, digest, rendered }
+        })
+      )
 
       const ids = new Set(records.map((record) => record.id))
       for (const id of store.keys()) if (!ids.has(id)) store.delete(id)
-
-      for (const record of records) {
-        const data = entryData(record)
-        const digest = context.generateDigest(data)
-        if (store.get(record.id)?.digest === digest) continue
-
-        const value = body === undefined ? undefined : data[body]
-        if (body !== undefined) delete data[body]
-        const rendered =
-          typeof value !== "string"
-            ? undefined
-            : richText === "markdown"
-              ? await context.renderMarkdown(value)
-              : { html: value }
-        store.set({
-          id: record.id,
-          data: await context.parseData({ id: record.id, data }),
-          digest,
-          rendered,
-        })
-      }
+      for (const entry of entries) if (entry) store.set(entry)
       logger.info(`Loaded ${records.length} records from ${collection}`)
     },
   }
@@ -155,17 +159,26 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
  * A record's fields as an entry's data: without empty values, and with each
  * expanded asset or relation in place of its ID.
  */
-function entryData(record: G.Record): Record<string, unknown> {
+function entryData(
+  record: G.Record,
+  publishedOnly: boolean
+): Record<string, unknown> {
   const data = present(record.data)
+  // Gone since, or (as entries are) unpublished: left out.
+  const shown = (
+    embedded: G.Record | G.Asset | null
+  ): embedded is G.Record | G.Asset =>
+    embedded !== null &&
+    !(publishedOnly && embedded.object === "record" && !embedded.published_at)
   for (const [key, embedded] of Object.entries(record.expanded ?? {})) {
     const value = record.data[key]
     // A rich text field's expansion (the assets its images show) is a list
     // beside a single value: the field keeps its text.
     if (Array.isArray(value) && Array.isArray(embedded)) {
-      data[key] = embedded.map(entryValue)
+      data[key] = embedded.filter(shown).map(entryValue)
     } else if (typeof value === "string" && !Array.isArray(embedded)) {
-      if (embedded) data[key] = entryValue(embedded)
-      else delete data[key] // deleted since
+      if (shown(embedded)) data[key] = entryValue(embedded)
+      else delete data[key]
     }
   }
   return data
