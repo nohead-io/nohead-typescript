@@ -30,6 +30,8 @@ export interface ImageOptions {
 export type ImageSource = string | { image_url: string | null }
 
 const FITS = { contain: "fit", cover: "fill", fill: "force" } as const
+// The format an image URL names, after its source: `…@webp`.
+const FORMAT = /@[a-z]+$/
 
 /** A rendition of an image: its `image_url` with these options. */
 export function imageUrl(
@@ -60,7 +62,7 @@ export function imageUrl(
 
   // The source comes last; a format replaces any the URL already names.
   let source = base.slice(at)
-  if (format) source = `${source.replace(/@[a-z]+$/, "")}@${format}`
+  if (format) source = `${source.replace(FORMAT, "")}@${format}`
   return `${base.slice(0, at)}${segments.map((s) => `/${s}`).join("")}${source}`
 }
 
@@ -90,7 +92,7 @@ export function nextImageLoader({
 }): string {
   if (!isImageUrl(src)) return src
   // A loader is given no format: one the URL names stays.
-  const format = /@[a-z]+$/.test(src) ? undefined : "webp"
+  const format = FORMAT.test(src) ? undefined : "webp"
   return imageUrl(src, { width, quality, format })
 }
 
