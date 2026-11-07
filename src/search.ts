@@ -4,12 +4,10 @@
  * engine, as fast as someone types. No dependencies and no API key, so it
  * suits browser code (https://docs.nohead.io/guides/public-search).
  *
- *   interface Post { title: string; summary?: string; cover?: HitAsset; authors?: HitRecord[] }
  *   const { hits, total } = await searchPublic<Post>({
  *     token, index, q: "lentil", highlight: ["title", "summary"],
  *   })
  *   hits[0].highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
- *   hits[0].data.cover       // { id, image_url, alt, width, height }
  */
 
 /** Where search tokens search. */
@@ -30,7 +28,6 @@ export interface SearchOptions<D = Record<string, unknown>> {
    * Filterable fields under `data`, as the search engine writes filters:
    * `'data.cuisine = "french"'`, or an array whose items must all hold
    * (an inner array is any of): `["data.servings > 2", ["data.cuisine = french", "data.cuisine = italian"]]`.
-   * Asset and relation fields filter by ID: `'data.category.id = "rec_…"'`.
    */
   filter?: string | (string | string[])[]
   /** Sortable fields, first first: `["data.date:desc"]`, `["published_at:desc"]`. */
@@ -57,34 +54,6 @@ export interface Segment {
   match: boolean
 }
 
-/**
- * An asset field's value in a hit (an array of them for a field of several).
- * An asset deleted or not ready keeps its `id`, with the other keys `null`.
- */
-export interface HitAsset {
-  /** The asset's ID (`ast_…`). */
-  id: string
-  /** The image, for `imageUrl` from `@nohead/sdk/images`; `null` for a file that isn't an image. */
-  image_url: string | null
-  alt: string | null
-  /** In pixels. */
-  width: number | null
-  /** In pixels. */
-  height: number | null
-}
-
-/**
- * A relation field's value in a hit (an array of them for a field of
- * several). Search words match its `title`. A record deleted or not
- * published keeps its `id`, with `title` `null`.
- */
-export interface HitRecord {
-  /** The record's ID (`rec_…`). */
-  id: string
-  /** The record's first text field: its name or title, or `null` when it has none (or isn't published). */
-  title: string | null
-}
-
 /** A published record that matched. */
 export interface SearchHit<D = Record<string, unknown>> {
   /** The record's ID (`rec_…`). */
@@ -97,8 +66,7 @@ export interface SearchHit<D = Record<string, unknown>> {
   updated_at: number
   /**
    * Field values by key: dates as Unix seconds, rich text as plain text,
-   * JSON as a string, assets as `HitAsset`s and relations as `HitRecord`s.
-   * Empty fields are left out.
+   * JSON as a string, assets and relations as IDs. Empty fields are left out.
    */
   data: D
   /**
@@ -154,10 +122,7 @@ interface RawResult {
   estimatedTotalHits?: number
 }
 
-/**
- * Searches one collection's published records with a search token. Type the
- * hits with the collection's fields: `searchPublic<Post>(…)`.
- */
+/** Searches one collection's published records with a search token. */
 export async function searchPublic<D = Record<string, unknown>>(
   options: SearchOptions<D>
 ): Promise<SearchResult<D>> {
@@ -185,9 +150,8 @@ export async function searchPublic<D = Record<string, unknown>>(
           filter: options.filter,
           sort: options.sort,
           ...(highlight.length > 0 && {
-            // All of data, which every index highlights (older ones don't by
-            // path); the fields asked for are read from it. The engine
-            // returns every field formatted whichever paths are named.
+            // Nested paths ("data.title") return no highlights today: the whole of
+            // data is marked, and the fields asked for are read from it.
             attributesToHighlight: ["data"],
             highlightPreTag: MARK,
             highlightPostTag: UNMARK,

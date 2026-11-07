@@ -381,22 +381,7 @@ Search needs the `search:read` scope and covers every collection the key can rea
 **Public search.** A site's browser code searches with a search token instead of an API key, straight from the search engine ([public search](https://docs.nohead.io/guides/public-search)). `@nohead/sdk/search` sends those searches and has no dependencies, so it suits browser bundles:
 
 ```ts
-import {
-  searchPublic,
-  snippet,
-  type HitAsset,
-  type HitRecord,
-} from "@nohead/sdk/search"
-import { imageUrl } from "@nohead/sdk/images"
-
-// The collection's fields, as hits show them
-interface Post {
-  title: string
-  slug: string
-  summary?: string
-  cover?: HitAsset
-  authors?: HitRecord[]
-}
+import { searchPublic, snippet } from "@nohead/sdk/search"
 
 const { hits, total } = await searchPublic<Post>({
   token, // the site's search token: public, so it can go in page source
@@ -407,20 +392,39 @@ const { hits, total } = await searchPublic<Post>({
 })
 
 for (const hit of hits) {
+  hit.data.slug // fields as the index holds them: dates as Unix seconds, assets and relations as IDs
   hit.highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
   snippet(hit.highlights.summary ?? [], { length: 120 }) // the part around the first match
-  const cover = hit.data.cover // { id, image_url, alt, width, height }
-  if (cover?.image_url)
-    imageUrl(cover, { width: 144, height: 108, fit: "cover" })
-  hit.data.authors?.flatMap((author) => author.title ?? []) // ["Leela Rao"]
 }
 ```
 
 - **Highlights** are segments rather than HTML, so a field's text never becomes markup: render each segment as text, and the matched ones in a `<mark>`. Every field `highlight` names is in `highlights`, unmarked when nothing in it matched and `[]` when the record leaves it empty.
-- **Fields** come as the index holds them: dates as Unix seconds, rich text as plain text. An asset field holds `HitAsset`s (`id`, `image_url`, `alt`, `width`, `height`; `image_url` is `null` for a file that isn't an image), and a relation field `HitRecord`s (`id`, and `title`, the related record's first text field), so results show covers and names without another request. Only ready assets and published records show: one that isn't keeps its `id`, with the other keys `null`. Search words match related records' titles too, so a name finds the posts that link to that person.
 - **An empty `q`** finds every record, for a list of the latest ones: `searchPublic({ token, index, limit: 5, sort: ["data.date:desc"] })`.
-- **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`. Asset and relation fields filter by ID: `'data.category.id = "rec_…"'`.
+- **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
 - **Errors** are a `SearchError`, with the `status` and the search engine's `code` (`invalid_search_filter`). A search its signal cancels rejects with an `AbortError`.
+
+**Covers and names.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`), which a search token can't look up. Write what the results show into the site at build time, by record ID, and join it to the hits:
+
+```ts
+// At build time, with an API key: a file the site serves, such as /search.json
+const extras: Record<string, { thumb: string | null; byline: string }> = {}
+for await (const post of nohead.records.list<Post>("posts", {
+  filter: { published_at: { exists: true } },
+  expand: ["cover", "authors"],
+})) {
+  const { cover, authors } = post.data // expanded: the asset, and the people's records
+  extras[post.id] = {
+    thumb: cover?.image_url
+      ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
+      : null,
+    byline: authors.map((author) => author.data.name).join(" and "),
+  }
+}
+
+// In the browser: fetched once, joined to each search's hits
+const extras = await fetch("/search.json").then((response) => response.json())
+const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
+```
 
 Meilisearch's own clients and InstantSearch work with search tokens too, for facets and federated searches.
 

@@ -20,11 +20,9 @@ section is its GitHub release's notes.
 - `@nohead/sdk/search`: `searchPublic`, public search with a search token,
   for sites' browser code (no dependencies). It returns typed hits, with the
   matches in the fields `highlight` names as segments to render as text
-  (`{ text, match }`) rather than HTML, and asset and relation fields as
-  `HitAsset`s and `HitRecord`s (an image's URL, alt text and size, a related
-  record's title). It takes an `AbortSignal`. An empty query lists every
-  record in a `sort`. `snippet` cuts a long highlighted field down to the part
-  around its first match.
+  (`{ text, match }`) rather than HTML, and takes an `AbortSignal`. An empty
+  query lists every record in a `sort`. `snippet` cuts a long highlighted
+  field down to the part around its first match.
 
 ## 0.13.0
 

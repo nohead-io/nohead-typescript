@@ -7,13 +7,10 @@ import {
   SearchError,
   searchPublic,
   snippet,
-  type HitAsset,
-  type HitRecord,
   type SearchHit,
   type Segment,
   type TextField,
 } from "../src/search.ts"
-import { imageUrl } from "../src/images.ts"
 import { localServer, sendJson } from "./server.ts"
 
 interface Post {
@@ -21,8 +18,6 @@ interface Post {
   slug: string
   summary?: string
   date: number
-  cover?: HitAsset
-  authors?: HitRecord[]
 }
 
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJzZWFyY2hSdWxlcyI6e319.c2lnbmF0dXJl"
@@ -38,19 +33,6 @@ const record = {
     slug: "red-lentil-soup",
     summary: "A soup of red lentils, cumin and lemon.",
     date: 1790812800,
-    cover: {
-      id: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
-      image_url:
-        "https://images.nohead.io/plain/0199f5c2-7b1e-7c3a-9d4f-2a6b8c0e1f3d/0199f5c2-8a2d-7e4b-b1c3-5d7e9f1a2b4c",
-      alt: "A bowl of soup",
-      width: 1600,
-      height: 1067,
-    },
-    authors: [
-      { id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W", title: "Leela Rao" },
-      // Not published: its ID only.
-      { id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2X", title: null },
-    ],
   },
 }
 
@@ -212,25 +194,6 @@ describe("searchPublic", () => {
     expect(hits[1]?.highlights.title).toEqual([
       { text: "Red lentil soup", match: false },
     ])
-  })
-
-  it("gives assets and relations as they show, typed", async () => {
-    const server = await engine(200, results([record]))
-    const { hits } = await searchPublic<Post>({
-      token,
-      index,
-      q: "leela",
-      filter: 'data.authors.id = "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W"',
-      baseUrl: server.url,
-    })
-    const cover = hits[0]?.data.cover
-    expect(cover?.alt).toBe("A bowl of soup")
-    expect(imageUrl(cover!, { width: 144 })).toContain("/rs:fit:144:0/plain/")
-    expect(hits[0]?.data.authors?.map((a) => a.title)).toEqual([
-      "Leela Rao",
-      null,
-    ])
-    expectTypeOf(cover).toEqualTypeOf<HitAsset | undefined>()
   })
 
   it("reads highlighted fields from data when the engine formats none", async () => {
