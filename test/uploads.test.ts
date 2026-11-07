@@ -80,6 +80,21 @@ describe("assets.upload", () => {
     expect(put.init).not.toHaveProperty("duplex")
   })
 
+  it("sends alt text with the start of the upload, and none unless given", async () => {
+    const { nohead, calls } = mockClient([
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+      created,
+      new Response(null),
+      json(200, asset("ready")),
+    ])
+    await nohead.assets.upload(bytes(), { byte_size: 3, alt: "A harbour" })
+    expect(calls[0]!.body).toMatchObject({ alt: "A harbour" })
+    await nohead.assets.upload(bytes(), { byte_size: 3 })
+    expect(calls[3]!.body).not.toHaveProperty("alt")
+  })
+
   it("sends a stream as it reads it (duplex)", async () => {
     const { nohead, calls } = mockClient([
       created,

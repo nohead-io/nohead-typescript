@@ -1157,6 +1157,16 @@ export type RecordCreate = {
      *
      */
     upsert_on?: string;
+    /**
+     * Publish the record too, in the same request: as
+     * `POST /v1/records/{record_id}/publication` right after the write,
+     * in one transaction, so it is never live half done and never
+     * unpublished in between. Needs the permission to publish. With
+     * `upsert_on`, a record that is already published stays published.
+     * `false` leaves publication as it is.
+     *
+     */
+    publish?: boolean;
 };
 
 export type RecordList = {
@@ -1792,6 +1802,10 @@ export type AssetUploadCreate = {
      * Exact size of the file in bytes, at most the plan's largest upload (10 MB on Free, 100 MB on paid plans).
      */
     byte_size: number;
+    /**
+     * Alt text for the asset from the start, as `PATCH /v1/assets/{asset_id}` sets it. Surrounding whitespace is removed; empty or null leaves it unset.
+     */
+    alt?: string | null;
 };
 
 export type FieldOrder = {

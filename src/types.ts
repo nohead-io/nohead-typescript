@@ -98,6 +98,11 @@ export interface RecordCreateParams<D = G.RecordData> {
    * record holding that value is updated instead, if there is one.
    */
   upsert_on?: string
+  /**
+   * Publish the record too, in the same request and transaction. With
+   * `upsert_on`, a record already published stays published.
+   */
+  publish?: boolean
 }
 
 export interface RecordUpdateParams<D = G.RecordData> {

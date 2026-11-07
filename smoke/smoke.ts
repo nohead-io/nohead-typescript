@@ -1,6 +1,6 @@
 // Smoke test (Nohead spec §48.14): the core flow against a live API, using
-// the built package. Needs NOHEAD_API_URL (the API to test, passed as
-// `baseUrl`) and NOHEAD_API_KEY (a key with schema, records, assets and
+// the built package. Needs NOHEAD_API_URL (the API to test, which the client
+// reads as its `baseUrl`) and NOHEAD_API_KEY (a key with schema, records, assets and
 // webhooks read/write scopes). Exits non-zero on failure, after deleting what
 // it created.
 //
@@ -36,10 +36,9 @@ interface Post {
 }
 
 // The API to test. Required, so that a missing variable doesn't run the test
-// against production.
-const baseUrl = process.env.NOHEAD_API_URL
-expect(baseUrl, "NOHEAD_API_URL is set to the API to test")
-const nohead = new Nohead({ baseUrl })
+// against production. The client reads it, and the key, as a script would.
+expect(process.env.NOHEAD_API_URL, "NOHEAD_API_URL is set to the API to test")
+const nohead = new Nohead()
 
 // What the test created and has not deleted yet: deleted at the end, also
 // when it fails.
@@ -193,6 +192,15 @@ try {
   const unpublished = await nohead.records.unpublish<Post>(first.id)
   expect(unpublished.published_at === null, "unpublish takes it back")
 
+  const live = await nohead.records.create<Post>(collection.slug, {
+    data: { title: "Live" },
+    publish: true,
+  })
+  expect(
+    live.published_at !== null && live.revision === 2,
+    "create with publish creates it published"
+  )
+
   const invalid = await rejection(
     nohead.records.create(collection.slug, { data: {} })
   )
@@ -223,7 +231,7 @@ try {
     [
       "a File",
       new File([PNG], "pixel.png", { type: "image/png" }),
-      {},
+      { alt: "A one-pixel image" },
       PNG.byteLength,
       "image/png",
     ],
@@ -266,6 +274,8 @@ try {
       `${kind} uploads (${uploaded.status}, ${uploaded.byte_size} bytes, ${uploaded.content_type})`
     )
   }
+  const pixel = await nohead.assets.get([...left.assets][1]!)
+  expect(pixel.alt === "A one-pixel image", "upload sets alt text")
   const asset = await nohead.assets.get([...left.assets][0]!)
   expect(asset.filename === "hello.txt", "assets get")
 
