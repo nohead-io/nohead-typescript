@@ -7,9 +7,8 @@ import {
   SearchError,
   searchPublic,
   snippet,
-  type Expanded,
-  type ExpandedAsset,
-  type ExpandedRecord,
+  type HitAsset,
+  type HitRecord,
   type SearchHit,
   type Segment,
   type TextField,
@@ -22,13 +21,8 @@ interface Post {
   slug: string
   summary?: string
   date: number
-  cover?: string
-  authors?: string[]
-}
-
-interface PostExpanded {
-  cover?: ExpandedAsset | null
-  authors?: ExpandedRecord[]
+  cover?: HitAsset
+  authors?: HitRecord[]
 }
 
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJzZWFyY2hSdWxlcyI6e319.c2lnbmF0dXJl"
@@ -44,10 +38,6 @@ const record = {
     slug: "red-lentil-soup",
     summary: "A soup of red lentils, cumin and lemon.",
     date: 1790812800,
-    cover: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
-    authors: ["rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W"],
-  },
-  expanded: {
     cover: {
       id: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
       image_url:
@@ -56,7 +46,11 @@ const record = {
       width: 1600,
       height: 1067,
     },
-    authors: [{ id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W", title: "Leela Rao" }],
+    authors: [
+      { id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W", title: "Leela Rao" },
+      // Not published: its ID only.
+      { id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2X", title: null },
+    ],
   },
 }
 
@@ -200,14 +194,13 @@ describe("searchPublic", () => {
     expect(hits[0]).not.toHaveProperty("_formatted")
     // Only text fields can be highlighted.
     expectTypeOf<TextField<Post>>().toEqualTypeOf<
-      "title" | "slug" | "summary" | "cover"
+      "title" | "slug" | "summary"
     >()
     expectTypeOf<TextField<{ [key: string]: unknown }>>().toBeString()
     expectTypeOf<SearchHit<Post>["highlights"]>().toEqualTypeOf<{
       title?: Segment[]
       slug?: Segment[]
       summary?: Segment[]
-      cover?: Segment[]
     }>()
     expect(hits[1]?.highlights.summary).toEqual([
       { text: "Lentils", match: true },
@@ -221,28 +214,23 @@ describe("searchPublic", () => {
     ])
   })
 
-  it("gives the hits' assets and relations, typed as described", async () => {
-    const older: Partial<typeof record> = { ...record }
-    delete older.expanded
-    const server = await engine(200, results([record, older]))
-    const { hits } = await searchPublic<Post, PostExpanded>({
+  it("gives assets and relations as they show, typed", async () => {
+    const server = await engine(200, results([record]))
+    const { hits } = await searchPublic<Post>({
       token,
       index,
       q: "leela",
+      filter: 'data.authors.id = "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W"',
       baseUrl: server.url,
     })
-    const cover = hits[0]?.expanded.cover
+    const cover = hits[0]?.data.cover
     expect(cover?.alt).toBe("A bowl of soup")
     expect(imageUrl(cover!, { width: 144 })).toContain("/rs:fit:144:0/plain/")
-    expect(hits[0]?.expanded.authors?.map((a) => a.title)).toEqual([
+    expect(hits[0]?.data.authors?.map((a) => a.title)).toEqual([
       "Leela Rao",
+      null,
     ])
-    // An index built before display fields has none.
-    expect(hits[1]?.expanded).toEqual({})
-    expectTypeOf<SearchHit<Post>["expanded"]>().toEqualTypeOf<Expanded>()
-    expectTypeOf<
-      SearchHit<Post, PostExpanded>["expanded"]
-    >().toEqualTypeOf<PostExpanded>()
+    expectTypeOf(cover).toEqualTypeOf<HitAsset | undefined>()
   })
 
   it("reads highlighted fields from data when the engine formats none", async () => {
