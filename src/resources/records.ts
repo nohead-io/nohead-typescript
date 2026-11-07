@@ -70,9 +70,10 @@ export class Records extends Resource {
   }
 
   /**
-   * Creates an unpublished record. With `upsert_on`, updates the record
-   * holding that unique value instead, if one exists, so a sync can run
-   * again without duplicates; `ifMatch` then applies to that update.
+   * Creates an unpublished record, or with `publish: true` a published one,
+   * in one request. With `upsert_on`, updates the record holding that unique
+   * value instead, if one exists, so a sync can run again without
+   * duplicates; `ifMatch` then applies to that update.
    */
   create<D = RecordData>(
     collection: string,

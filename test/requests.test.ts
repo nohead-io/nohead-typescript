@@ -20,6 +20,21 @@ describe("requests", () => {
     expect(calls).toHaveLength(0)
   })
 
+  it("creates a record published, upserting, in one request", async () => {
+    const { nohead, calls } = mockClient([json(201, record("rec_1"))])
+    await nohead.records.create("pages", {
+      data: { slug: "about" },
+      upsert_on: "slug",
+      publish: true,
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.body).toEqual({
+      data: { slug: "about" },
+      upsert_on: "slug",
+      publish: true,
+    })
+  })
+
   it("serializes filters, sorts and expansions as the API reads them", async () => {
     const { nohead, calls } = mockClient([page([], null)])
     await nohead.records.list("posts", {

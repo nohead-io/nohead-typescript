@@ -300,6 +300,14 @@ describe("noheadLoader", () => {
     )
   })
 
+  it("calls the API at NOHEAD_API_URL when it is set, as the client does", async () => {
+    vi.stubEnv("NOHEAD_API_URL", "http://localhost:3000")
+    onTestFinished(() => void vi.unstubAllEnvs())
+    const { calls, load } = loader([page([], null)], { baseUrl: undefined })
+    await load(astro().context)
+    expect(calls[0]!.url.origin).toBe("http://localhost:3000")
+  })
+
   it("removes entries no longer listed and skips unchanged ones", async () => {
     const { context, entries } = astro()
     const first = loader([

@@ -33,8 +33,8 @@ export interface ClientOptions {
    */
   apiKey?: string
   /**
-   * The API's address. Defaults to `https://api.nohead.io`; the environment
-   * isn't read for it, so the key only goes where the code says.
+   * The API's address. Defaults to `NOHEAD_API_URL`, as the CLI reads it,
+   * then `https://api.nohead.io`.
    */
   baseUrl?: string
   /** The key's project. Looked up once with `GET /v1/me` when omitted. */
@@ -192,7 +192,11 @@ export class Core {
       )
     }
     this.#apiKey = apiKey
-    this.#baseUrl = baseUrlOf(options.baseUrl || DEFAULT_BASE_URL)
+    const fromEnvironment = !options.baseUrl && environment().NOHEAD_API_URL
+    this.#baseUrl = baseUrlOf(
+      options.baseUrl || fromEnvironment || DEFAULT_BASE_URL,
+      fromEnvironment ? "NOHEAD_API_URL" : "baseUrl"
+    )
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.#headers = options.headers ?? {}
     this.#maxRetries = options.maxRetries ?? 2
@@ -665,8 +669,11 @@ function runtimeVersion(): string | undefined {
   return undefined
 }
 
-/** `url` without trailing slashes, if it is an http or https URL. */
-function baseUrlOf(url: string): string {
+/**
+ * `url` without trailing slashes, if it is an http or https URL; the error
+ * names where it came from (`source`).
+ */
+function baseUrlOf(url: string, source: string): string {
   // A loop, as a regex backtracks on long runs of slashes.
   let end = url.length
   while (end > 0 && url[end - 1] === "/") end--
@@ -678,7 +685,7 @@ function baseUrlOf(url: string): string {
     // Not a URL at all.
   }
   if (protocol !== "http:" && protocol !== "https:") {
-    throw new NoheadError("baseUrl must be an http or https URL")
+    throw new NoheadError(`${source} must be an http or https URL`)
   }
   return base
 }
