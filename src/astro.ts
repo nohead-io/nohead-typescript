@@ -139,7 +139,8 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
         const slugsById = async () => {
           const slugs = new Map<string, string>()
           for await (const each of nohead.collections.list()) {
-            slugs.set(each.id, references[each.slug] ?? each.slug)
+            const renamed = Object.hasOwn(references, each.slug)
+            slugs.set(each.id, renamed ? references[each.slug]! : each.slug)
           }
           return slugs
         }
