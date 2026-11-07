@@ -5,6 +5,13 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/search`: `SearchAsset` and `SearchRelated` type the asset and
+  relation values of hits, which now carry what a result shows: an asset's
+  `image_url` (resize it with `imageUrl`), `alt`, `width` and `height`, and a
+  related record's title and slug fields. They were IDs.
+
 ## 0.15.0
 
 - `@nohead/sdk/search`: `searchPublic`, public search with a search token,

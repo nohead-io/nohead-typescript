@@ -9,6 +9,16 @@
  *   })
  *   hits[0].highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
  *
+ * Hits carry what a result shows: an asset field's value is a SearchAsset
+ * (resize it with `imageUrl` from `@nohead/sdk/images`), and a relation's a
+ * SearchRelated, the related record's title and slug.
+ *
+ *   interface Post {
+ *     title: string
+ *     cover?: SearchAsset
+ *     category?: SearchRelated<{ name: string; slug: string }>
+ *   }
+ *
  * It's the small default: the same token works with the official `meilisearch`
  * client and with InstantSearch (`@meilisearch/instant-meilisearch`), for
  * facets or a ready-made search UI.
@@ -52,6 +62,32 @@ export type TextField<D> = string extends keyof D
     }[keyof D] &
       string
 
+/**
+ * An asset in a hit. `image_url` is the whole image, for `imageUrl` to
+ * resize; it and the rest are null for a file that isn't an image, and once
+ * the asset is deleted.
+ */
+export interface SearchAsset {
+  /** The asset's ID (`ast_…`). */
+  id: string
+  image_url: string | null
+  alt: string | null
+  width: number | null
+  height: number | null
+}
+
+/**
+ * A related record in a hit: a partial record with its collection's title
+ * and slug fields under `data`, by their keys. `data` is null while the
+ * related record is unpublished or deleted, or its collection isn't in public
+ * search.
+ */
+export interface SearchRelated<D = Record<string, unknown>> {
+  /** The related record's ID (`rec_…`). */
+  id: string
+  data: D | null
+}
+
 /** A piece of a highlighted field: matched words (`match: true`) or the text around them. */
 export interface Segment {
   text: string
@@ -70,7 +106,8 @@ export interface SearchHit<D = Record<string, unknown>> {
   updated_at: number
   /**
    * Field values by key: dates as Unix seconds, rich text as plain text,
-   * JSON as a string, assets and relations as IDs. Empty fields are left out.
+   * JSON as a string, assets as SearchAsset and relations as SearchRelated
+   * (lists of them for lists). Empty fields are left out.
    */
   data: D
   /**

@@ -7,10 +7,13 @@ import {
   SearchError,
   searchPublic,
   snippet,
+  type SearchAsset,
   type SearchHit,
+  type SearchRelated,
   type Segment,
   type TextField,
 } from "../src/search.ts"
+import { imageUrl, type ImageSource } from "../src/images.ts"
 import { localServer, sendJson } from "./server.ts"
 
 interface Post {
@@ -18,6 +21,8 @@ interface Post {
   slug: string
   summary?: string
   date: number
+  cover?: SearchAsset
+  category?: SearchRelated<{ name: string; slug: string }>
 }
 
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJzZWFyY2hSdWxlcyI6e319.c2lnbmF0dXJl"
@@ -33,6 +38,17 @@ const record = {
     slug: "red-lentil-soup",
     summary: "A soup of red lentils, cumin and lemon.",
     date: 1790812800,
+    cover: {
+      id: "ast_01J9ZQ3F8X5W2K7M4N6P0R1S2V",
+      image_url: "https://images.nohead.io/plain/p/a",
+      alt: "A bowl of soup",
+      width: 1600,
+      height: 1067,
+    },
+    category: {
+      id: "rec_01J9ZQ3F8X5W2K7M4N6P0R1S2W",
+      data: { name: "Soups", slug: "soups" },
+    },
   },
 }
 
@@ -174,6 +190,13 @@ describe("searchPublic", () => {
       summary: [],
     })
     expect(hits[0]).not.toHaveProperty("_formatted")
+    // Assets and related records come as objects, ready to show.
+    const [first] = hits
+    expect(first?.data.category?.data?.slug).toBe("soups")
+    expectTypeOf<SearchAsset>().toMatchTypeOf<ImageSource>()
+    expect(imageUrl(first!.data.cover!, { width: 144 })).toBe(
+      "https://images.nohead.io/rs:fit:144:0/plain/p/a"
+    )
     // Only text fields can be highlighted.
     expectTypeOf<TextField<Post>>().toEqualTypeOf<
       "title" | "slug" | "summary"
