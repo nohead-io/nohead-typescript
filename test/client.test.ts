@@ -155,6 +155,7 @@ const me = json(200, {
     published_only: false,
     project_id: "prj_9",
     expires_at: null,
+    collections: null,
   },
 })
 

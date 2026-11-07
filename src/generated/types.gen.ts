@@ -1288,6 +1288,21 @@ export type Principal = {
         published_only: PublishedOnly;
         project_id: string;
         expires_at: NullableTimestamp;
+        /**
+         * The organization's active collections, across all its
+         * projects, and how many its plan allows, so a client can
+         * check that new collections fit before creating any.
+         * Creating one past the limit is `402 plan_limit_exceeded`.
+         * Null for a key without `schema:write`.
+         *
+         */
+        collections: {
+            usage: number;
+            /**
+             * Null when the plan doesn't limit collections.
+             */
+            limit: number | null;
+        } | null;
     };
 };
 
