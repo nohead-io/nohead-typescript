@@ -24,6 +24,8 @@ export interface UploadParams {
   content_type?: string
   /** Required for a `ReadableStream`; known for everything else. */
   byte_size?: number
+  /** Alt text, set from the start (as `update` would set it later). */
+  alt?: string | null
 }
 
 /** Common files' types by extension, as the other SDKs guess them. */
@@ -67,7 +69,7 @@ export class Assets extends Resource {
    * (`upload.expires_at`), it throws `UploadError`: start over with a new key.
    *
    *   import { openAsBlob } from "node:fs"
-   *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg" })
+   *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg", alt: "A harbour at dawn" })
    *
    * Without `content_type`, the type is the Blob's, or else the filename's
    * extension's for common files.
@@ -105,6 +107,7 @@ export class Assets extends Resource {
           contentTypeOf(filename) ||
           "application/octet-stream",
         byte_size: byteSize,
+        ...(params.alt !== undefined && { alt: params.alt }),
       },
       options
     )

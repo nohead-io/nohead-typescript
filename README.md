@@ -58,19 +58,20 @@ const nohead = new Nohead({
 })
 ```
 
-| Option       | Default            |                                                                                           |
-| ------------ | ------------------ | ----------------------------------------------------------------------------------------- |
-| `apiKey`     | `NOHEAD_API_KEY`   | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.        |
-| `projectId`  | the key's project  | Looked up once with `GET /v1/me` when omitted.                                            |
-| `maxRetries` | `2`                | See [retries](#retries-and-idempotency).                                                  |
-| `timeout`    | `60000`            | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency). |
-| `fetch`      | `globalThis.fetch` | For proxies, instrumentation and tests.                                                   |
-| `headers`    | `{}`               | Added to every request.                                                                   |
-| `warnings`   | `true`             | Logs deprecation and plan usage warnings, once each.                                      |
-| `onRetry`    |                    | Called before each retry. See [retries](#retries-and-idempotency).                        |
-| `richText`   | `"document"`       | How rich text reads: `"html"` or `"markdown"`. See [rich text](#rich-text).               |
+| Option       | Default                                        |                                                                                                     |
+| ------------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `apiKey`     | `NOHEAD_API_KEY`                               | A project API key (`nohead_sk_…`, or `nohead_pk_…` when published-only). Required.                  |
+| `baseUrl`    | `NOHEAD_API_URL`, else `https://api.nohead.io` | The API's address. The CLI reads the same variable, so one environment points both at the same API. |
+| `projectId`  | the key's project                              | Looked up once with `GET /v1/me` when omitted.                                                      |
+| `maxRetries` | `2`                                            | See [retries](#retries-and-idempotency).                                                            |
+| `timeout`    | `60000`                                        | Milliseconds an attempt may go without progress. See [retries](#retries-and-idempotency).           |
+| `fetch`      | `globalThis.fetch`                             | For proxies, instrumentation and tests.                                                             |
+| `headers`    | `{}`                                           | Added to every request.                                                                             |
+| `warnings`   | `true`                                         | Logs deprecation and plan usage warnings, once each.                                                |
+| `onRetry`    |                                                | Called before each retry. See [retries](#retries-and-idempotency).                                  |
+| `richText`   | `"document"`                                   | How rich text reads: `"html"` or `"markdown"`. See [rich text](#rich-text).                         |
 
-An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`.
+An empty option counts as unset, as an empty environment variable does: `apiKey: ""` falls back to `NOHEAD_API_KEY`, and an empty `NOHEAD_API_URL` to `https://api.nohead.io`.
 
 `withOptions` copies a client with another `timeout`, `maxRetries`, `onRetry` or `richText`, or more `headers` (added to the client's). The copy shares the key's project, so it doesn't look it up again:
 
@@ -95,6 +96,15 @@ await nohead.records.delete(post.id) // soft delete; records.restore() undoes it
 ```
 
 `schedule` sets the whole schedule: a time left out is cleared, so `{ unpublish_at }` alone drops a pending publish.
+
+**Creating it published.** `publish: true` creates the record published, in one request and one transaction, so it is never unpublished in between (it needs the key's `records:write` scope, as publishing does). With `upsert_on` (below), a record already published stays published:
+
+```ts
+await nohead.records.create("posts", {
+  data: { title: "Hello" },
+  publish: true,
+})
+```
 
 **Upserts.** With `upsert_on`, the key of a `unique` field, `create` updates the record holding that value instead, if one exists, so a content sync can run again without duplicates:
 
@@ -306,11 +316,12 @@ import { openAsBlob } from "node:fs"
 
 const asset = await nohead.assets.upload(await openAsBlob("cover.jpg"), {
   filename: "cover.jpg",
+  alt: "The harbour at dawn", // optional; update() can set it later
 })
 await nohead.records.update(id, { data: { cover: asset.id } })
 ```
 
-**Images.** Image URLs are open: an image's `image_url` serves the whole image, and any of [imgproxy's processing options](https://docs.imgproxy.net/usage/processing) written into it transform it. `@nohead/sdk/images` builds them without a request, and has no dependencies, so it suits browser bundles:
+**Images.** Image URLs are open: an image's `image_url` serves the whole image, and [imgproxy's processing options](https://docs.imgproxy.net/usage/processing) written into it transform it: the open-source ones, [listed in the docs](https://docs.nohead.io/guides/images#supported-options). Any other, such as imgproxy Pro's `sa` (saturation), makes the URL answer 404. `@nohead/sdk/images` builds them without a request, and has no dependencies, so it suits browser bundles:
 
 ```ts
 import { imageUrl } from "@nohead/sdk/images"
@@ -520,7 +531,7 @@ Now the loader reads the collection's fields when Astro syncs (`astro dev`, `ast
 - **Relations** stay record IDs, for `reference("people")` and `getEntry`.
 - **Assets** named in `expand` replace their ID with the asset: `id`, `filename`, `content_type`, and when they have them `alt`, `width`, `height`, `image_url`, `file_url` and `media_url` (`EmbeddedAsset`). With the image service, `@nohead/sdk/astro/image-service` (under [Assets](#assets)), `<Image>` writes sizes and formats into the image's URL. An expanded relation becomes `{ id, data }`. An asset or record deleted since is left out, and so is an unpublished record, unless `filter` loads unpublished entries too.
 - **Empty fields** are left out of `data` rather than `null`, so `.optional()` fits them. Without the loader's schema, dates and times are strings: `z.coerce.date()` makes them `Date`s.
-- **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment; the other client options (`timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass the key from there as above.
+- **The key** is `apiKey`, or `NOHEAD_API_KEY` from the environment, and the API's address `NOHEAD_API_URL`, if set, as for the client; the other client options (`timeout`, `maxRetries`, `headers`) apply too. Astro keeps `.env` in `import.meta.env`, so pass the key from there as above.
 
 ## Schema
 

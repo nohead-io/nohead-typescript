@@ -13,6 +13,14 @@ section is its GitHub release's notes.
   (`{ text, match }`) rather than HTML, and takes an `AbortSignal`. An empty
   query lists every record in a `sort`. `snippet` cuts a long highlighted
   field down to the part around its first match.
+- The client reads `NOHEAD_API_URL` as its default `baseUrl`, as the CLI
+  does, so one environment points both at the same API (before, a script
+  sent its key to `https://api.nohead.io` whatever the CLI used). An explicit
+  `baseUrl` still wins; `noheadLoader` follows it too.
+- `records.create` takes `publish: true`: the record is created published in
+  one request (with `upsert_on`, a record already published stays so).
+- `assets.upload` and `assets.createUpload` take `alt`, the asset's alt text
+  from the start, so no `assets.update` follows each upload.
 
 ## 0.14.0
 

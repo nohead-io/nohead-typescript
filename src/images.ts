@@ -1,10 +1,10 @@
 /**
  * Image renditions without a request (`@nohead/sdk/images`). Image URLs are
- * open: an image asset's `image_url` serves the whole image, and any of
- * imgproxy's processing options written into it transform it
- * (https://docs.imgproxy.net/usage/processing). No dependencies, so it suits
- * browser bundles and frameworks' image components (Astro's image service is
- * `@nohead/sdk/astro/image-service`).
+ * open: an image asset's `image_url` serves the whole image, and imgproxy's
+ * open-source processing options written into it transform it (listed at
+ * https://docs.nohead.io/guides/images#supported-options). No dependencies,
+ * so it suits browser bundles and frameworks' image components (Astro's image
+ * service is `@nohead/sdk/astro/image-service`).
  *
  *   imageUrl(asset, { width: 800, height: 600, fit: "cover", format: "webp" })
  */
@@ -22,7 +22,15 @@ export interface ImageOptions {
   dpr?: number
   /** What a crop keeps, as imgproxy's gravity: `sm` (smart), `ce`, `no`, or `fp:0.5:0.3` (a focal point). */
   gravity?: string
-  /** Any other processing options, as written in a URL: `["bl:2", "sh:0.5"]`. */
+  /**
+   * Other processing options, as written in a URL: `["bl:2", "sh:0.5"]`.
+   * Image URLs take imgproxy's open-source options: size and crop (`rs`, `s`,
+   * `rt`, `w`, `h`, `mw`, `mh`, `z`, `dpr`, `el`, `ex`, `exar`, `g`, `c`, `t`,
+   * `pd`), orientation (`ar`, `rot`, `fl`), effects (`bg`, `bl`, `sh`, `pix`),
+   * output (`q`, `fq`, `f`, `kcr`, `scp`, `ph`, `eth`) and delivery (`cb`,
+   * `exp`, `fn`, `att`, `pr:preview`), by short or long name. Any other, such
+   * as imgproxy Pro's `sa`, `mc`, `ad` or `co`, makes the URL answer 404.
+   */
   options?: string[]
 }
 
