@@ -5,6 +5,15 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- **Breaking:** the Astro content loader and image service moved to a
+  package of their own, [`@nohead/astro`](https://github.com/nohead-io/nohead-astro),
+  released apart from the SDKs. `@nohead/sdk/astro` and
+  `@nohead/sdk/astro/image-service` are gone: install `@nohead/astro`, import
+  `noheadLoader` from `@nohead/astro`, and use `@nohead/astro/image-service`
+  as the image service's entrypoint. Nothing else about them changes.
+
 ## 0.17.0
 
 - `@nohead/sdk/astro`: `references` names the Astro collection a related
