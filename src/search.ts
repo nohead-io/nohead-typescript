@@ -64,8 +64,8 @@ export type TextField<D> = string extends keyof D
 
 /**
  * An asset in a hit. `image_url` is the whole image, for `imageUrl` to
- * resize; it and the rest are null for a file that isn't an image, and once
- * the asset is deleted.
+ * resize; it is null for a file that isn't an image, and it and the rest are
+ * null once the asset is deleted, so check it before calling `imageUrl`.
  */
 export interface SearchAsset {
   /** The asset's ID (`ast_…`). */
@@ -78,14 +78,14 @@ export interface SearchAsset {
 
 /**
  * A related record in a hit: a partial record with its collection's title
- * and slug fields under `data`, by their keys. `data` is null while the
- * related record is unpublished or deleted, or its collection isn't in public
- * search.
+ * and slug fields under `data`, by their keys; a field the record leaves
+ * empty is left out. `data` is null while the related record is unpublished
+ * or deleted, or its collection isn't in public search.
  */
 export interface SearchRelated<D = Record<string, unknown>> {
   /** The related record's ID (`rec_…`). */
   id: string
-  data: D | null
+  data: Partial<D> | null
 }
 
 /** A piece of a highlighted field: matched words (`match: true`) or the text around them. */
