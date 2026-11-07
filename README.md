@@ -376,7 +376,68 @@ const results = await nohead.search("content model", { collections: ["posts", "p
 results.meta.total_estimate
 ```
 
-Search needs the `search:read` scope and covers every collection the key can read, matching their `searchable` fields. It pages through the first 1,000 hits. For search straight from a site's browser, without the API, use a search token from the web app with Meilisearch's own clients or InstantSearch.
+Search needs the `search:read` scope and covers every collection the key can read, matching their `searchable` fields. It pages through the first 1,000 hits.
+
+**Public search.** A site's browser code searches with a search token instead of an API key, straight from the search engine ([public search](https://docs.nohead.io/guides/public-search)). `@nohead/sdk/search` sends those searches and has no dependencies, so it suits browser bundles:
+
+```ts
+import { searchPublic, snippet } from "@nohead/sdk/search"
+
+const { hits, total } = await searchPublic<Post>({
+  token, // the site's search token: public, so it can go in page source
+  index, // the collection's public search index name
+  q: "lentil",
+  highlight: ["title", "summary"],
+  signal, // an AbortSignal, to cancel a search when the next keystroke comes
+})
+
+for (const hit of hits) {
+  hit.data.slug // fields as the index holds them: dates as Unix seconds, assets and relations as IDs
+  hit.highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
+  snippet(hit.highlights.summary ?? [], { length: 120 }) // the part around the first match
+}
+```
+
+- **Highlights** are segments rather than HTML, so a field's text never becomes markup: render each segment as text, and the matched ones in a `<mark>`. Every field `highlight` names is in `highlights`, unmarked when nothing in it matched and `[]` when the record leaves it empty.
+- **An empty `q`** finds every record, for a list of the latest ones: `searchPublic({ token, index, limit: 5, sort: ["data.date:desc"] })`.
+- **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
+- **Errors** are a `SearchError`, with the `status`, the search engine's `code` (`invalid_search_filter`) and its own text as `engineMessage`. A token it refuses is `403: The search token is invalid or was deleted`, and an index the token can't reach (a typo, or a collection not in public search) says so. A search its signal cancels rejects with an `AbortError`.
+
+**Covers and names.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`), which a search token can't look up. Write what the results show into the site at build time, by record ID, and join it to the hits:
+
+```ts
+// At build time, with an API key: a file the site serves, such as /search.json
+import type { Asset, NoheadRecord } from "@nohead/sdk"
+import { imageUrl } from "@nohead/sdk/images"
+
+// The fields this needs, as `expand` returns them: the asset, and the people's records
+interface PostExpanded {
+  cover?: Asset
+  authors?: NoheadRecord<{ name: string }>[]
+}
+
+const extras: Record<string, { thumb: string | null; byline: string }> = {}
+for await (const post of nohead.records.list<PostExpanded>("posts", {
+  filter: { published_at: { exists: true } },
+  expand: ["cover", "authors"],
+})) {
+  const { cover, authors = [] } = post.data
+  extras[post.id] = {
+    thumb: cover?.image_url
+      ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
+      : null,
+    byline: authors.map((author) => author.data.name).join(" and "),
+  }
+}
+```
+
+```ts
+// In the browser: fetched once, joined to each search's hits
+const extras = await fetch("/search.json").then((response) => response.json())
+const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
+```
+
+The helper is the small default: the same token works with the official [`meilisearch`](https://www.npmjs.com/package/meilisearch) client and with InstantSearch ([`@meilisearch/instant-meilisearch`](https://www.npmjs.com/package/@meilisearch/instant-meilisearch)), for facets or a ready-made search UI.
 
 ## Astro
 

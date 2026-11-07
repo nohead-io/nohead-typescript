@@ -5,6 +5,15 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/search`: `searchPublic`, public search with a search token,
+  for sites' browser code (no dependencies). It returns typed hits, with the
+  matches in the fields `highlight` names as segments to render as text
+  (`{ text, match }`) rather than HTML, and takes an `AbortSignal`. An empty
+  query lists every record in a `sort`. `snippet` cuts a long highlighted
+  field down to the part around its first match.
+
 ## 0.14.0
 
 - `noheadLoader` gives each collection its schema and TypeScript type, from
