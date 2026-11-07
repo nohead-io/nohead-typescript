@@ -407,12 +407,21 @@ for (const hit of hits) {
 
 ```ts
 // At build time, with an API key: a file the site serves, such as /search.json
+import type { Asset, NoheadRecord } from "@nohead/sdk"
+import { imageUrl } from "@nohead/sdk/images"
+
+// The fields this needs, as `expand` returns them: the asset, and the people's records
+interface PostExpanded {
+  cover?: Asset
+  authors?: NoheadRecord<{ name: string }>[]
+}
+
 const extras: Record<string, { thumb: string | null; byline: string }> = {}
-for await (const post of nohead.records.list<Post>("posts", {
+for await (const post of nohead.records.list<PostExpanded>("posts", {
   filter: { published_at: { exists: true } },
   expand: ["cover", "authors"],
 })) {
-  const { cover, authors } = post.data // expanded: the asset, and the people's records
+  const { cover, authors = [] } = post.data
   extras[post.id] = {
     thumb: cover?.image_url
       ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
@@ -420,7 +429,9 @@ for await (const post of nohead.records.list<Post>("posts", {
     byline: authors.map((author) => author.data.name).join(" and "),
   }
 }
+```
 
+```ts
 // In the browser: fetched once, joined to each search's hits
 const extras = await fetch("/search.json").then((response) => response.json())
 const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
