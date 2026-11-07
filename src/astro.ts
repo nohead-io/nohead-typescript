@@ -53,6 +53,13 @@ export interface NoheadLoaderOptions extends ClientOptions {
    * `set:html`, or `"markdown"`. The `"document"` form is the API's.
    */
   richText?: G.RichText
+  /**
+   * The Astro collection each related Nohead collection is loaded as, by
+   * its slug, when the names differ: `{ people: "authors" }`. A relation is
+   * a `reference()` to that collection; by default, the one named like the
+   * Nohead collection.
+   */
+  references?: Record<string, string>
 }
 
 /** An expanded asset field's value: what a page needs to show the file. */
@@ -92,6 +99,7 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
     expand,
     body,
     richText = "html",
+    references = {},
     ...client
   } = options
   if (!collection) throw new TypeError("noheadLoader needs a collection")
@@ -126,11 +134,13 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
       const nohead = connect()
       const { z } = await import("astro/zod")
       try {
-        // Relations name their target by ID; references need its slug.
+        // Relations name their target by ID; references need the Astro
+        // collection it loads as: its slug, unless `references` renames it.
         const slugsById = async () => {
           const slugs = new Map<string, string>()
           for await (const each of nohead.collections.list()) {
-            slugs.set(each.id, each.slug)
+            const renamed = Object.hasOwn(references, each.slug)
+            slugs.set(each.id, renamed ? references[each.slug]! : each.slug)
           }
           return slugs
         }
