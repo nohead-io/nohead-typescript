@@ -250,6 +250,21 @@ describe("noheadLoader's schema", () => {
     expect(types).toMatch(/export type Entry = \{/)
   })
 
+  it("refers to related collections by the names references gives them", async () => {
+    const { schema, types } = await schemaOf({
+      references: { categories: "tags" },
+    })
+    expect(schema.parse(entry)).toMatchObject({
+      category: { id: "rec_c", collection: "tags" },
+      // Not renamed: still its slug.
+      authors: [
+        { id: "rec_a", collection: "people" },
+        { id: "rec_b", collection: "people" },
+      ],
+    })
+    expect(types).toContain('"category": { collection: "tags"; id: string }')
+  })
+
   it("types documents, expanded relations, and relations to a collection it can't find", async () => {
     const odd = exampleOf("collections_get", {
       id: IDS.posts,
