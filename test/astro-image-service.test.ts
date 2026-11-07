@@ -65,6 +65,44 @@ describe("the Astro image service", () => {
     ])
   })
 
+  it("never makes an image larger than its largest width, as an original's size would", async () => {
+    // A 6000 × 4000 original: its src would be made at 6000 pixels.
+    const rendered = await image({
+      src: base,
+      width: 6000,
+      height: 4000,
+      alt: "",
+      widths: [400, 1600],
+    })
+    expect(rendered.src).toBe(`${at("rs:fill:1600:1067")}@webp`)
+    expect(
+      rendered.srcset.map(([url, descriptor]) => [url, descriptor])
+    ).toEqual([
+      [`${at("rs:fill:400:267")}@webp`, "400w"],
+      [`${at("rs:fill:1600:1067")}@webp`, "1600w"],
+    ])
+    // The same URL as the largest srcset entry: made once.
+    expect(rendered.src).toBe(rendered.srcset.at(-1)?.[0])
+    // Only the URL: the attributes, its size without CSS, stay its own.
+    expect(rendered.attributes).toMatchObject({ width: 6000, height: 4000 })
+
+    // Densities, or no widths at all: the size asked for.
+    expect(
+      (
+        await image({
+          src: base,
+          width: 250,
+          height: 250,
+          alt: "",
+          densities: [1, 2],
+        })
+      ).src
+    ).toBe(`${at("rs:fill:250:250")}@webp`)
+    expect(
+      (await image({ src: base, width: 2400, height: 1600, alt: "" })).src
+    ).toBe(`${at("rs:fill:2400:1600")}@webp`)
+  })
+
   it("takes Astro's formats, fits and qualities", async () => {
     const url = async (props: Partial<ImageTransform>) =>
       (await image({ src: base, width: 300, height: 200, ...props })).src

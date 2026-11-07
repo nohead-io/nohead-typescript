@@ -9,8 +9,11 @@
  * URL, and Nohead makes it on request, so the build never downloads or
  * resizes an image. Astro's base service supplies the rest (the `<img>`
  * attributes, `srcset` for `widths` and `densities`). WebP unless a
- * `format` says otherwise. Other images (the site's own, imported or
- * remote) are served as they are.
+ * `format` says otherwise. With `widths`, an image's URL is never larger than
+ * the largest of them: pass the asset's own `width` and `height`, and its
+ * `src` (the fallback for browsers without `srcset`) is made at that largest
+ * width, not the original's. Other images (the site's own, imported or remote) are
+ * served as they are.
  *
  * Defaults for every image go in the service's `config`, and an image's own
  * `quality` or `format` wins:
@@ -29,6 +32,28 @@ export interface ImageServiceConfig {
   quality?: number | "low" | "mid" | "high" | "max"
   /** `"webp"` unless set. */
   format?: "webp" | "avif" | "jpeg" | "jpg" | "png"
+}
+
+/**
+ * The size an image's URL is made at: its own, but at most the largest of
+ * its `widths`, the height scaled with it. Astro makes `src` (the fallback
+ * for browsers without `srcset`) at the image's own size, and sites pass an
+ * asset's, an original's, which can be huge; capped, `src` is the largest
+ * `srcset` entry, one URL the CDN makes once. Only the URL: the `width` and
+ * `height` attributes stay the image's, its display size without CSS.
+ * Without `widths` (`densities`, or one size), the size asked for.
+ */
+function sizeOf({ width, height, widths }: ImageTransform) {
+  const largest = widths?.length ? Math.max(...widths) : undefined
+  if (!largest || typeof width !== "number" || width <= largest)
+    return { width, height }
+  return {
+    width: largest,
+    height:
+      typeof height === "number"
+        ? Math.round((height * largest) / width)
+        : height,
+  }
 }
 
 const imageService: ExternalImageService<ImageServiceConfig> = {
@@ -53,10 +78,11 @@ const imageService: ExternalImageService<ImageServiceConfig> = {
     const { src } = options
     // An imported image's metadata, or another URL.
     if (!isImageUrl(src)) return typeof src === "string" ? src : src.src
+    const { width, height } = sizeOf(options)
     return imageUrl(src, {
-      width: options.width,
-      height: options.height,
-      fit: fitOf(options.fit, options.width, options.height),
+      width,
+      height,
+      fit: fitOf(options.fit, width, height),
       format: formatOf(options.format ?? defaults?.format ?? "webp"),
       quality: qualityOf(options.quality ?? defaults?.quality),
     })

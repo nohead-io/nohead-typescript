@@ -5,6 +5,14 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/astro/image-service`: with `widths`, an image is never made
+  larger than the largest of them. Its `src` (the fallback for browsers
+  without `srcset`) was made at the image's own `width`, which with an
+  asset's own size is the original's, and can be huge; it is now the largest
+  `srcset` entry. The `width` and `height` attributes stay the image's own.
+
 ## 0.15.0
 
 - `@nohead/sdk/search`: `searchPublic`, public search with a search token,
