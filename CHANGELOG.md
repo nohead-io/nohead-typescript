@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.15.1
 
 - `@nohead/sdk/astro/image-service`: with `widths`, an image is never made
   larger than the largest of them. Its `src` (the fallback for browsers
