@@ -228,6 +228,55 @@ describe("searchPublic", () => {
       status: 400,
       code: "invalid_search_filter",
       message: "400: Attribute `data.title` is not filterable.",
+      engineMessage: "Attribute `data.title` is not filterable.",
+    })
+  })
+
+  it("names a refused token as the search token", async () => {
+    const server = await engine(403, {
+      message: "The provided API key is invalid.",
+      code: "invalid_api_key",
+      type: "auth",
+      link: "https://docs.meilisearch.com/errors#invalid_api_key",
+    })
+    await expect(
+      searchPublic({ token, index, baseUrl: server.url })
+    ).rejects.toMatchObject({
+      name: "SearchError",
+      status: 403,
+      code: "invalid_api_key",
+      message: "403: The search token is invalid or was deleted",
+      engineMessage: "The provided API key is invalid.",
+    })
+
+    const missing = await engine(401, {
+      message:
+        "The Authorization header is missing. It must use the bearer authorization method.",
+      code: "missing_authorization_header",
+      type: "auth",
+    })
+    await expect(
+      searchPublic({ token, index, baseUrl: missing.url })
+    ).rejects.toMatchObject({
+      status: 401,
+      message: "401: The search token is invalid or was deleted",
+    })
+  })
+
+  it("names an index the token can't reach", async () => {
+    const server = await engine(403, {
+      message: "Inside `.queries[0]`: The provided API key is invalid.",
+      code: "invalid_api_key",
+      type: "auth",
+    })
+    await expect(
+      searchPublic({ token, index: "nope", baseUrl: server.url })
+    ).rejects.toMatchObject({
+      status: 403,
+      code: "invalid_api_key",
+      message:
+        "403: The search token can't search this index: check the index name, and that its collection is in public search",
+      engineMessage: "Inside `.queries[0]`: The provided API key is invalid.",
     })
   })
 
@@ -238,6 +287,7 @@ describe("searchPublic", () => {
     ).rejects.toMatchObject({
       status: 429,
       code: undefined,
+      engineMessage: undefined,
       message: "429: Search failed with status 429",
     })
 

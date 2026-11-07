@@ -8,6 +8,10 @@
  *     token, index, q: "lentil", highlight: ["title", "summary"],
  *   })
  *   hits[0].highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
+ *
+ * It's the small default: the same token works with the official `meilisearch`
+ * client and with InstantSearch (`@meilisearch/instant-meilisearch`), for
+ * facets or a ready-made search UI.
  */
 
 /** Where search tokens search. */
@@ -95,13 +99,30 @@ export class SearchError extends Error {
   readonly status: number
   /** The search engine's error code, e.g. `invalid_api_key`, `invalid_search_filter`. */
   readonly code: string | undefined
+  /** The search engine's own message, which speaks of API keys where a search token was sent. */
+  readonly engineMessage: string | undefined
 
-  constructor(status: number, message: string, code?: string) {
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    engineMessage?: string
+  ) {
     super(message)
     this.status = status
     this.code = code
+    this.engineMessage = engineMessage
   }
 }
+
+// The engine's errors for a token it refuses, which it calls an API key.
+const TOKEN_ERRORS = new Set([
+  "invalid_api_key",
+  "missing_authorization_header",
+])
+// It refuses a good token for an index outside the token's reach (another
+// project's, or a collection not in public search) as a query's error.
+const QUERY_ERROR = /^Inside `\.queries\[\d+\]`:/
 
 // The search engine wraps matches in these; they never occur in text.
 const MARK = "\u0001"
@@ -211,12 +232,17 @@ async function readJson(response: Response): Promise<unknown> {
 
 function errorOf(status: number, body: unknown): SearchError {
   const error = body as { message?: unknown; code?: unknown } | undefined
-  const message =
+  const engineMessage =
     typeof error?.message === "string" && error.message
       ? error.message
-      : `Search failed with status ${status}`
+      : undefined
   const code = typeof error?.code === "string" ? error.code : undefined
-  return new SearchError(status, `${status}: ${message}`, code)
+  let message = engineMessage ?? `Search failed with status ${status}`
+  if (code && TOKEN_ERRORS.has(code))
+    message = QUERY_ERROR.test(engineMessage ?? "")
+      ? "The search token can't search this index: check the index name, and that its collection is in public search"
+      : "The search token is invalid or was deleted"
+  return new SearchError(status, `${status}: ${message}`, code, engineMessage)
 }
 
 export interface SnippetOptions {

@@ -401,7 +401,7 @@ for (const hit of hits) {
 - **Highlights** are segments rather than HTML, so a field's text never becomes markup: render each segment as text, and the matched ones in a `<mark>`. Every field `highlight` names is in `highlights`, unmarked when nothing in it matched and `[]` when the record leaves it empty.
 - **An empty `q`** finds every record, for a list of the latest ones: `searchPublic({ token, index, limit: 5, sort: ["data.date:desc"] })`.
 - **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
-- **Errors** are a `SearchError`, with the `status` and the search engine's `code` (`invalid_search_filter`). A search its signal cancels rejects with an `AbortError`.
+- **Errors** are a `SearchError`, with the `status`, the search engine's `code` (`invalid_search_filter`) and its own text as `engineMessage`. A token it refuses is `403: The search token is invalid or was deleted`, and an index the token can't reach (a typo, or a collection not in public search) says so. A search its signal cancels rejects with an `AbortError`.
 
 **Covers and names.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`), which a search token can't look up. Write what the results show into the site at build time, by record ID, and join it to the hits:
 
@@ -437,7 +437,7 @@ const extras = await fetch("/search.json").then((response) => response.json())
 const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
 ```
 
-Meilisearch's own clients and InstantSearch work with search tokens too, for facets and federated searches.
+The helper is the small default: the same token works with the official [`meilisearch`](https://www.npmjs.com/package/meilisearch) client and with InstantSearch ([`@meilisearch/instant-meilisearch`](https://www.npmjs.com/package/@meilisearch/instant-meilisearch)), for facets or a ready-made search UI.
 
 ## Astro
 
