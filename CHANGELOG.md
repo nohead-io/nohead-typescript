@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.18.0
 
 - **Breaking:** the Astro content loader and image service moved to a
   package of their own, [`@nohead/astro`](https://github.com/nohead-io/nohead-astro),
