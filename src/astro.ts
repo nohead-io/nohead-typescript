@@ -101,6 +101,13 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
     )
   }
 
+  // Entries are published records unless the filter says otherwise.
+  const publishedAt =
+    filter && "published_at" in filter ? filter.published_at : { exists: true }
+  const publishedOnly = !(
+    publishedAt === undefined || publishedAt.exists === false
+  )
+
   const connect = () => {
     // Astro reads .env into import.meta.env, not process.env.
     if (!client.apiKey && !environment().NOHEAD_API_KEY) {
@@ -136,6 +143,7 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
           body,
           richText,
           slugs,
+          publishedOnly,
         })
       } catch (error) {
         if (!(error instanceof AuthorizationError)) throw error
@@ -157,13 +165,6 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
         records.push(record)
       }
       // Embedded records are published too, unless entries may not be.
-      const publishedAt =
-        filter && "published_at" in filter
-          ? filter.published_at
-          : { exists: true }
-      const publishedOnly = !(
-        publishedAt === undefined || publishedAt.exists === false
-      )
 
       // Every entry is made before the store changes, so a failure leaves
       // the entries as they were.
@@ -196,15 +197,29 @@ export function noheadLoader(options: NoheadLoaderOptions): Loader {
   }
 }
 
+/** A record's own times, which its entry's data (or embedding's) carries too. */
+function timesOf(record: G.Record): Record<string, string> {
+  const times: Record<string, string> = {}
+  for (const key of ["published_at", "created_at", "updated_at"] as const) {
+    const time = record[key]
+    if (time) times[key] = time
+  }
+  return times
+}
+
 /**
  * A record's fields as an entry's data: without empty values, and with each
- * expanded asset or relation in place of its ID.
+ * expanded asset or relation in place of its ID. With them, the record's own
+ * times (`published_at`, `created_at`, `updated_at`), under keys Nohead
+ * reserves, so no field can have them: a post can be dated by when it was
+ * published, a sitemap by when it last changed.
  */
 function entryData(
   record: G.Record,
   publishedOnly: boolean
 ): Record<string, unknown> {
   const data = present(record.data)
+  Object.assign(data, timesOf(record))
   // Gone since, or (as entries are) unpublished: left out.
   const shown = (
     embedded: G.Record | G.Asset | null
@@ -229,7 +244,10 @@ function entryValue(
   embedded: G.Record | G.Asset
 ): EmbeddedAsset | EmbeddedRecord {
   if (embedded.object === "record") {
-    return { id: embedded.id, data: present(embedded.data) }
+    return {
+      id: embedded.id,
+      data: { ...present(embedded.data), ...timesOf(embedded) },
+    }
   }
   const { id, filename, content_type } = embedded
   return {

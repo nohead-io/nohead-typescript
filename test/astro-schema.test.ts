@@ -139,6 +139,16 @@ const entry = {
   year: 2026,
   price: 9.5,
   extra: { any: ["thing"] },
+  // The record's own times, beside its fields.
+  published_at: "2026-10-02T12:00:00.000Z",
+  created_at: "2026-10-01T09:00:00.000Z",
+  updated_at: "2026-10-03T15:30:00.000Z",
+}
+/** The times as the schema makes them: Dates. */
+const TIMES = {
+  published_at: new Date("2026-10-02T12:00:00.000Z"),
+  created_at: new Date("2026-10-01T09:00:00.000Z"),
+  updated_at: new Date("2026-10-03T15:30:00.000Z"),
 }
 
 describe("noheadLoader's schema", () => {
@@ -154,6 +164,7 @@ describe("noheadLoader's schema", () => {
     const { schema } = await schemaOf()
     expect(schema.parse(entry)).toEqual({
       ...entry,
+      ...TIMES,
       date: new Date("2026-10-01"),
       category: { id: "rec_c", collection: "categories" },
       authors: [
@@ -264,17 +275,38 @@ describe("noheadLoader's schema", () => {
     expect(types).toContain(
       'import type { EmbeddedRecord } from "@nohead/sdk/astro"'
     )
+    const times = {
+      published_at: entry.published_at,
+      created_at: entry.created_at,
+      updated_at: entry.updated_at,
+    }
     expect(
       schema.parse({
         notes: { type: "doc", content: [] },
         category: { id: "rec_c", data: { name: "Studio" } },
         elsewhere: "rec_x",
+        ...times,
       })
     ).toEqual({
       notes: { type: "doc", content: [] },
       category: { id: "rec_c", data: { name: "Studio" } },
       elsewhere: "rec_x",
+      ...TIMES,
     })
+  })
+
+  it("types the record's times, published_at only for published entries", async () => {
+    const { schema, types } = await schemaOf()
+    expect(types).toContain("  published_at: Date")
+    expect(types).toContain("  created_at: Date")
+    expect(types).toContain("  updated_at: Date")
+    const unpublished: Record<string, unknown> = { ...entry }
+    delete unpublished.published_at
+    expect(() => schema.parse(unpublished)).toThrow()
+
+    const all = await schemaOf({ filter: { published_at: undefined } })
+    expect(all.types).toContain("  published_at?: Date")
+    expect(all.schema.parse(unpublished)).not.toHaveProperty("published_at")
   })
 
   it("says which scope it needs when the key can't read the schema", async () => {

@@ -35,6 +35,17 @@ const image = (id: string, fields: Record<string, unknown> = {}) =>
     ...fields,
   })
 
+/** A published record's own times, which its entry's data carries too. */
+const TIMES = {
+  published_at: "2026-10-02T12:00:00.000Z",
+  created_at: "2026-10-02T12:00:00.000Z",
+  updated_at: "2026-10-02T12:00:00.000Z",
+}
+const UNPUBLISHED_TIMES = {
+  created_at: TIMES.created_at,
+  updated_at: TIMES.updated_at,
+}
+
 const published = (
   id: string,
   data: Record<string, unknown>,
@@ -106,12 +117,12 @@ describe("noheadLoader", () => {
 
     expect(context.parseData).toHaveBeenCalledWith({
       id: "rec_1",
-      data: { title: "One", date: "2026-10-01" },
+      data: { title: "One", date: "2026-10-01", ...TIMES },
     })
     expect(entries.get("rec_2")).toEqual({
       id: "rec_2",
       data: { title: "Two", date: new Date("2026-10-02") },
-      digest: JSON.stringify({ title: "Two", date: "2026-10-02" }),
+      digest: JSON.stringify({ title: "Two", date: "2026-10-02", ...TIMES }),
       rendered: undefined,
     })
     expect(context.store.set).toHaveBeenCalledTimes(2)
@@ -199,12 +210,15 @@ describe("noheadLoader", () => {
         expect.objectContaining({ id: "ast_2", alt: "A chalkboard" }),
         expect.objectContaining({ id: "ast_3", width: 1200, height: 800 }),
       ],
-      category: { id: "rec_9", data: { name: "Studio" } },
-      related: [{ id: "rec_5", data: { title: "Five" } }],
+      // Expanded records carry their times too.
+      category: { id: "rec_9", data: { name: "Studio", ...TIMES } },
+      related: [{ id: "rec_5", data: { title: "Five", ...TIMES } }],
       // Not expanded: an ID, for reference("people").
       authors: ["rec_7"],
       // A rich text field keeps its text, not the images it shows.
       body: '<p><img src="https://images.nohead.io/plain/ast_4"></p>',
+      // The record's own times, under keys no field can have.
+      ...TIMES,
     })
   })
 
@@ -227,7 +241,23 @@ describe("noheadLoader", () => {
     const { context, entries } = astro()
     await load(context)
     expect(entries.get("rec_1")!.data).toEqual({
-      editor: { id: "rec_8", data: { name: "Draft" } },
+      editor: { id: "rec_8", data: { name: "Draft", ...UNPUBLISHED_TIMES } },
+      ...TIMES,
+    })
+  })
+
+  it("gives an unpublished record's entry its times, without published_at", async () => {
+    const { load } = loader(
+      [page([record("rec_3", { title: "Draft" })], null)],
+      {
+        filter: { published_at: undefined },
+      }
+    )
+    const { context, entries } = astro()
+    await load(context)
+    expect(entries.get("rec_3")!.data).toEqual({
+      title: "Draft",
+      ...UNPUBLISHED_TIMES,
     })
   })
 
@@ -249,7 +279,7 @@ describe("noheadLoader", () => {
     )
     const { context, entries } = astro()
     await load(context)
-    expect(entries.get("rec_1")!.data).toEqual({})
+    expect(entries.get("rec_1")!.data).toEqual(TIMES)
   })
 
   it("renders the body as HTML, moving it out of the data", async () => {
