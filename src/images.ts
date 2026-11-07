@@ -4,7 +4,7 @@
  * open-source processing options written into it transform it (listed at
  * https://docs.nohead.io/guides/images#supported-options). No dependencies,
  * so it suits browser bundles and frameworks' image components (Astro's image
- * service is `@nohead/sdk/astro/image-service`).
+ * service is `@nohead/astro/image-service`).
  *
  *   imageUrl(asset, { width: 800, height: 600, fit: "cover", format: "webp" })
  */
