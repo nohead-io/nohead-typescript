@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.16.0
 
 - `@nohead/sdk/astro`: an entry's `data` carries its record's own times,
   `published_at`, `created_at` and `updated_at`, under keys Nohead reserves
