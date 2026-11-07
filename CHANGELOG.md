@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.15.0
 
 - `@nohead/sdk/search`: `searchPublic`, public search with a search token,
   for sites' browser code (no dependencies). It returns typed hits, with the
@@ -21,6 +21,10 @@ section is its GitHub release's notes.
   one request (with `upsert_on`, a record already published stays so).
 - `assets.upload` and `assets.createUpload` take `alt`, the asset's alt text
   from the start, so no `assets.update` follows each upload.
+- `me.get()`'s `api_key` has `collections`: for a key with `schema:write`,
+  its organization's active collections across all its projects and the
+  plan's limit (`null` when unlimited), so a script can check new
+  collections fit before creating any; `null` for other keys.
 
 ## 0.14.0
 
