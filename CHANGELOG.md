@@ -5,6 +5,19 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `@nohead/sdk/astro`: an entry's `data` carries its record's own times,
+  `published_at`, `created_at` and `updated_at`, under keys Nohead reserves
+  for them, and the loader's schema types them as `Date`s. A site can date
+  and sort posts by when they were published, and give a sitemap when each
+  page last changed, without a field of its own. `published_at` is there
+  for every entry of published records (the default); with
+  `filter: { published_at: undefined }` it is optional. An expanded related
+  record's `data` carries its times too. A schema of your own given to
+  `defineCollection` that refuses unknown keys (`.strict()`) needs these
+  three keys, or to let unknown keys through.
+
 ## 0.15.1
 
 - `@nohead/sdk/astro/image-service`: with `widths`, an image is never made

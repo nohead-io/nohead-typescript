@@ -17,6 +17,8 @@ export interface SchemaOptions {
   richText: RichText
   /** Collection slugs by ID, for relations' targets. */
   slugs: Map<string, string>
+  /** Whether entries are published records only: then each has `published_at`. */
+  publishedOnly: boolean
 }
 
 /** The schema and the `Entry` type (a module, as Astro writes it) of the data. */
@@ -37,6 +39,20 @@ export function collectionSchema(
       `  /** ${doc.replaceAll("*/", "*\\/")} */`,
       `  ${JSON.stringify(field.key)}${optional ? "?" : ""}: ${type}`
     )
+  }
+  // The record's own times, beside its fields (under keys Nohead reserves).
+  const times = [
+    [
+      "published_at",
+      "When it was published (publishing again moves it)",
+      !options.publishedOnly,
+    ],
+    ["created_at", "When it was created", false],
+    ["updated_at", "When it last changed", false],
+  ] as const
+  for (const [key, doc, optional] of times) {
+    shape[key] = optional ? z.coerce.date().optional() : z.coerce.date()
+    lines.push(`  /** ${doc} */`, `  ${key}${optional ? "?" : ""}: Date`)
   }
   const body = lines.join("\n")
   const used = ["EmbeddedAsset", "EmbeddedRecord"].filter((name) =>
