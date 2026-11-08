@@ -607,7 +607,34 @@ export type FieldUpdate = {
      * Every record must have a value. Not available for boolean fields (a boolean is true or false; no value reads as false).
      */
     required?: boolean;
-    configuration?: FieldConfiguration;
+    configuration?: FieldConfigurationChange;
+};
+
+/**
+ * Options to change, merged onto the field's: an option sent replaces
+ * its value, one sent as `null` is removed, and options left out keep
+ * theirs. So `{ "filterable": true }` changes one option and keeps the
+ * rest, and `{ "max_length": null }` removes the limit. Any field
+ * type's option names are accepted here; the merged options are
+ * checked against the field's type (`FieldConfiguration`).
+ *
+ */
+export type FieldConfigurationChange = {
+    description?: string | null;
+    searchable?: boolean | null;
+    filterable?: boolean | null;
+    sortable?: boolean | null;
+    min_length?: number | null;
+    max_length?: number | null;
+    format?: 'slug' | 'url' | 'email' | null;
+    unique?: boolean | null;
+    min?: number | null;
+    max?: number | null;
+    include_time?: boolean | null;
+    time_zone?: string | null;
+    options?: Array<string> | null;
+    accepted_types?: Array<string> | null;
+    target_collection_id?: string | null;
 };
 
 export type FieldList = {
@@ -772,9 +799,15 @@ export type FieldMigrationRequest = {
     field_id: string;
     type?: FieldType;
     /**
-     * The complete new configuration. When the type changes and this is omitted, only `description`, `searchable`, `filterable` and `sortable` carry over.
+     * Options to change, merged as a field update merges them (`null` removes
+     * one). They merge onto the field's options that carry over to the target:
+     * those its type takes, with a value it accepts (a text field's
+     * `max_length` carries over to a long text, its `format` doesn't), less
+     * `sortable` and `filterable` where the target can't have them. Without
+     * it, those options are the target's.
+     *
      */
-    configuration?: FieldConfiguration;
+    configuration?: FieldConfigurationChange;
     /**
      * A list of distinct values (a repeated value is refused with `duplicate_value`, an empty string with `blank_value`). Not available for boolean, long_text, rich_text and json fields.
      */
@@ -2070,7 +2103,8 @@ export type IfMatch = string;
  * hours per user or API key; retries with the same key and the same
  * request get it again with an `Idempotent-Replayed: true` header. The
  * same key with a different request is refused with `400`; a retry while
- * the first request is still running gets `409`.
+ * the first request is still running gets `409` with detail code
+ * `in_progress`: wait a moment and retry with the same key.
  *
  */
 export type IdempotencyKey = string;
@@ -2207,7 +2241,8 @@ export type RecordsCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2319,7 +2354,8 @@ export type RecordsDeleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2473,7 +2509,8 @@ export type RecordsUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2655,7 +2692,8 @@ export type RecordsBulkData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2747,7 +2785,8 @@ export type RecordsRestoreData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2848,7 +2887,8 @@ export type RecordsUnpublishData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -2993,7 +3033,8 @@ export type RecordsPublishData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -3088,7 +3129,8 @@ export type RecordsUnscheduleData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -3208,7 +3250,8 @@ export type RecordsScheduleData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -3519,7 +3562,8 @@ export type RecordRevisionsRevertData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -3743,7 +3787,8 @@ export type DraftsCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -3889,7 +3934,8 @@ export type DraftsDiscardData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4033,7 +4079,8 @@ export type DraftsUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4122,7 +4169,8 @@ export type DraftsMergeData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4221,7 +4269,8 @@ export type DraftsUnscheduleData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4296,7 +4345,8 @@ export type DraftsScheduleData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4440,7 +4490,8 @@ export type CollectionsCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4530,7 +4581,8 @@ export type CollectionsDeleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4666,7 +4718,8 @@ export type CollectionsUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -4753,7 +4806,8 @@ export type CollectionsRestoreData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5084,7 +5138,8 @@ export type FieldsCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5171,7 +5226,8 @@ export type FieldsDeleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5301,7 +5357,8 @@ export type FieldsUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5440,7 +5497,8 @@ export type FieldsReorderData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5527,7 +5585,8 @@ export type FieldsRemoveAliasData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5601,7 +5660,8 @@ export type FieldsRestoreData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5747,7 +5807,8 @@ export type MigrationsCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -5890,7 +5951,8 @@ export type MigrationsCancelData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6055,7 +6117,8 @@ export type AssetsUploadData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6135,7 +6198,8 @@ export type AssetsCompleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6209,7 +6273,8 @@ export type AssetsDeleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6329,7 +6394,8 @@ export type AssetsUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6453,7 +6519,8 @@ export type AssetsRestoreData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6523,7 +6590,8 @@ export type AssetsPurgeData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6842,7 +6910,8 @@ export type SearchIndexRebuildData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -6980,7 +7049,8 @@ export type WebhooksCreateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7060,7 +7130,8 @@ export type WebhooksDeleteData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7180,7 +7251,8 @@ export type WebhooksUpdateData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7254,7 +7326,8 @@ export type WebhooksTestData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7383,7 +7456,8 @@ export type WebhooksRotateSecretData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7453,7 +7527,8 @@ export type WebhookSecretsRetireData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7523,7 +7598,8 @@ export type WebhooksRestoreData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;
@@ -7711,7 +7787,8 @@ export type WebhookDeliveriesRetryData = {
          * hours per user or API key; retries with the same key and the same
          * request get it again with an `Idempotent-Replayed: true` header. The
          * same key with a different request is refused with `400`; a retry while
-         * the first request is still running gets `409`.
+         * the first request is still running gets `409` with detail code
+         * `in_progress`: wait a moment and retry with the same key.
          *
          */
         'Idempotency-Key'?: string;

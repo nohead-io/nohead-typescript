@@ -47,6 +47,7 @@ export type {
   Field,
   FieldAliasEventData,
   FieldConfiguration,
+  FieldConfigurationChange,
   FieldCreate,
   FieldCreateProperties,
   FieldDefinition,
