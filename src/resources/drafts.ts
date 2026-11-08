@@ -2,6 +2,7 @@ import type { APIPromise, PagePromise } from "../api-promise.ts"
 import type {
   ConditionalRequestOptions,
   ConditionalWriteOptions,
+  RequestOptions,
   RichTextOptions,
 } from "../core.ts"
 import type { RecordData } from "../generated/types.gen.ts"
@@ -49,7 +50,7 @@ export class Drafts extends Resource {
   list<D = RecordData>(
     collection: string,
     params: DraftListParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): PagePromise<NoheadDraft<D>> {
     return this.core.paginate(
       "drafts_list",
@@ -62,7 +63,7 @@ export class Drafts extends Resource {
   get<D = RecordData>(
     draft: string,
     params: DraftGetParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): APIPromise<NoheadDraft<D>> {
     return this.core.request(
       "drafts_get",

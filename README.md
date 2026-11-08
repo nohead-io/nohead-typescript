@@ -158,7 +158,7 @@ await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at }
 
 ## Rich text
 
-A rich text field takes Markdown or a ProseMirror document, and reads as the document. To read it as HTML or Markdown, set `richText` on the client, or on one request:
+A rich text field takes Markdown or a ProseMirror document, and reads as the document. To read it as HTML or Markdown, set `richText` on the client, or `rich_text` on one read:
 
 ```ts
 await nohead.records.update(id, { data: { body: "Hello **world**" } })
@@ -167,11 +167,11 @@ const site = nohead.withOptions({ richText: "html" })
 const post = await site.records.get<{ body: string }>(id)
 const html = `<article>${post.data.body}</article>` // safe to put in a page as it is
 
-await nohead.drafts.get(draftId, {}, { richText: "markdown" })
+await nohead.drafts.get(draftId, { rich_text: "markdown" })
 ```
 
 - A rich text field's value is then a string: type it as one in the data's type, as above.
-- It applies to the methods that return records or drafts, to the records they embed with `expand`, and to the `before` and `after` of a `diff` or a revert preview's `changes`; a request's `richText` overrides the client's. History (`revisions`) and webhooks keep documents.
+- It applies to the methods that return records or drafts, to the records they embed with `expand`, and to the `before` and `after` of a `diff` or a revert preview's `changes`. A read's `rich_text` param overrides the client's `richText`, and so does a write's `richText` option (`records.update(id, params, { richText: "html" })`). History (`revisions`) and webhooks keep documents.
 - A string you write is read as Markdown, so write back Markdown or the document, never the HTML: with `richText: "html"` on the client, writes answer with HTML too.
 
 ## Pagination

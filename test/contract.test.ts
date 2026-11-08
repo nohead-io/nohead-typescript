@@ -70,7 +70,6 @@ const rec = "rec_01J9ZQ3F8X"
 const drf = "drf_01J9ZQ3F8X"
 const fld = "fld_01J9ZQ3F8X"
 const html = { richText: "html" } as const
-const markdown = { richText: "markdown" } as const
 const everyOption: ((nohead: Nohead) => unknown)[] = [
   (nohead) => nohead.records.create("posts", { data: {} }, conditional),
   (nohead) => nohead.records.update(rec, { data: {} }, conditional),
@@ -108,8 +107,8 @@ const everyOption: ((nohead: Nohead) => unknown)[] = [
       { field_id: fld, type: "long_text" },
       note
     ),
-  (nohead) => nohead.records.list("posts", {}, html),
-  (nohead) => nohead.records.get(rec, {}, markdown),
+  (nohead) => nohead.records.list("posts", { rich_text: "html" }),
+  (nohead) => nohead.records.get(rec, { rich_text: "markdown" }),
   (nohead) => nohead.records.create("posts", { data: {} }, html),
   (nohead) => nohead.records.update(rec, { data: {} }, html),
   (nohead) => nohead.records.delete(rec, html),
@@ -123,12 +122,12 @@ const everyOption: ((nohead: Nohead) => unknown)[] = [
       html
     ),
   (nohead) => nohead.records.revisions.revert(rec, 1, {}, html),
-  (nohead) => nohead.records.drafts(rec, {}, html),
-  (nohead) => nohead.records.search("posts", "hello", {}, html),
-  (nohead) => nohead.search("hello", {}, html),
+  (nohead) => nohead.records.drafts(rec, { rich_text: "html" }),
+  (nohead) => nohead.records.search("posts", "hello", { rich_text: "html" }),
+  (nohead) => nohead.search("hello", { rich_text: "html" }),
   (nohead) => nohead.drafts.create(rec, {}, html),
-  (nohead) => nohead.drafts.list("posts", {}, html),
-  (nohead) => nohead.drafts.get(drf, {}, html),
+  (nohead) => nohead.drafts.list("posts", { rich_text: "html" }),
+  (nohead) => nohead.drafts.get(drf, { rich_text: "html" }),
   (nohead) => nohead.drafts.update(drf, { data: {} }, html),
   (nohead) => nohead.drafts.discard(drf, html),
   (nohead) => nohead.drafts.merge(drf, html),

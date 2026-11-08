@@ -93,7 +93,10 @@ export interface RequestOptions {
   headers?: Record<string, string>
 }
 
-/** Options of operations that return records or drafts. */
+/**
+ * Options of writes that return records or drafts. (Reads take `rich_text`
+ * with their params.)
+ */
 export interface RichTextOptions extends RequestOptions {
   /**
    * How rich text fields read in the records or drafts returned (and in
@@ -338,10 +341,15 @@ export class Core {
     const { method, path } = OPERATIONS[operation]
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))
     appendQuery(url.searchParams, input.query)
-    // The call's, else the client's, and only where the operation takes it.
-    const richText = options.richText || this.#richText
-    if (richText && RICH_TEXT_OPERATIONS.has(operation)) {
-      url.searchParams.set("rich_text", richText)
+    // The read's `rich_text` param, else the write's option, else the
+    // client's, and only where the operation takes it. An empty value is
+    // none, as for the other options.
+    if (!url.searchParams.get("rich_text")) {
+      url.searchParams.delete("rich_text")
+      const richText = options.richText || this.#richText
+      if (richText && RICH_TEXT_OPERATIONS.has(operation)) {
+        url.searchParams.set("rich_text", richText)
+      }
     }
 
     // Each name once, whatever its case: the defaults, then the client's

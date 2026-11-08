@@ -50,7 +50,7 @@
   "records_count": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.count(\"posts\", {\n  filter: { published_at: { exists: false } },\n})\n",
   "records_create": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.create(\"posts\", { data: { title: \"Hi\" } })\n",
   "records_delete": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.delete(\"rec_01J9ZQ3F8X\")\n",
-  "records_diff": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.diff(\n  \"rec_01J9ZQ3F8X\",\n  { from: 1, to: 2 },\n  { richText: \"markdown\" }\n)\n",
+  "records_diff": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.diff(\"rec_01J9ZQ3F8X\", {\n  from: 1,\n  to: 2,\n  rich_text: \"markdown\",\n})\n",
   "records_get": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.get(\"rec_01J9ZQ3F8X\", {\n  expand: [\"author\"],\n})\n",
   "records_get_publication": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.publication(\"rec_01J9ZQ3F8X\")\n",
   "records_get_schedule": "import { Nohead } from \"@nohead/sdk\"\n\nconst nohead = new Nohead()\n\nconst result = await nohead.records.getSchedule(\"rec_01J9ZQ3F8X\")\n",

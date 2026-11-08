@@ -32,6 +32,7 @@ import type {
   RecordUpdateParams,
   ListParams,
   RevisionListParams,
+  RichTextParams,
   ScheduledChangeListParams,
   SearchMeta,
 } from "../types.ts"
@@ -48,7 +49,7 @@ export class Records extends Resource {
   list<D = RecordData>(
     collection: string,
     params: RecordListParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): PagePromise<NoheadRecord<D>> {
     return this.core.paginate(
       "records_list",
@@ -60,7 +61,7 @@ export class Records extends Resource {
   get<D = RecordData>(
     record: string,
     params: RecordGetParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): APIPromise<NoheadRecord<D>> {
     return this.core.request(
       "records_get",
@@ -185,8 +186,8 @@ export class Records extends Resource {
   /** The record's drafts: at most one for now. */
   drafts<D = RecordData>(
     record: string,
-    params: ListParams = {},
-    options?: RichTextOptions
+    params: ListParams & RichTextParams = {},
+    options?: RequestOptions
   ): PagePromise<NoheadDraft<D>> {
     return this.core.paginate(
       "record_drafts_list",
@@ -270,13 +271,13 @@ export class Records extends Resource {
   }
 
   /**
-   * The changes between two revisions; with `richText`, rich text fields'
+   * The changes between two revisions; with `rich_text`, rich text fields'
    * `before` and `after` read as HTML or Markdown.
    */
   diff(
     record: string,
     params: RecordDiffParams,
-    options?: RichTextOptions
+    options?: RequestOptions
   ): APIPromise<RecordDiff> {
     return this.core.request(
       "records_diff",
@@ -293,7 +294,7 @@ export class Records extends Resource {
     collection: string,
     query: string,
     params: RecordSearchParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): PagePromise<NoheadRecord<D>, SearchMeta> {
     return this.core.paginate(
       "collections_search",
