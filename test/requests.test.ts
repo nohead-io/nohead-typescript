@@ -303,15 +303,17 @@ describe("requests", () => {
       { richText: "html" }
     )
     await nohead.records.get("rec_1")
-    // An empty option is no option, as for the others.
+    // An empty value is none, as for the other options.
     await nohead.records.update(
       "rec_1",
       { data: {} },
       { richText: "" as "html" }
     )
+    await nohead.records.get("rec_1", { rich_text: "" as "html" })
     expect(calls.map((c) => c.url.searchParams.getAll("rich_text"))).toEqual([
       ["document"],
       ["html"],
+      ["markdown"],
       ["markdown"],
       ["markdown"],
     ])

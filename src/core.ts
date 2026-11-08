@@ -342,14 +342,14 @@ export class Core {
     const url = new URL(this.#baseUrl + (await this.#path(path, input.path)))
     appendQuery(url.searchParams, input.query)
     // The read's `rich_text` param, else the write's option, else the
-    // client's, and only where the operation takes it.
-    const richText = options.richText || this.#richText
-    if (
-      richText &&
-      RICH_TEXT_OPERATIONS.has(operation) &&
-      !url.searchParams.has("rich_text")
-    ) {
-      url.searchParams.set("rich_text", richText)
+    // client's, and only where the operation takes it. An empty value is
+    // none, as for the other options.
+    if (!url.searchParams.get("rich_text")) {
+      url.searchParams.delete("rich_text")
+      const richText = options.richText || this.#richText
+      if (richText && RICH_TEXT_OPERATIONS.has(operation)) {
+        url.searchParams.set("rich_text", richText)
+      }
     }
 
     // Each name once, whatever its case: the defaults, then the client's

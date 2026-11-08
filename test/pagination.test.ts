@@ -22,6 +22,23 @@ describe("pagination", () => {
     await expect(second.getNextPage()).rejects.toBeInstanceOf(NoheadError)
   })
 
+  it("keeps a read's rich_text on later pages", async () => {
+    const { nohead, calls } = mockClient([
+      page([record("rec_1")], "c2"),
+      page([record("rec_2")], null),
+    ])
+    const ids = []
+    for await (const each of nohead.records.list("posts", {
+      rich_text: "html",
+    }))
+      ids.push(each.id)
+    expect(ids).toEqual(["rec_1", "rec_2"])
+    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
+      "html",
+      "html",
+    ])
+  })
+
   it("iterates every item across pages, keeping the parameters", async () => {
     const { nohead, calls } = mockClient([
       page([record("rec_1"), record("rec_2")], "c2"),
