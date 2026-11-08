@@ -56,6 +56,29 @@ describe("imageUrl", () => {
       ).toBe(at("rs:fit:1:0"))
   })
 
+  it("refuses options image URLs don't take, by name", () => {
+    for (const option of [
+      "sa:0",
+      "mc:1",
+      "co:10",
+      "min_width:50",
+      "pr:other",
+      "pr",
+      "pr:preview:other",
+    ])
+      expect(() => imageUrl(base, { options: [option] })).toThrow(
+        /isn't an option Nohead image URLs take/
+      )
+    expect(() => imageUrl(base, { options: ["sa:0"] })).toThrow(/^sa isn't/)
+    expect(() => imageUrl(base, { options: ["pr:other"] })).toThrow(
+      /^pr:other isn't/
+    )
+    // Short and long names alike.
+    expect(
+      imageUrl(base, { options: ["blur:2", "min-width:50", "pr:preview"] })
+    ).toBe(at("blur:2/min-width:50/pr:preview"))
+  })
+
   it("leaves empty options out", () => {
     expect(
       imageUrl(base, {
