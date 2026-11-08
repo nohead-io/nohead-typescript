@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.19.0
 
 - **Breaking:** `imageUrl` refuses a processing option image URLs don't take,
   naming it (`sa isn't an option Nohead image URLs take…`), instead of
