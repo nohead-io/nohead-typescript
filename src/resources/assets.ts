@@ -28,33 +28,6 @@ export interface UploadParams {
   alt?: string | null
 }
 
-/** Common files' types by extension, as the other SDKs guess them. */
-const CONTENT_TYPES: Record<string, string> = {
-  avif: "image/avif",
-  gif: "image/gif",
-  jpeg: "image/jpeg",
-  jpg: "image/jpeg",
-  png: "image/png",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-  pdf: "application/pdf",
-  json: "application/json",
-  txt: "text/plain",
-  md: "text/markdown",
-  csv: "text/csv",
-  mp3: "audio/mpeg",
-  mp4: "video/mp4",
-  webm: "video/webm",
-  zip: "application/zip",
-}
-
-function contentTypeOf(filename: string): string | undefined {
-  const dot = filename.lastIndexOf(".")
-  return dot > 0
-    ? CONTENT_TYPES[filename.slice(dot + 1).toLowerCase()]
-    : undefined
-}
-
 /** Files of the key's project. `asset` is an asset ID (`ast_…`). */
 export class Assets extends Resource {
   /**
@@ -71,8 +44,8 @@ export class Assets extends Resource {
    *   import { openAsBlob } from "node:fs"
    *   const asset = await nohead.assets.upload(await openAsBlob("a.jpg"), { filename: "a.jpg", alt: "A harbour at dawn" })
    *
-   * Without `content_type`, the type is the Blob's, or else the filename's
-   * extension's for common files.
+   * Without `content_type`, the type is the Blob's, or else the API types
+   * the file by its filename's extension, as for every client.
    */
   async upload(
     file: Uploadable,
@@ -95,17 +68,15 @@ export class Assets extends Resource {
       params.filename ||
       (typeof File !== "undefined" && file instanceof File && file.name) ||
       "upload"
+    // The type given, or the Blob's own; without one (a Blob from Node's
+    // openAsBlob has none, nor do bytes), the API types the file by its
+    // filename, the same for every client.
+    const contentType =
+      params.content_type || (file instanceof Blob ? file.type : "")
     const { upload, ...asset } = await this.createUpload(
       {
         filename,
-        // The Blob's own type, or one the filename's extension implies (a
-        // Blob from Node's openAsBlob has none), as the Python and Ruby
-        // SDKs do.
-        content_type:
-          params.content_type ||
-          (file instanceof Blob && file.type) ||
-          contentTypeOf(filename) ||
-          "application/octet-stream",
+        ...(contentType && { content_type: contentType }),
         byte_size: byteSize,
         ...(params.alt !== undefined && { alt: params.alt }),
       },
