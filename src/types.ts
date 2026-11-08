@@ -72,6 +72,16 @@ export type RecordSort = NonNullable<
   NonNullable<G.RecordsListData["query"]>["sort"]
 >
 
+/** Params of reads that return records or drafts. */
+export interface RichTextParams {
+  /**
+   * How rich text fields read in what is returned (and in records embedded
+   * with `expand`), overriding the client's `richText`: `"html"` or
+   * `"markdown"` strings, or the stored `"document"`.
+   */
+  rich_text?: RichText
+}
+
 export interface ListParams {
   /** Page size, 1 to 100 (default 20). */
   limit?: number
@@ -79,7 +89,7 @@ export interface ListParams {
   cursor?: string
 }
 
-export interface RecordListParams extends ListParams {
+export interface RecordListParams extends ListParams, RichTextParams {
   filter?: RecordFilter
   sort?: RecordSort
   /** Relation or asset fields to embed under `expanded` (at most 5). */
@@ -87,7 +97,7 @@ export interface RecordListParams extends ListParams {
 }
 
 /** A deleted record is returned too, with `deleted_at` and `purge_after`. */
-export interface RecordGetParams {
+export interface RecordGetParams extends RichTextParams {
   expand?: string[]
 }
 
@@ -119,12 +129,12 @@ export interface DraftUpdateParams<D = G.RecordData> {
   data: RecordDataUpdate<D>
 }
 
-export interface DraftGetParams {
+export interface DraftGetParams extends RichTextParams {
   /** Relation or asset fields to embed under `expanded` (at most 5). */
   expand?: string[]
 }
 
-export interface DraftListParams extends ListParams {
+export interface DraftListParams extends ListParams, RichTextParams {
   sort?: "updated_at" | "-updated_at"
 }
 
@@ -153,7 +163,7 @@ export type RecordBulkParams = G.RecordBatchRequest
 
 export type RecordDiffParams = NonNullable<G.RecordsDiffData["query"]>
 
-export interface RecordSearchParams extends ListParams {
+export interface RecordSearchParams extends ListParams, RichTextParams {
   /** Needs `filterable` fields (`published_at: { exists }` always works). */
   filter?: RecordFilter
   /** Needs a `sortable` field, e.g. `-published_at`; relevance otherwise. */
@@ -161,7 +171,7 @@ export interface RecordSearchParams extends ListParams {
   expand?: string[]
 }
 
-export interface ProjectSearchParams extends ListParams {
+export interface ProjectSearchParams extends ListParams, RichTextParams {
   /** Collection slugs or IDs to search in; every searchable one otherwise. */
   collections?: string[]
   /** `{ published_at: { exists: true } }`: published records only (or unpublished, `false`). */

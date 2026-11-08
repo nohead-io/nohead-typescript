@@ -5,6 +5,16 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- **Breaking:** reads take `rich_text` with their params, as Python and Ruby
+  do, not `richText` in their options: `records.get(id, { rich_text: "html" })`
+  instead of `records.get(id, {}, { richText: "html" })`. That's
+  `records.list`, `get`, `drafts`, `diff` and `search`, `drafts.list` and
+  `get`, and `search`; it overrides the client's `richText` as before. Writes
+  that return records or drafts keep `richText` in their options, beside
+  `ifMatch` and `changeNote`.
+
 ## 0.19.0
 
 - **Breaking:** `imageUrl` refuses a processing option image URLs don't take,

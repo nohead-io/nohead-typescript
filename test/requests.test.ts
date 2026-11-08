@@ -292,24 +292,28 @@ describe("requests", () => {
     ])
   })
 
-  it("lets a request's richText override the client's", async () => {
+  it("lets a read's rich_text, or a write's richText, override the client's", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))], {
       richText: "markdown",
     })
-    await nohead.records.get("rec_1", {}, { richText: "document" })
+    await nohead.records.get("rec_1", { rich_text: "document" })
     await nohead.records.update(
       "rec_1",
       { data: { body: "Hello **world**" } },
       { richText: "html" }
     )
     await nohead.records.get("rec_1")
-    // An empty value is no value, as for the other options.
-    await nohead.records.get("rec_1", {}, { richText: "" as "html" })
-    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
-      "document",
-      "html",
-      "markdown",
-      "markdown",
+    // An empty option is no option, as for the others.
+    await nohead.records.update(
+      "rec_1",
+      { data: {} },
+      { richText: "" as "html" }
+    )
+    expect(calls.map((c) => c.url.searchParams.getAll("rich_text"))).toEqual([
+      ["document"],
+      ["html"],
+      ["markdown"],
+      ["markdown"],
     ])
   })
 
@@ -331,15 +335,15 @@ describe("requests", () => {
     })
   })
 
-  it("sends a diff's richText as rich_text", async () => {
+  it("sends a diff's rich_text", async () => {
     const { nohead, calls } = mockClient([
       json(200, exampleOf("records_diff", { from: 1, to: 2 })),
     ])
-    await nohead.records.diff(
-      "rec_1",
-      { from: 1, to: 2 },
-      { richText: "markdown" }
-    )
+    await nohead.records.diff("rec_1", {
+      from: 1,
+      to: 2,
+      rich_text: "markdown",
+    })
     expect(calls[0]!.url.searchParams.get("rich_text")).toBe("markdown")
   })
 })

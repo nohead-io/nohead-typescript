@@ -3,7 +3,7 @@ import {
   Core,
   type ClientOptions,
   type CopyOptions,
-  type RichTextOptions,
+  type RequestOptions,
 } from "./core.ts"
 import type * as G from "./generated/types.gen.ts"
 import { Assets } from "./resources/assets.ts"
@@ -78,7 +78,7 @@ export class Nohead {
   search<D = RecordData>(
     query: string,
     params: ProjectSearchParams = {},
-    options?: RichTextOptions
+    options?: RequestOptions
   ): PagePromise<NoheadRecord<D>, SearchMeta> {
     const { collections, filter, ...rest } = params
     return this.#core.paginate(

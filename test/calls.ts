@@ -62,11 +62,11 @@ export const everyCall: ((nohead: Nohead) => unknown)[] = [
       record_ids: ["rec_01J9ZQ3F8X"],
     }),
   (nohead) =>
-    nohead.records.diff(
-      "rec_01J9ZQ3F8X",
-      { from: 1, to: 2 },
-      { richText: "markdown" }
-    ),
+    nohead.records.diff("rec_01J9ZQ3F8X", {
+      from: 1,
+      to: 2,
+      rich_text: "markdown",
+    }),
   (nohead) =>
     nohead.records.search("posts", "hello", {
       filter: { published_at: { exists: true } },
