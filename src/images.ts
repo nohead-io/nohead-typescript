@@ -29,7 +29,8 @@ export interface ImageOptions {
    * `pd`), orientation (`ar`, `rot`, `fl`), effects (`bg`, `bl`, `sh`, `pix`),
    * output (`q`, `fq`, `f`, `kcr`, `scp`, `ph`, `eth`) and delivery (`cb`,
    * `exp`, `fn`, `att`, `pr:preview`), by short or long name. Any other, such
-   * as imgproxy Pro's `sa`, `mc`, `ad` or `co`, makes the URL answer 404.
+   * as imgproxy Pro's `sa`, `mc`, `ad` or `co`, would make the URL answer
+   * 404, so it throws, naming the option.
    */
   options?: string[]
 }
@@ -38,6 +39,36 @@ export interface ImageOptions {
 export type ImageSource = string | { image_url: string | null }
 
 const FITS = { contain: "fit", cover: "fill", fill: "force" } as const
+
+/**
+ * The processing options image URLs take (imgproxy's open-source ones, by
+ * short and long name): any other answers 404, so imageUrl refuses it.
+ * https://docs.nohead.io/guides/images#supported-options
+ */
+const SUPPORTED = new Set(
+  (
+    "rs resize s size rt resizing_type w width h height mw min-width mh min-height " +
+    "z zoom dpr el enlarge ex extend exar extend_aspect_ratio g gravity c crop " +
+    "t trim pd padding ar auto_rotate rot rotate fl flip bg background bl blur " +
+    "sh sharpen pix pixelate q quality fq format_quality f format ext " +
+    "kcr keep_copyright scp strip_color_profile ph preserve_hdr " +
+    "eth enforce_thumbnail cb cachebuster exp expires fn filename " +
+    "att return_attachment pr preset"
+  ).split(" ")
+)
+
+/** Refuses an option image URLs don't take, naming it. */
+function checkSupported(option: string) {
+  const at = option.indexOf(":")
+  const name = at < 0 ? option : option.slice(0, at)
+  // The only preset is preview_url's.
+  const preset =
+    (name === "pr" || name === "preset") && option.slice(at + 1) !== "preview"
+  if (!SUPPORTED.has(name) || preset)
+    throw new TypeError(
+      `${preset ? option : name} isn't an option Nohead image URLs take (imgproxy Pro's, such as sa, mc or co, aren't available): https://docs.nohead.io/guides/images#supported-options`
+    )
+}
 // The format an image URL names, after its source: `…@webp`.
 const FORMAT = /@[a-z]+$/
 
@@ -60,6 +91,7 @@ export function imageUrl(
   for (const option of [gravity, ...others])
     if (option && /[/@?#]/.test(option))
       throw new TypeError(`Not an imgproxy option: ${option}`)
+  others.forEach(checkSupported)
   const segments: string[] = []
   if (width || height)
     segments.push(`rs:${FITS[fit]}:${width ?? 0}:${height ?? 0}`)

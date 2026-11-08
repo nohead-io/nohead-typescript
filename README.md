@@ -321,7 +321,7 @@ const asset = await nohead.assets.upload(await openAsBlob("cover.jpg"), {
 await nohead.records.update(id, { data: { cover: asset.id } })
 ```
 
-**Images.** Image URLs are open: an image's `image_url` serves the whole image, and [imgproxy's processing options](https://docs.imgproxy.net/usage/processing) written into it transform it: the open-source ones, [listed in the docs](https://docs.nohead.io/guides/images#supported-options). Any other, such as imgproxy Pro's `sa` (saturation), makes the URL answer 404. `@nohead/sdk/images` builds them without a request, and has no dependencies, so it suits browser bundles:
+**Images.** Image URLs are open: an image's `image_url` serves the whole image, and [imgproxy's processing options](https://docs.imgproxy.net/usage/processing) written into it transform it: the open-source ones, [listed in the docs](https://docs.nohead.io/guides/images#supported-options). Any other, such as imgproxy Pro's `sa` (saturation), would answer 404, so `imageUrl` refuses it, naming the option. `@nohead/sdk/images` builds them without a request, and has no dependencies, so it suits browser bundles:
 
 ```ts
 import { imageUrl } from "@nohead/sdk/images"

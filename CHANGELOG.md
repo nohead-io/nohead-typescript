@@ -5,6 +5,17 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- **Breaking:** `imageUrl` refuses a processing option image URLs don't take, naming it
+  (`sa isn't an option Nohead image URLs take…`), instead of building a URL
+  that answers 404: imgproxy Pro's options, such as `sa`, `mc` or `co`, and
+  presets other than `pr:preview`. The ones image URLs take are listed in the
+  images guide.
+- `fields.update` and `migrations.create` take `configuration` as a change
+  the API merges onto the field's options (`FieldConfigurationChange`): an
+  option sent replaces its value, `null` removes it, and the rest stay.
+
 ## 0.18.0
 
 - **Breaking:** the Astro content loader and image service moved to a
