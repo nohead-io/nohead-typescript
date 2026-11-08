@@ -18,8 +18,8 @@ export interface UploadParams {
   /** Defaults to a `File`'s name, else `upload`. */
   filename?: string
   /**
-   * Defaults to the `Blob`'s type, else the filename's extension's for
-   * common files, else `application/octet-stream`.
+   * Defaults to the `Blob`'s type; without one, the API types the file by
+   * its filename's extension.
    */
   content_type?: string
   /** Required for a `ReadableStream`; known for everything else. */
