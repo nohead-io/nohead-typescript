@@ -161,11 +161,8 @@ describe("assets.upload", () => {
       json(200, asset("ready")),
     ])
     await nohead.assets.upload(new Uint8Array(10), { filename: "data.bin" })
-    expect(calls[0]!.body).toEqual({
-      filename: "data.bin",
-      content_type: "application/octet-stream",
-      byte_size: 10,
-    })
+    // No type: the API types it by its filename.
+    expect(calls[0]!.body).toEqual({ filename: "data.bin", byte_size: 10 })
   })
 
   it("takes an empty filename and content type as unset", async () => {
@@ -183,10 +180,7 @@ describe("assets.upload", () => {
     })
     const file = new File(["x"], "a.png", { type: "image/png" })
     await nohead.assets.upload(file, { filename: "", content_type: "" })
-    expect(calls[0]!.body).toMatchObject({
-      filename: "upload",
-      content_type: "application/octet-stream",
-    })
+    expect(calls[0]!.body).toEqual({ filename: "upload", byte_size: 1 })
     expect(calls[3]!.body).toMatchObject({
       filename: "a.png",
       content_type: "image/png",
@@ -249,7 +243,7 @@ describe("assets.upload", () => {
     expect(calls[1]!.init.redirect).toBe("manual")
   })
 
-  it("types a Blob without a type by its filename", async () => {
+  it("leaves a Blob without a type for the API to type by its filename", async () => {
     const { nohead, calls } = mockClient([
       created,
       new Response(null),
@@ -257,7 +251,7 @@ describe("assets.upload", () => {
     ])
     // As Node's openAsBlob makes one: no type.
     await nohead.assets.upload(new Blob(["x"]), { filename: "Cover.JPG" })
-    expect(calls[0]!.body).toMatchObject({ content_type: "image/jpeg" })
+    expect(calls[0]!.body).toEqual({ filename: "Cover.JPG", byte_size: 1 })
   })
 
   it("needs byte_size for a stream", async () => {
