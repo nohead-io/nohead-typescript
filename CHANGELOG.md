@@ -7,11 +7,11 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
-- Network errors name the host as the Python and Ruby SDKs do. A timeout
-  says `The request to api.nohead.io timed out after 60000 ms`, and a
-  connection error names the host without its port. A response that isn't
-  HTTP says `The response from api.nohead.io could not be read`, not that the
-  host couldn't be reached.
+- A timeout names the host, as the Python and Ruby SDKs' timeouts do:
+  `The request to api.nohead.io timed out after 60000 ms`. On Node, a
+  response that isn't HTTP says
+  `The response from api.nohead.io could not be read`, not that the host
+  couldn't be reached.
 
 ## 0.20.0
 

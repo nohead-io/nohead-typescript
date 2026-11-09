@@ -193,7 +193,9 @@ describe("retries", () => {
       (e: unknown) => e
     )
     expect(error).toBeInstanceOf(TimeoutError)
-    expect((error as Error).message).toContain("timed out after 10 ms")
+    expect((error as Error).message).toBe(
+      "The request to api.test timed out after 10 ms"
+    )
   })
 
   it("aborts a response the caller stops reading", async () => {

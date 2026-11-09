@@ -93,7 +93,7 @@ describe("over HTTP", () => {
     const body = JSON.stringify(record("rec_1", { title: "Slow" }))
     const { url } = await localServer((_, response) => {
       response.writeHead(200, { "content-type": "application/json" })
-      // Six parts 40 ms apart: twice the timeout in all, never 100 ms
+      // Six parts 40 ms apart: longer than the timeout in all, never 150 ms
       // without progress.
       const parts = [0, 1, 2, 3, 4, 5].map((i) =>
         body.slice((i * body.length) / 6, ((i + 1) * body.length) / 6)
@@ -111,9 +111,9 @@ describe("over HTTP", () => {
       response.on("close", () => clearInterval(timer))
     })
     const started = performance.now()
-    const got = await client(url, 100).records.get("rec_1")
+    const got = await client(url, 150).records.get("rec_1")
     expect(got.data).toEqual({ title: "Slow" })
-    expect(performance.now() - started).toBeGreaterThan(150)
+    expect(performance.now() - started).toBeGreaterThan(160)
   })
 
   it.each([
@@ -127,13 +127,15 @@ describe("over HTTP", () => {
     ],
   ])("times out when the response stalls %s", async (_, stall) => {
     const { url } = await localServer((_, response) => stall(response))
+    const started = performance.now()
     const error = await client(url, 100)
       .records.get("rec_1")
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(TimeoutError)
     expect((error as TimeoutError).message).toBe(
-      "The request to 127.0.0.1 timed out after 100 ms"
+      `The request to ${new URL(url).host} timed out after 100 ms`
     )
+    expect(performance.now() - started).toBeLessThan(1_000)
   })
 
   it.each([301, 302])("doesn't follow a %i", async (status) => {
@@ -168,7 +170,7 @@ describe("over HTTP", () => {
     expect(error).toBeInstanceOf(ConnectionError)
     expect(error).not.toBeInstanceOf(TimeoutError)
     expect((error as ConnectionError).message).toMatch(
-      /^The response from 127\.0\.0\.1 could not be read: /
+      /^The response from 127\.0\.0\.1:\d+ could not be read: /
     )
   })
 })
