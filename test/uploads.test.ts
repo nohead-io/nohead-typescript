@@ -215,8 +215,8 @@ describe("assets.upload", () => {
       expect(error).toBeUndefined()
       await vi.advanceTimersByTimeAsync(1)
       expect(error).toBeInstanceOf(UploadError)
-      expect((error as UploadError).message).toBe(
-        "Could not upload upload: The request timed out after 10000 ms"
+      expect((error as UploadError).message).toMatch(
+        /^Could not upload upload: .* timed out after 10000 ms$/
       )
       expect((error as UploadError).cause).toBeInstanceOf(TimeoutError)
     } finally {

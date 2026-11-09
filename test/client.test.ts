@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { Nohead, NoheadError, VERSION } from "../src/index.ts"
-import { json, mockClient, mockFetch, page, record, settle } from "./helpers.ts"
+import {
+  apiError,
+  json,
+  mockClient,
+  mockFetch,
+  page,
+  record,
+  settle,
+} from "./helpers.ts"
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -139,7 +147,9 @@ describe("configuration", () => {
   })
 
   it("keeps VERSION in step with package.json", () => {
-    const pkg = JSON.parse(readFileSync("package.json", "utf8"))
+    const pkg = JSON.parse(
+      readFileSync(`${import.meta.dirname}/../package.json`, "utf8")
+    )
     expect(VERSION).toBe(pkg.version)
   })
 })
@@ -172,6 +182,52 @@ describe("the key's project", () => {
       "/v1/me",
       "/v1/projects/prj_9/collections",
       "/v1/projects/prj_9/webhooks",
+    ])
+  })
+
+  it("is looked up once for calls made at the same time", async () => {
+    let answer = () => {}
+    const answered = new Promise<void>((resolve) => (answer = resolve))
+    const { nohead, calls } = mockClient(
+      [
+        async () => {
+          await answered
+          return me
+        },
+        page([], null),
+      ],
+      { projectId: undefined }
+    )
+    const lists = Promise.all([
+      nohead.collections.list(),
+      nohead.webhooks.list(),
+      nohead.collections.list(),
+    ])
+    // Every call has asked for the project before /v1/me answers.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    answer()
+    await lists
+    expect(calls.map((c) => c.url.pathname)).toEqual([
+      "/v1/me",
+      "/v1/projects/prj_9/collections",
+      "/v1/projects/prj_9/webhooks",
+      "/v1/projects/prj_9/collections",
+    ])
+  })
+
+  it("is looked up again after a lookup failed", async () => {
+    const { nohead, calls } = mockClient(
+      [apiError(500, "internal_error"), me, page([], null)],
+      { projectId: undefined, maxRetries: 0 }
+    )
+    await expect(nohead.collections.list()).rejects.toMatchObject({
+      status: 500,
+    })
+    await nohead.collections.list()
+    expect(calls.map((c) => c.url.pathname)).toEqual([
+      "/v1/me",
+      "/v1/me",
+      "/v1/projects/prj_9/collections",
     ])
   })
 

@@ -1,5 +1,9 @@
 import { defineConfig } from "vitest/config"
 
+// Not UTC, so a time read in the local zone where the API sends GMT (an HTTP
+// date's) is off, and fails its test. The test workers inherit it.
+process.env.TZ = "America/Los_Angeles"
+
 export default defineConfig({
   // A test that checks nothing fails.
   test: {

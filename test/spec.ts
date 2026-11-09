@@ -18,7 +18,9 @@ export interface Parameter {
   schemaAt: string
 }
 
-export const spec = JSON.parse(readFileSync("openapi.json", "utf8"))
+export const spec = JSON.parse(
+  readFileSync(`${import.meta.dirname}/../openapi.json`, "utf8")
+)
 
 /** A JSON pointer into the contract. */
 const pointer = (...parts: string[]) =>
