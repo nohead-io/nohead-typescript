@@ -6,6 +6,8 @@ export default defineConfig({
     expect: { requireAssertions: true },
     // The client reads NOHEAD_API_URL: one in the shell mustn't move the
     // tests off their mocked API.
-    env: { NOHEAD_API_URL: "" },
+    // Not UTC, so a time read in the local zone where the API sends GMT (an
+    // HTTP date's) is hours off, and fails its test.
+    env: { NOHEAD_API_URL: "", TZ: "America/Los_Angeles" },
   },
 })

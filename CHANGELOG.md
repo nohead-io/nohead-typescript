@@ -5,6 +5,14 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- A timeout names the host it was sent to:
+  `The request to api.nohead.io timed out after 60000 ms`. On Node, a
+  response that isn't HTTP says
+  `The response from api.nohead.io could not be read`, not that the host
+  couldn't be reached.
+
 ## 0.20.0
 
 - **Breaking:** reads take `rich_text` with their params, as Python and Ruby

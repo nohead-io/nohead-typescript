@@ -93,7 +93,7 @@ describe("over HTTP", () => {
     const body = JSON.stringify(record("rec_1", { title: "Slow" }))
     const { url } = await localServer((_, response) => {
       response.writeHead(200, { "content-type": "application/json" })
-      // Six parts 100 ms apart: twice the timeout in all, never 300 ms
+      // Six parts 40 ms apart: longer than the timeout in all, never 150 ms
       // without progress.
       const parts = [0, 1, 2, 3, 4, 5].map((i) =>
         body.slice((i * body.length) / 6, ((i + 1) * body.length) / 6)
@@ -107,13 +107,13 @@ describe("over HTTP", () => {
         } else {
           response.write(part)
         }
-      }, 100)
+      }, 40)
       response.on("close", () => clearInterval(timer))
     })
     const started = performance.now()
-    const got = await client(url, 300).records.get("rec_1")
+    const got = await client(url, 150).records.get("rec_1")
     expect(got.data).toEqual({ title: "Slow" })
-    expect(performance.now() - started).toBeGreaterThan(450)
+    expect(performance.now() - started).toBeGreaterThan(160)
   })
 
   it.each([
@@ -128,12 +128,12 @@ describe("over HTTP", () => {
   ])("times out when the response stalls %s", async (_, stall) => {
     const { url } = await localServer((_, response) => stall(response))
     const started = performance.now()
-    const error = await client(url, 300)
+    const error = await client(url, 100)
       .records.get("rec_1")
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(TimeoutError)
     expect((error as TimeoutError).message).toBe(
-      "The request timed out after 300 ms"
+      `The request to ${new URL(url).host} timed out after 100 ms`
     )
     expect(performance.now() - started).toBeLessThan(1_000)
   })
@@ -151,15 +151,16 @@ describe("over HTTP", () => {
       .records.get("rec_1")
       .catch((e: unknown) => e)
     expect(error).toBeInstanceOf(APIError)
+    // errors.test.ts has the whole message.
     expect(error).toMatchObject({
       status,
       type: "redirect",
-      message: `${status} redirect: The API answered with a redirect to ${url}/elsewhere; check the base URL`,
+      message: expect.stringContaining(`${url}/elsewhere`) as string,
     })
     expect(received.map((r) => r.path)).toEqual(["/v1/records/rec_1"])
   })
 
-  it("can't read a malformed response: a connection error", async () => {
+  it("can't read a malformed response: a connection error that says so", async () => {
     const { url } = await localServer((_, __, raw) => {
       raw.socket.end("HTTP/1.1 nonsense\r\n\r\n")
     })
@@ -169,7 +170,7 @@ describe("over HTTP", () => {
     expect(error).toBeInstanceOf(ConnectionError)
     expect(error).not.toBeInstanceOf(TimeoutError)
     expect((error as ConnectionError).message).toMatch(
-      /^Could not reach 127\.0\.0\.1:\d+: /
+      /^The response from 127\.0\.0\.1:\d+ could not be read: /
     )
   })
 })

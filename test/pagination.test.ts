@@ -57,31 +57,6 @@ describe("pagination", () => {
     )
   })
 
-  it("lists assets by type: one, or several with [in]", async () => {
-    const { nohead, calls } = mockClient([page([], null), page([], null)])
-    await nohead.assets.list({ content_type: "image/*" })
-    await nohead.assets.list({ content_type: ["image/*", "application/pdf"] })
-    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
-      "filter[content_type]": "image/*",
-    })
-    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({
-      "filter[content_type][in]": "image/*,application/pdf",
-    })
-  })
-
-  it("searches assets, and lists them by kind: one, or several with [in]", async () => {
-    const { nohead, calls } = mockClient([page([], null), page([], null)])
-    await nohead.assets.list({ q: "hero jpg", kind: "image" })
-    await nohead.assets.list({ kind: ["image", "video"] })
-    expect(Object.fromEntries(calls[0]!.url.searchParams)).toEqual({
-      q: "hero jpg",
-      "filter[kind]": "image",
-    })
-    expect(Object.fromEntries(calls[1]!.url.searchParams)).toEqual({
-      "filter[kind][in]": "image,video",
-    })
-  })
-
   it("stops on has_more without a cursor", async () => {
     const { nohead, calls } = mockClient([
       page([record("rec_1")], null, true),

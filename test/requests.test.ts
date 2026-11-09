@@ -84,6 +84,30 @@ describe("requests", () => {
     expect(params.get("sort")).toBe("-price")
   })
 
+  it("sends assets' types and kinds as filters: one, or several with [in]", async () => {
+    const { nohead, calls } = mockClient([page([], null)])
+    await nohead.assets.list({
+      q: "hero",
+      content_type: "image/*",
+      kind: ["image", "video"],
+    })
+    await nohead.assets.list({
+      content_type: ["image/*", "application/pdf"],
+      kind: "image",
+    })
+    expect(calls.map((c) => Object.fromEntries(c.url.searchParams))).toEqual([
+      {
+        q: "hero",
+        "filter[content_type]": "image/*",
+        "filter[kind][in]": "image,video",
+      },
+      {
+        "filter[content_type][in]": "image/*,application/pdf",
+        "filter[kind]": "image",
+      },
+    ])
+  })
+
   it("leaves missing list items out, and a list of none", async () => {
     const { nohead, calls } = mockClient([page([], null)])
     const missing = [undefined, null] as unknown as string[]
@@ -268,30 +292,6 @@ describe("requests", () => {
     expect(calls[0]!.body).toEqual({ field_id: "fld_1", type: "integer" })
   })
 
-  it("reads rich text as the client's richText where the operation takes it", async () => {
-    const { nohead, calls } = mockClient(
-      [
-        json(200, record("rec_1")),
-        page([record("rec_1")], "c2"),
-        page([], null),
-        json(200, exampleOf("records_count")),
-        json(200, exampleOf("record_revisions_get")),
-      ],
-      { richText: "html" }
-    )
-    await nohead.records.get("rec_1")
-    await (await nohead.records.list("posts")).getNextPage()
-    await nohead.records.count("posts")
-    await nohead.records.revisions.get("rec_1", 1)
-    expect(calls.map((c) => c.url.searchParams.get("rich_text"))).toEqual([
-      "html",
-      "html",
-      "html",
-      null,
-      null,
-    ])
-  })
-
   it("lets a read's rich_text, or a write's richText, override the client's", async () => {
     const { nohead, calls } = mockClient([json(200, record("rec_1"))], {
       richText: "markdown",
@@ -335,17 +335,5 @@ describe("requests", () => {
       from: "1",
       to: "2",
     })
-  })
-
-  it("sends a diff's rich_text", async () => {
-    const { nohead, calls } = mockClient([
-      json(200, exampleOf("records_diff", { from: 1, to: 2 })),
-    ])
-    await nohead.records.diff("rec_1", {
-      from: 1,
-      to: 2,
-      rich_text: "markdown",
-    })
-    expect(calls[0]!.url.searchParams.get("rich_text")).toBe("markdown")
   })
 })

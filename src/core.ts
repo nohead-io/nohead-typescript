@@ -477,13 +477,24 @@ export class Core {
           cause: options.signal.reason,
         })
       }
+      const host = new URL(url).host
       if (timer.signal.aborted) {
-        throw new TimeoutError(`The request timed out after ${timeout} ms`)
+        throw new TimeoutError(
+          `The request to ${host} timed out after ${timeout} ms`
+        )
       }
-      throw new ConnectionError(
-        `Could not reach ${new URL(url).host}: ${(error as Error).message}`,
-        { cause: error }
-      )
+      // Node's fetch fails a response that isn't HTTP with an HTTPParserError.
+      const cause = error instanceof Error ? error.cause : undefined
+      if (cause instanceof Error && cause.name === "HTTPParserError") {
+        throw new ConnectionError(
+          `The response from ${host} could not be read: ${cause.message}`,
+          { cause: error }
+        )
+      }
+      const message = error instanceof Error ? error.message : String(error)
+      throw new ConnectionError(`Could not reach ${host}: ${message}`, {
+        cause: error,
+      })
     } finally {
       clearTimeout(timeoutId)
     }

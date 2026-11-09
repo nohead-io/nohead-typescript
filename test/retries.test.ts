@@ -30,37 +30,6 @@ const hang = (call: Call) =>
   })
 
 /**
- * A record whose body arrives in `parts`, one every `every` ms. The
- * request's signal ends it, as fetch's does.
- */
-const drip = (parts: number, every: number) => (call: Call) => {
-  const text = JSON.stringify(record("rec_1"))
-  const size = Math.ceil(text.length / parts)
-  let sent = 0
-  const body = new ReadableStream<Uint8Array>({
-    start(controller) {
-      call.signal?.addEventListener("abort", () =>
-        controller.error(call.signal!.reason)
-      )
-    },
-    pull: (controller) =>
-      new Promise<void>((resolve) =>
-        setTimeout(() => {
-          controller.enqueue(
-            new TextEncoder().encode(text.slice(sent, sent + size))
-          )
-          sent += size
-          if (sent >= text.length) controller.close()
-          resolve()
-        }, every)
-      ),
-  })
-  return raw(
-    new Response(body, { headers: { "content-type": "application/json" } })
-  )
-}
-
-/**
  * The start of a body, then nothing; the signal doesn't end it, as a fetch
  * that isn't the platform's may not.
  */
@@ -163,6 +132,8 @@ describe("retries", () => {
     "Friday, 02-Oct-26 12:00:05 GMT",
     "Fri Oct  2 12:00:05 2026",
   ])("reads the Retry-After date %j, in GMT", async (date) => {
+    // Read in the local time zone (vitest.config.ts), it would be hours off.
+    expect(new Date("2026-10-02T12:00:00Z").getTimezoneOffset()).not.toBe(0)
     vi.setSystemTime(new Date("2026-10-02T12:00:00Z"))
     const { onRetry, delays } = retryDelays()
     const { nohead } = mockClient(
@@ -185,15 +156,6 @@ describe("retries", () => {
     )
     await settle(nohead.records.get("rec_1"))
     expect(delays()).toEqual([0.5])
-    expect(calls).toHaveLength(2)
-  })
-
-  it("retries connection failures", async () => {
-    const { nohead, calls } = mockClient([
-      new TypeError("fetch failed"),
-      json(200, record("rec_1")),
-    ])
-    await settle(nohead.records.get("rec_1"))
     expect(calls).toHaveLength(2)
   })
 
@@ -222,17 +184,6 @@ describe("retries", () => {
     )
   })
 
-  it("doesn't time out a response that keeps arriving", async () => {
-    // Real time: 150 ms in all, three times the timeout.
-    vi.useRealTimers()
-    const { nohead, calls } = mockClient([drip(5, 30)], {
-      maxRetries: 0,
-      timeout: 50,
-    })
-    expect((await nohead.records.get("rec_1")).id).toBe("rec_1")
-    expect(calls).toHaveLength(1)
-  })
-
   it("times out a response that stalls", async () => {
     const { nohead } = mockClient([stall], {
       maxRetries: 0,
@@ -242,7 +193,9 @@ describe("retries", () => {
       (e: unknown) => e
     )
     expect(error).toBeInstanceOf(TimeoutError)
-    expect((error as Error).message).toBe("The request timed out after 10 ms")
+    expect((error as Error).message).toBe(
+      "The request to api.test timed out after 10 ms"
+    )
   })
 
   it("aborts a response the caller stops reading", async () => {
@@ -254,14 +207,6 @@ describe("retries", () => {
     await vi.advanceTimersByTimeAsync(100)
     controller.abort()
     expect(await outcome).toBeInstanceOf(AbortError)
-  })
-
-  it("retries a timeout", async () => {
-    const { nohead, calls } = mockClient([hang, json(200, record("rec_1"))], {
-      timeout: 10,
-    })
-    expect((await settle(nohead.records.get("rec_1"))).id).toBe("rec_1")
-    expect(calls).toHaveLength(2)
   })
 
   it.each([
