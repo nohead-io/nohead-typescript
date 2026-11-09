@@ -7,7 +7,7 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
-- A timeout names the host, as the Python and Ruby SDKs' timeouts do:
+- A timeout names the host it was sent to:
   `The request to api.nohead.io timed out after 60000 ms`. On Node, a
   response that isn't HTTP says
   `The response from api.nohead.io could not be read`, not that the host
