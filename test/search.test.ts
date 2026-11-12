@@ -227,7 +227,13 @@ describe("searchPublic", () => {
       cover: "https://images.nohead.io/plain/p/a",
       gallery: [null, "https://images.nohead.io/plain/p/b"],
     }
-    const server = await engine(200, results([{ ...record, image_urls }]))
+    const server = await engine(
+      200,
+      results([
+        { ...record, image_urls },
+        { ...record, _rankingScore: 0.5 },
+      ])
+    )
     const { hits } = await searchPublic<Story>({
       token,
       index,
@@ -235,6 +241,10 @@ describe("searchPublic", () => {
     })
 
     expect(hits[0]?.image_urls).toEqual(image_urls)
+    // A hit from an index built before image URLs: none.
+    expect(hits[1]?.image_urls).toEqual({})
+    // What else the engine returns passes through.
+    expect(hits[1]).toHaveProperty("_rankingScore", 0.5)
     expectTypeOf(hits[0]!.image_urls.cover).toEqualTypeOf<
       string | null | undefined
     >()
@@ -386,8 +396,9 @@ describe("searchPublic", () => {
         })
       ).rejects.toMatchObject({
         status: 403,
-        message:
-          "403: The search token can't search this index: check the index name, and that its collection is in public search",
+        code: "invalid_api_key",
+        // The related index, not the one searched.
+        message: `403: The search token can't search this index: check the index name, and that its collection is in public search (expanding author in ${people})`,
       })
     })
 
@@ -395,6 +406,20 @@ describe("searchPublic", () => {
       await expect(
         searchPublic<Story>({ token, index, expand: { author: "" } })
       ).rejects.toThrow("An index is required to expand author")
+      // Only the record's own fields can be expanded.
+      expectTypeOf(searchPublic<Story>)
+        .parameter(0)
+        .toHaveProperty("expand")
+        .toEqualTypeOf<
+          | {
+              title?: string
+              cover?: string
+              gallery?: string
+              author?: string
+              editors?: string
+            }
+          | undefined
+        >()
     })
   })
 

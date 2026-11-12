@@ -61,7 +61,7 @@ export interface SearchOptions<
    * whose collection isn't in public search, is left out (a token that can't
    * search an index at all is a `SearchError`).
    */
-  expand?: { [K in keyof X]?: string }
+  expand?: { [K in keyof X & keyof D]?: string }
   /** Cancels the search: the promise rejects with the signal's reason (an `AbortError`). */
   signal?: AbortSignal
   /** For this SDK's tests against a local search engine: searches go to `SEARCH_URL`. */
@@ -189,6 +189,7 @@ const TOKEN_ERRORS = new Set([
 // It refuses a good token for an index outside the token's reach (another
 // project's, or a collection not in public search) as a query's error.
 const QUERY_ERROR = /^Inside `\.queries\[\d+\]`:/
+const QUERY_AT = /^Inside `\.queries\[(\d+)\]`:/
 
 // The search engine wraps matches in these; they never occur in text.
 const MARK = "\u0001"
@@ -231,7 +232,7 @@ export async function searchPublic<
   const search = (queries: unknown[]) =>
     multiSearch(`${base}/multi-search`, token, queries, signal)
 
-  const [result] = await search([
+  const [result] = (await search([
     {
       indexUid: index,
       q,
@@ -247,13 +248,13 @@ export async function searchPublic<
         highlightPostTag: UNMARK,
       }),
     },
-  ])
-  const found = await lookUp(result!.hits, expand, search)
+  ])) as [RawResult] // multiSearch returns one result per query
+  const found = await lookUp(result.hits, expand, search)
 
   return {
-    hits: result!.hits.map((hit) => hitOf<D, X>(hit, highlight, expand, found)),
-    total: result!.estimatedTotalHits ?? result!.hits.length,
-    query: result!.query ?? q,
+    hits: result.hits.map((hit) => hitOf<D, X>(hit, highlight, expand, found)),
+    total: result.estimatedTotalHits ?? result.hits.length,
+    query: result.query ?? q,
   }
 }
 
@@ -319,19 +320,37 @@ async function lookUp(
   })
   const found = new Map<string, SearchRecord>()
   if (queries.length === 0) return found
-  for (const result of await search(queries))
+  let results: RawResult[]
+  try {
+    results = await search(queries)
+  } catch (error) {
+    // Name the related index, so its error isn't read as the search's own.
+    if (!(error instanceof SearchError)) throw error
+    const at = Number(QUERY_AT.exec(error.engineMessage ?? "")?.[1])
+    const related =
+      queries[at]?.indexUid ?? queries.map((query) => query.indexUid).join(", ")
+    const fields = expand
+      .filter(([, uid]) => uid === related)
+      .map(([field]) => field)
+    throw new SearchError(
+      error.status,
+      `${error.message} (expanding ${fields.join(", ") || "relations"} in ${related})`,
+      error.code,
+      error.engineMessage
+    )
+  }
+  for (const result of results)
     for (const hit of result.hits) found.set(hit.id, recordOf(hit))
   return found
 }
 
 function recordOf<D>(raw: RawHit): SearchRecord<D> {
-  const { id, published_at, created_at, updated_at, data } = raw
+  // Everything the engine returns but its highlighting, as before.
+  const record: Partial<RawHit> = { ...raw }
+  delete record._formatted
   return {
-    id,
-    published_at,
-    created_at,
-    updated_at,
-    data: data as D,
+    ...(record as RawHit),
+    data: raw.data as D,
     image_urls: (raw.image_urls ?? {}) as ImageUrls<D>,
   }
 }
