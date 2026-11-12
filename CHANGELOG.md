@@ -7,6 +7,10 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- `searchPublic` asks the search engine to highlight each field in
+  `highlight` by its path (`data.title`), as the public search guide shows,
+  instead of the whole of `data`: once hits return only the fields their
+  collection includes, asking for `data` as a whole marks nothing.
 - A timeout names the host it was sent to:
   `The request to api.nohead.io timed out after 60000 ms`. On Node, a
   response that isn't HTTP says

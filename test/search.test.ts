@@ -158,7 +158,7 @@ describe("searchPublic", () => {
     expect(parsed(server.received[0]!.body)).toMatchObject({
       queries: [
         {
-          attributesToHighlight: ["data"],
+          attributesToHighlight: ["data.title", "data.summary"],
           highlightPreTag: "\u0001",
           highlightPostTag: "\u0002",
         },
