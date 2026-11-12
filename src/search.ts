@@ -9,6 +9,15 @@
  *   })
  *   hits[0].highlights.title // [{ text: "Red ", match: false }, { text: "lentil", match: true }, …]
  *
+ * Hits carry their images' URLs (`image_urls`), and `expand` looks up their
+ * related records in those collections' own indexes, with the same token:
+ *
+ *   const { hits } = await searchPublic<Post, { authors: Person }>({
+ *     token, index, q: "lentil", expand: { authors: peopleIndex },
+ *   })
+ *   hits[0].image_urls.cover            // "https://images.nohead.io/plain/…"
+ *   hits[0].expanded.authors?.[0].data.name
+ *
  * It's the small default: the same token works with the official `meilisearch`
  * client and with InstantSearch (`@meilisearch/instant-meilisearch`), for
  * facets or a ready-made search UI.
@@ -17,7 +26,13 @@
 /** Where search tokens search. */
 export const SEARCH_URL = "https://search.nohead.io"
 
-export interface SearchOptions<D = Record<string, unknown>> {
+/** What related collections hold, by relation field key: `{ authors: Person }`. */
+export type Related = Record<string, object>
+
+export interface SearchOptions<
+  D = Record<string, unknown>,
+  X extends Related = Related,
+> {
   /** A search token: public, so it can go in a page's source. */
   token: string
   /** The collection's public search index name (its Search tab, or its search index's `index`). */
@@ -38,6 +53,15 @@ export interface SearchOptions<D = Record<string, unknown>> {
   sort?: string[]
   /** Text fields to mark the matched words in, by field key: each hit's `highlights` has them. */
   highlight?: TextField<D>[]
+  /**
+   * Relation fields whose records to look up, each with its collection's
+   * public search index: `{ authors: peopleIndex }`. Each hit's `expanded`
+   * then has them. One more request, after the search, finds them all; it
+   * finds what the token finds, so a related record that isn't published, or
+   * whose collection isn't in public search, is left out (a token that can't
+   * search an index at all is a `SearchError`).
+   */
+  expand?: { [K in keyof X]?: string }
   /** Cancels the search: the promise rejects with the signal's reason (an `AbortError`). */
   signal?: AbortSignal
   /** For this SDK's tests against a local search engine: searches go to `SEARCH_URL`. */
@@ -58,8 +82,37 @@ export interface Segment {
   match: boolean
 }
 
-/** A published record that matched. */
-export interface SearchHit<D = Record<string, unknown>> {
+/**
+ * Each asset field's image URL, by field key: for a field holding a list, a
+ * list in its IDs' order. `null` where an asset isn't an image (or was
+ * deleted for good). Build renditions from it with `imageUrl` in
+ * `@nohead/sdk/images`.
+ */
+export type ImageUrls<D> = string extends keyof D
+  ? Record<string, string | null | (string | null)[]>
+  : {
+      [K in keyof D]?: NonNullable<D[K]> extends readonly unknown[]
+        ? (string | null)[]
+        : string | null
+    }
+
+/**
+ * Related records `expand` looked up, by field key, as the API's `expanded`:
+ * a record or `null` for a single relation, the records found for a list. A
+ * field the record leaves empty is left out.
+ */
+export type Expanded<D, X extends Related> = string extends keyof X
+  ? Record<string, SearchRecord | SearchRecord[] | null>
+  : {
+      [K in keyof X]?: K extends keyof D
+        ? NonNullable<D[K]> extends readonly unknown[]
+          ? SearchRecord<X[K]>[]
+          : SearchRecord<X[K]> | null
+        : never
+    }
+
+/** A published record, as public search holds it. */
+export interface SearchRecord<D = Record<string, unknown>> {
   /** The record's ID (`rec_…`). */
   id: string
   /** Unix seconds. */
@@ -73,16 +126,29 @@ export interface SearchHit<D = Record<string, unknown>> {
    * JSON as a string, assets and relations as IDs. Empty fields are left out.
    */
   data: D
+  image_urls: ImageUrls<D>
+}
+
+/** A published record that matched. */
+export interface SearchHit<
+  D = Record<string, unknown>,
+  X extends Related = Related,
+> extends SearchRecord<D> {
   /**
    * Each field named in `highlight`, as segments to render, a `<mark>` for
    * each match: `[]` for a field the record leaves empty, and the whole text
    * unmarked when nothing in it matched.
    */
   highlights: Partial<Record<TextField<D>, Segment[]>>
+  /** The related records asked for with `expand`; `{}` without it. */
+  expanded: Expanded<D, X>
 }
 
-export interface SearchResult<D = Record<string, unknown>> {
-  hits: SearchHit<D>[]
+export interface SearchResult<
+  D = Record<string, unknown>,
+  X extends Related = Related,
+> {
+  hits: SearchHit<D, X>[]
   /** How many records match: an estimate past the first thousand or so. */
   total: number
   /** The words searched for. */
@@ -134,8 +200,13 @@ interface RawHit {
   created_at: number
   updated_at: number
   data: Record<string, unknown>
+  image_urls?: Record<string, unknown>
   _formatted?: { data?: Record<string, unknown> }
 }
+
+// The search engine returns at most this many hits for one query.
+const MAX_HITS = 1000
+const RECORD_ID = /^rec_[0-9A-Z]+$/
 
 interface RawResult {
   hits: RawHit[]
@@ -144,65 +215,153 @@ interface RawResult {
 }
 
 /** Searches one collection's published records with a search token. */
-export async function searchPublic<D = Record<string, unknown>>(
-  options: SearchOptions<D>
-): Promise<SearchResult<D>> {
+export async function searchPublic<
+  D = Record<string, unknown>,
+  X extends Related = Related,
+>(options: SearchOptions<D, X>): Promise<SearchResult<D, X>> {
   const { token, index, q = "", signal } = options
   if (!token) throw new TypeError("A search token is required")
   if (!index) throw new TypeError("An index is required")
   const highlight = options.highlight ?? []
+  const expand = Object.entries(options.expand ?? {}) as [string, string][]
+  for (const [field, related] of expand)
+    if (!related) throw new TypeError(`An index is required to expand ${field}`)
   let base = options.baseUrl ?? SEARCH_URL
   while (base.endsWith("/")) base = base.slice(0, -1)
+  const search = (queries: unknown[]) =>
+    multiSearch(`${base}/multi-search`, token, queries, signal)
 
-  const response = await fetch(`${base}/multi-search`, {
+  const [result] = await search([
+    {
+      indexUid: index,
+      q,
+      limit: options.limit,
+      offset: options.offset,
+      filter: options.filter,
+      sort: options.sort,
+      ...(highlight.length > 0 && {
+        // Nested paths ("data.title") return no highlights today: the whole of
+        // data is marked, and the fields asked for are read from it.
+        attributesToHighlight: ["data"],
+        highlightPreTag: MARK,
+        highlightPostTag: UNMARK,
+      }),
+    },
+  ])
+  const found = await lookUp(result!.hits, expand, search)
+
+  return {
+    hits: result!.hits.map((hit) => hitOf<D, X>(hit, highlight, expand, found)),
+    total: result!.estimatedTotalHits ?? result!.hits.length,
+    query: result!.query ?? q,
+  }
+}
+
+/** One multi-search request: its results, one per query. */
+async function multiSearch(
+  url: string,
+  token: string,
+  queries: unknown[],
+  signal: AbortSignal | undefined
+): Promise<RawResult[]> {
+  const response = await fetch(url, {
     method: "POST",
     signal,
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      queries: [
-        {
-          indexUid: index,
-          q,
-          limit: options.limit,
-          offset: options.offset,
-          filter: options.filter,
-          sort: options.sort,
-          ...(highlight.length > 0 && {
-            // Nested paths ("data.title") return no highlights today: the whole of
-            // data is marked, and the fields asked for are read from it.
-            attributesToHighlight: ["data"],
-            highlightPreTag: MARK,
-            highlightPostTag: UNMARK,
-          }),
-        },
-      ],
-    }),
+    body: JSON.stringify({ queries }),
   })
   const body = await readJson(response)
   if (!response.ok) throw errorOf(response.status, body)
-  const result = (body as { results?: RawResult[] } | undefined)?.results?.[0]
-  if (!result || !Array.isArray(result.hits))
+  const results = (body as { results?: RawResult[] } | undefined)?.results
+  if (
+    !Array.isArray(results) ||
+    results.length !== queries.length ||
+    !results.every((result) => Array.isArray(result?.hits))
+  )
     throw new SearchError(response.status, "Search returned no results")
+  return results
+}
 
+/**
+ * The related records the hits name in the expanded fields, by ID: one
+ * request, a query per index (and per thousand IDs).
+ */
+async function lookUp(
+  hits: RawHit[],
+  expand: [string, string][],
+  search: (queries: unknown[]) => Promise<RawResult[]>
+): Promise<Map<string, SearchRecord>> {
+  const ids = new Map<string, Set<string>>()
+  for (const [field, related] of expand) {
+    const wanted = ids.get(related) ?? new Set<string>()
+    for (const hit of hits)
+      for (const id of [hit.data[field]].flat())
+        if (typeof id === "string" && RECORD_ID.test(id)) wanted.add(id)
+    ids.set(related, wanted)
+  }
+  const queries = [...ids].flatMap(([related, wanted]) => {
+    const list = [...wanted]
+    const chunks = []
+    for (let i = 0; i < list.length; i += MAX_HITS)
+      chunks.push({
+        indexUid: related,
+        q: "",
+        filter: `id IN [${list
+          .slice(i, i + MAX_HITS)
+          .map((id) => `"${id}"`)
+          .join(", ")}]`,
+        limit: MAX_HITS,
+      })
+    return chunks
+  })
+  const found = new Map<string, SearchRecord>()
+  if (queries.length === 0) return found
+  for (const result of await search(queries))
+    for (const hit of result.hits) found.set(hit.id, recordOf(hit))
+  return found
+}
+
+function recordOf<D>(raw: RawHit): SearchRecord<D> {
+  const { id, published_at, created_at, updated_at, data } = raw
   return {
-    hits: result.hits.map((hit) => hitOf<D>(hit, highlight)),
-    total: result.estimatedTotalHits ?? result.hits.length,
-    query: result.query ?? q,
+    id,
+    published_at,
+    created_at,
+    updated_at,
+    data: data as D,
+    image_urls: (raw.image_urls ?? {}) as ImageUrls<D>,
   }
 }
 
-function hitOf<D>(raw: RawHit, highlight: string[]): SearchHit<D> {
-  const { _formatted: formatted, ...hit } = raw
+function hitOf<D, X extends Related>(
+  raw: RawHit,
+  highlight: string[],
+  expand: [string, string][],
+  found: Map<string, SearchRecord>
+): SearchHit<D, X> {
   const highlights: Record<string, Segment[]> = {}
   for (const field of highlight) {
-    const marked = formatted?.data?.[field]
-    const value = typeof marked === "string" ? marked : hit.data[field]
+    const marked = raw._formatted?.data?.[field]
+    const value = typeof marked === "string" ? marked : raw.data[field]
     highlights[field] = typeof value === "string" ? segments(value) : []
   }
-  return { ...hit, data: hit.data as D, highlights }
+  const expanded: Record<string, SearchRecord | SearchRecord[] | null> = {}
+  for (const [field] of expand) {
+    // A field the record leaves empty stays out, as in data.
+    const value = raw.data[field]
+    if (value === undefined || value === null) continue
+    expanded[field] = Array.isArray(value)
+      ? value.flatMap((id) => found.get(id as string) ?? [])
+      : (found.get(value as string) ?? null)
+  }
+  return {
+    ...recordOf<D>(raw),
+    highlights,
+    expanded: expanded as Expanded<D, X>,
+  }
 }
 
 /** Text with the engine's marks, as segments. */

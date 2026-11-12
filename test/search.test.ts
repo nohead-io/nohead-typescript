@@ -8,6 +8,7 @@ import {
   searchPublic,
   snippet,
   type SearchHit,
+  type SearchRecord,
   type Segment,
   type TextField,
 } from "../src/search.ts"
@@ -18,6 +19,18 @@ interface Post {
   slug: string
   summary?: string
   date: number
+}
+
+interface Story {
+  title: string
+  cover?: string
+  gallery?: string[]
+  author?: string
+  editors?: string[]
+}
+
+interface Person {
+  name: string
 }
 
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJzZWFyY2hSdWxlcyI6e319.c2lnbmF0dXJl"
@@ -95,7 +108,7 @@ describe("searchPublic", () => {
       ],
     })
     expect(result).toEqual({
-      hits: [{ ...record, highlights: {} }],
+      hits: [{ ...record, image_urls: {}, highlights: {}, expanded: {} }],
       total: 42,
       query: "lentil",
     })
@@ -206,6 +219,182 @@ describe("searchPublic", () => {
     })
     expect(hits[0]?.highlights).toEqual({
       title: [{ text: "Red lentil soup", match: false }],
+    })
+  })
+
+  it("returns each hit's image URLs", async () => {
+    const image_urls = {
+      cover: "https://images.nohead.io/plain/p/a",
+      gallery: [null, "https://images.nohead.io/plain/p/b"],
+    }
+    const server = await engine(200, results([{ ...record, image_urls }]))
+    const { hits } = await searchPublic<Story>({
+      token,
+      index,
+      baseUrl: server.url,
+    })
+
+    expect(hits[0]?.image_urls).toEqual(image_urls)
+    expectTypeOf(hits[0]!.image_urls.cover).toEqualTypeOf<
+      string | null | undefined
+    >()
+    expectTypeOf(hits[0]!.image_urls.gallery).toEqualTypeOf<
+      (string | null)[] | undefined
+    >()
+  })
+
+  describe("expand", () => {
+    const people = "idx_people"
+    const teams = "idx_teams"
+    const person = (id: string, name: string) => ({
+      id,
+      published_at: 1,
+      created_at: 1,
+      updated_at: 1,
+      data: { name },
+      image_urls: {},
+    })
+    const ada = person("rec_01ADA", "Ada")
+    const bo = person("rec_01BO", "Bo")
+    const story = (data: Partial<Story>) => ({
+      ...record,
+      data: { title: "Soup", ...data },
+      image_urls: {},
+    })
+
+    /** The engine: the search's hits, then the related records it's asked for. */
+    async function engineWith(hits: unknown[], related: unknown[][]) {
+      let call = 0
+      return localServer((_request, response) =>
+        sendJson(
+          response,
+          200,
+          call++ === 0
+            ? results(hits)
+            : { results: related.map((found) => ({ hits: found })) }
+        )
+      )
+    }
+
+    it("looks the related records up in one request, a query per index, as the API's expanded", async () => {
+      const server = await engineWith(
+        [
+          story({ author: ada.id, editors: [bo.id, "rec_01GONE", ada.id] }),
+          story({ author: "rec_01GONE" }),
+          story({}),
+        ],
+        [[ada, bo]]
+      )
+      const { hits } = await searchPublic<
+        Story,
+        { author: Person; editors: Person }
+      >({
+        token,
+        index,
+        q: "soup",
+        expand: { author: people, editors: people },
+        baseUrl: server.url,
+      })
+
+      expect(server.received).toHaveLength(2)
+      expect(parsed(server.received[1]!.body)).toEqual({
+        queries: [
+          {
+            indexUid: people,
+            q: "",
+            filter: 'id IN ["rec_01ADA", "rec_01GONE", "rec_01BO"]',
+            limit: 1000,
+          },
+        ],
+      })
+      expect(server.received[1]?.headers.authorization).toBe(`Bearer ${token}`)
+      // A single relation is the record or null; a list, the records found, in order.
+      // Empty fields stay out, as in data.
+      expect(hits.map((hit) => hit.expanded)).toEqual([
+        { author: ada, editors: [bo, ada] },
+        { author: null },
+        {},
+      ])
+      expectTypeOf(hits[0]!.expanded.author).toEqualTypeOf<
+        SearchRecord<Person> | null | undefined
+      >()
+      expectTypeOf(hits[0]!.expanded.editors).toEqualTypeOf<
+        SearchRecord<Person>[] | undefined
+      >()
+    })
+
+    it("asks each index for its own records, a thousand at most per query", async () => {
+      const many = Array.from(
+        { length: 1001 },
+        (_, i) => `rec_${String(i).padStart(4, "0")}`
+      )
+      const server = await engineWith(
+        [story({ author: ada.id, editors: many })],
+        [[ada], [], []]
+      )
+      await searchPublic<Story>({
+        token,
+        index,
+        expand: { author: people, editors: teams },
+        baseUrl: server.url,
+      })
+
+      const queries = (
+        parsed(server.received[1]!.body) as {
+          queries: { indexUid: string; filter: string }[]
+        }
+      ).queries
+      expect(queries.map((query) => query.indexUid)).toEqual([
+        people,
+        teams,
+        teams,
+      ])
+      expect(queries[0]?.filter).toBe('id IN ["rec_01ADA"]')
+      expect(queries[1]?.filter.split(", ")).toHaveLength(1000)
+      expect(queries[2]?.filter).toBe('id IN ["rec_1000"]')
+    })
+
+    it("makes no second request when the hits name nothing to look up", async () => {
+      const server = await engineWith([story({ author: "not an id" })], [])
+      const { hits } = await searchPublic<Story>({
+        token,
+        index,
+        expand: { author: people },
+        baseUrl: server.url,
+      })
+      expect(server.received).toHaveLength(1)
+      expect(hits[0]?.expanded).toEqual({ author: null })
+    })
+
+    it("throws when the token can't search a related index", async () => {
+      let call = 0
+      const server = await localServer((_request, response) =>
+        call++ === 0
+          ? sendJson(response, 200, results([story({ author: ada.id })]))
+          : sendJson(response, 403, {
+              message: "Inside `.queries[0]`: The provided API key is invalid.",
+              code: "invalid_api_key",
+              type: "auth",
+            })
+      )
+      await expect(
+        searchPublic<Story>({
+          token,
+          index,
+          expand: { author: people },
+          baseUrl: server.url,
+        })
+      ).rejects.toMatchObject({
+        status: 403,
+        message:
+          "403: The search token can't search this index: check the index name, and that its collection is in public search",
+      })
+    })
+
+    it("needs an index for each field", async () => {
+      await expect(
+        searchPublic<Story>({ token, index, expand: { author: "" } })
+      ).rejects.toThrow("An index is required to expand author")
     })
   })
 

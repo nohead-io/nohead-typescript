@@ -7,6 +7,14 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- `searchPublic` hits have `image_urls`: each asset field's image URL, by
+  field key, as the search engine now holds them (a list for a list field,
+  `null` where an asset isn't an image), ready for `imageUrl`.
+- `searchPublic` takes `expand`, relation fields with their collections'
+  public search indexes (`expand: { authors: peopleIndex }`), and each hit's
+  `expanded` has the related records, shaped as the API's `expanded`. One
+  more request, with the same token, finds them all, so a site's search
+  results can show bylines and categories without a build-time lookup.
 - A timeout names the host it was sent to:
   `The request to api.nohead.io timed out after 60000 ms`. On Node, a
   response that isn't HTTP says

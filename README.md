@@ -414,39 +414,31 @@ for (const hit of hits) {
 - **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
 - **Errors** are a `SearchError`, with the `status`, the search engine's `code` (`invalid_search_filter`) and its own text as `engineMessage`. A token it refuses is `403: The search token is invalid or was deleted`, and an index the token can't reach (a typo, or a collection not in public search) says so. A search its signal cancels rejects with an `AbortError`.
 
-**Covers and names.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`), which a search token can't look up. Write what the results show into the site at build time, by record ID, and join it to the hits:
+**Images and related records.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`). Each hit also has `image_urls`, its asset fields' image URLs by field key (a list for a list field, `null` where an asset isn't an image), and `expand` looks up related records in their collections' own indexes, with the same token, in one more request:
 
 ```ts
-// At build time, with an API key: a file the site serves, such as /search.json
-import type { Asset, NoheadRecord } from "@nohead/sdk"
 import { imageUrl } from "@nohead/sdk/images"
+import { searchPublic } from "@nohead/sdk/search"
 
-// The fields this needs, as `expand` returns them: the asset, and the people's records
-interface PostExpanded {
-  cover?: Asset
-  authors?: NoheadRecord<{ name: string }>[]
-}
+const { hits } = await searchPublic<Post, { authors: Person }>({
+  token,
+  index,
+  q: "lentil",
+  expand: { authors: peopleIndex }, // relation field → its collection's index
+})
 
-const extras: Record<string, { thumb: string | null; byline: string }> = {}
-for await (const post of nohead.records.list<PostExpanded>("posts", {
-  filter: { published_at: { exists: true } },
-  expand: ["cover", "authors"],
-})) {
-  const { cover, authors = [] } = post.data
-  extras[post.id] = {
-    thumb: cover?.image_url
-      ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
-      : null,
-    byline: authors.map((author) => author.data.name).join(" and "),
-  }
+for (const hit of hits) {
+  const cover = hit.image_urls.cover
+  const thumb = cover
+    ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
+    : null
+  const byline = (hit.expanded.authors ?? [])
+    .map((author) => author.data.name)
+    .join(" and ")
 }
 ```
 
-```ts
-// In the browser: fetched once, joined to each search's hits
-const extras = await fetch("/search.json").then((response) => response.json())
-const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
-```
+`expanded` is shaped like the API's: a single relation is the record or `null`, a list is the records found, in order; a field the record leaves empty is left out. The lookup finds what the token finds, so a related record that isn't published, or whose collection isn't in public search, is missing: include the related collection in public search too. A token that can't search the index named at all is a `SearchError`.
 
 The helper is the small default: the same token works with the official [`meilisearch`](https://www.npmjs.com/package/meilisearch) client and with InstantSearch ([`@meilisearch/instant-meilisearch`](https://www.npmjs.com/package/@meilisearch/instant-meilisearch)), for facets or a ready-made search UI.
 
