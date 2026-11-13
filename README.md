@@ -414,39 +414,39 @@ for (const hit of hits) {
 - **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
 - **Errors** are a `SearchError`, with the `status`, the search engine's `code` (`invalid_search_filter`) and its own text as `engineMessage`. A token it refuses is `403: The search token is invalid or was deleted`, and an index the token can't reach (a typo, or a collection not in public search) says so. A search its signal cancels rejects with an `AbortError`.
 
-**Covers and names.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`), which a search token can't look up. Write what the results show into the site at build time, by record ID, and join it to the hits:
+**Images and related records.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`) in `data`, and under `expanded` what each field's `expanded` setting lists: an asset's URL, size and alt text, or fields of the related records (only published ones). In Nohead it's the list under **Included in public search results** in the field's search options, on the collection's **Search** tab. Name what's expanded in the second type parameter:
 
 ```ts
-// At build time, with an API key: a file the site serves, such as /search.json
-import type { Asset, NoheadRecord } from "@nohead/sdk"
 import { imageUrl } from "@nohead/sdk/images"
+import {
+  searchPublic,
+  type ExpandedAsset,
+  type ExpandedRecord,
+} from "@nohead/sdk/search"
 
-// The fields this needs, as `expand` returns them: the asset, and the people's records
-interface PostExpanded {
-  cover?: Asset
-  authors?: NoheadRecord<{ name: string }>[]
-}
+const { hits } = await searchPublic<
+  Post,
+  { cover: ExpandedAsset; authors: ExpandedRecord<Person>[] }
+>({
+  token,
+  index,
+  q: "lentil",
+  highlight: ["title", "authors.name"],
+})
 
-const extras: Record<string, { thumb: string | null; byline: string }> = {}
-for await (const post of nohead.records.list<PostExpanded>("posts", {
-  filter: { published_at: { exists: true } },
-  expand: ["cover", "authors"],
-})) {
-  const { cover, authors = [] } = post.data
-  extras[post.id] = {
-    thumb: cover?.image_url
-      ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
-      : null,
-    byline: authors.map((author) => author.data.name).join(" and "),
-  }
+for (const hit of hits) {
+  const cover = hit.expanded.cover?.image_url
+  const thumb = cover
+    ? imageUrl(cover, { width: 144, height: 108, fit: "cover" })
+    : null
+  const byline = (hit.expanded.authors ?? [])
+    .map((author) => author.data.name)
+    .join(" and ")
+  hit.expanded.authors?.[0]?.highlights?.name // the name's matches, as segments
 }
 ```
 
-```ts
-// In the browser: fetched once, joined to each search's hits
-const extras = await fetch("/search.json").then((response) => response.json())
-const results = hits.map((hit) => ({ ...hit, ...extras[hit.id] }))
-```
+A single value is the asset or record, or `null` when it's gone; a list holds those that exist. What a field doesn't include isn't in the hit, and the related collection doesn't need to be in public search. `highlight` marks the searched words in a related record's text fields too, named by relation and field key (`authors.name`), in each related record's own `highlights`. A mark shows where the words appear, not why the record matched: searches match a related field only when the relation's `searched` setting lists it.
 
 The helper is the small default: the same token works with the official [`meilisearch`](https://www.npmjs.com/package/meilisearch) client and with InstantSearch ([`@meilisearch/instant-meilisearch`](https://www.npmjs.com/package/@meilisearch/instant-meilisearch)), for facets or a ready-made search UI.
 
@@ -574,7 +574,7 @@ The unit tests' mock client (`mockClient` in `test/helpers.ts`) checks every req
 - The methods in `src/resources` are written by hand.
 - `test/contract.test.ts` calls every public method. It fails when an API-key operation in the contract has no method, when a query parameter is never sent (no method takes it, or no call passes it), or when a request doesn't match its operation (method, path, query parameters and JSON body, against their schemas). Each call gets an example of its operation's response, built from the contract's schema, and must return it.
 
-The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. The Nohead API repository runs it in its end-to-end tests and before every release.
+The smoke test (`smoke/smoke.ts`) runs the core flow against a real API, using the built package. Given a search token of the key's project (`NOHEAD_SEARCH_TOKEN`, made in the web app) and its `search_url` (`NOHEAD_SEARCH_URL`), it also runs `searchPublic` against the real search engine. The Nohead API repository runs it, with a token, in its end-to-end tests and before every release.
 
 ## Releasing
 

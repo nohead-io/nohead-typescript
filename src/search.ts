@@ -17,7 +17,10 @@
 /** Where search tokens search. */
 export const SEARCH_URL = "https://search.nohead.io"
 
-export interface SearchOptions<D = Record<string, unknown>> {
+export interface SearchOptions<
+  D = Record<string, unknown>,
+  X = Record<string, unknown>,
+> {
   /** A search token: public, so it can go in a page's source. */
   token: string
   /** The collection's public search index name (its Search tab, or its search index's `index`). */
@@ -36,8 +39,13 @@ export interface SearchOptions<D = Record<string, unknown>> {
   filter?: string | (string | string[])[]
   /** Sortable fields, first first: `["data.date:desc"]`, `["published_at:desc"]`. */
   sort?: string[]
-  /** Text fields to mark the matched words in, by field key: each hit's `highlights` has them. */
-  highlight?: TextField<D>[]
+  /**
+   * Text fields to mark the matched words in, by field key: each hit's
+   * `highlights` has them. A related record's, by relation and field key
+   * (`authors.name`): each related record under `expanded` has its own
+   * `highlights`.
+   */
+  highlight?: (TextField<D> | RelatedTextField<X>)[]
   /** Cancels the search: the promise rejects with the signal's reason (an `AbortError`). */
   signal?: AbortSignal
   /** For this SDK's tests against a local search engine: searches go to `SEARCH_URL`. */
@@ -52,14 +60,66 @@ export type TextField<D> = string extends keyof D
     }[keyof D] &
       string
 
+/**
+ * `relation.field` for the text fields of the related records `X` (the
+ * second type parameter) returns: the ones `highlight` can mark of them.
+ */
+export type RelatedTextField<X> = string extends keyof X
+  ? `${string}.${string}`
+  : {
+      [K in keyof X]-?: ElementOf<NonNullable<X[K]>> extends ExpandedRecord<
+        infer R
+      >
+        ? `${K & string}.${TextField<R>}`
+        : never
+    }[keyof X]
+
+type ElementOf<T> = T extends readonly (infer E)[] ? E : T
+
 /** A piece of a highlighted field: matched words (`match: true`) or the text around them. */
 export interface Segment {
   text: string
   match: boolean
 }
 
+/**
+ * An asset that an asset field returns in hits: its ID, and the parts the
+ * field's `expanded` setting lists (by default an image's URL, width and
+ * height, and a file's URL and filename, as the field's accepted types
+ * suggest). `image_url`, `width` and `height` are null for a file that
+ * isn't an image.
+ */
+export interface ExpandedAsset {
+  id: string
+  image_url?: string | null
+  width?: number | null
+  height?: number | null
+  alt?: string | null
+  file_url?: string | null
+  filename?: string
+  content_type?: string
+}
+
+/**
+ * A published related record that a relation field returns in hits: its
+ * ID, and the related collection's fields its `expanded` setting lists, by
+ * key, indexed like `data` (an asset field as an ExpandedAsset).
+ */
+export interface ExpandedRecord<R = Record<string, unknown>> {
+  id: string
+  data: Partial<R>
+  /**
+   * Its fields that `highlight` names (`authors.name`), as segments, as a
+   * hit's `highlights` holds them. Only when `highlight` names some.
+   */
+  highlights?: Partial<Record<TextField<R>, Segment[]>>
+}
+
 /** A published record that matched. */
-export interface SearchHit<D = Record<string, unknown>> {
+export interface SearchHit<
+  D = Record<string, unknown>,
+  X = Record<string, unknown>,
+> {
   /** The record's ID (`rec_…`). */
   id: string
   /** Unix seconds. */
@@ -70,9 +130,19 @@ export interface SearchHit<D = Record<string, unknown>> {
   updated_at: number
   /**
    * Field values by key: dates as Unix seconds, rich text as plain text,
-   * JSON as a string, assets and relations as IDs. Empty fields are left out.
+   * JSON as a string, assets and relations as IDs. Empty fields, and fields
+   * the collection's search settings don't include, are left out.
    */
   data: D
+  /**
+   * What the record's asset and relation fields return of the assets and
+   * related records they point at, by field key, as each field's `expanded`
+   * setting lists: an ExpandedAsset or ExpandedRecord, a list of those that
+   * exist for a list field, null where a single one is gone. Type it with
+   * the second type parameter:
+   * `searchPublic<Post, { cover: ExpandedAsset; authors: ExpandedRecord<Person>[] }>`.
+   */
+  expanded: Partial<X>
   /**
    * Each field named in `highlight`, as segments to render, a `<mark>` for
    * each match: `[]` for a field the record leaves empty, and the whole text
@@ -81,8 +151,11 @@ export interface SearchHit<D = Record<string, unknown>> {
   highlights: Partial<Record<TextField<D>, Segment[]>>
 }
 
-export interface SearchResult<D = Record<string, unknown>> {
-  hits: SearchHit<D>[]
+export interface SearchResult<
+  D = Record<string, unknown>,
+  X = Record<string, unknown>,
+> {
+  hits: SearchHit<D, X>[]
   /** How many records match: an estimate past the first thousand or so. */
   total: number
   /** The words searched for. */
@@ -134,7 +207,11 @@ interface RawHit {
   created_at: number
   updated_at: number
   data: Record<string, unknown>
-  _formatted?: { data?: Record<string, unknown> }
+  expanded?: Record<string, unknown>
+  _formatted?: {
+    data?: Record<string, unknown>
+    expanded?: Record<string, unknown>
+  }
 }
 
 interface RawResult {
@@ -144,13 +221,27 @@ interface RawResult {
 }
 
 /** Searches one collection's published records with a search token. */
-export async function searchPublic<D = Record<string, unknown>>(
-  options: SearchOptions<D>
-): Promise<SearchResult<D>> {
+export async function searchPublic<
+  D = Record<string, unknown>,
+  X = Record<string, unknown>,
+>(options: SearchOptions<D, X>): Promise<SearchResult<D, X>> {
   const { token, index, q = "", signal } = options
   if (!token) throw new TypeError("A search token is required")
   if (!index) throw new TypeError("An index is required")
-  const highlight = options.highlight ?? []
+  // A hit's own fields, and related records' by relation: `authors.name`.
+  const highlight: string[] = []
+  const related = new Map<string, string[]>()
+  for (const path of options.highlight ?? []) {
+    const dot = path.indexOf(".")
+    if (dot < 0) highlight.push(path)
+    else {
+      const relation = path.slice(0, dot)
+      related.set(relation, [
+        ...(related.get(relation) ?? []),
+        path.slice(dot + 1),
+      ])
+    }
+  }
   let base = options.baseUrl ?? SEARCH_URL
   while (base.endsWith("/")) base = base.slice(0, -1)
 
@@ -170,11 +261,16 @@ export async function searchPublic<D = Record<string, unknown>>(
           offset: options.offset,
           filter: options.filter,
           sort: options.sort,
-          ...(highlight.length > 0 && {
-            // Each field by its path: hits return the fields their collection
-            // includes, each by its path, and the engine marks those it's asked
-            // for by path (asking for `data` as a whole marks nothing).
-            attributesToHighlight: highlight.map((field) => `data.${field}`),
+          ...((highlight.length > 0 || related.size > 0) && {
+            // As hits return them: a field by its path (asking for `data` as
+            // a whole marks nothing), and a related record's fields as its
+            // whole `data` (a path inside it marks nothing).
+            attributesToHighlight: [
+              ...highlight.map((field) => `data.${field}`),
+              ...[...related.keys()].map(
+                (relation) => `expanded.${relation}.data`
+              ),
+            ],
             highlightPreTag: MARK,
             highlightPostTag: UNMARK,
           }),
@@ -189,21 +285,75 @@ export async function searchPublic<D = Record<string, unknown>>(
     throw new SearchError(response.status, "Search returned no results")
 
   return {
-    hits: result.hits.map((hit) => hitOf<D>(hit, highlight)),
+    hits: result.hits.map((hit) => hitOf<D, X>(hit, highlight, related)),
     total: result.estimatedTotalHits ?? result.hits.length,
     query: result.query ?? q,
   }
 }
 
-function hitOf<D>(raw: RawHit, highlight: string[]): SearchHit<D> {
+function hitOf<D, X>(
+  raw: RawHit,
+  highlight: string[],
+  related: Map<string, string[]>
+): SearchHit<D, X> {
   const { _formatted: formatted, ...hit } = raw
-  const highlights: Record<string, Segment[]> = {}
-  for (const field of highlight) {
-    const marked = formatted?.data?.[field]
-    const value = typeof marked === "string" ? marked : hit.data[field]
-    highlights[field] = typeof value === "string" ? segments(value) : []
+  // An index built before expansions has none.
+  const expanded = { ...hit.expanded }
+  for (const [relation, fields] of related) {
+    const value = expanded[relation]
+    const marked = formatted?.expanded?.[relation]
+    expanded[relation] = Array.isArray(value)
+      ? value.map((record, i) =>
+          withHighlights(
+            record,
+            Array.isArray(marked) ? marked[i] : undefined,
+            fields
+          )
+        )
+      : withHighlights(value, marked, fields)
   }
-  return { ...hit, data: hit.data as D, highlights }
+  return {
+    ...hit,
+    data: hit.data as D,
+    expanded: expanded as Partial<X>,
+    highlights: highlightsOf(hit.data, formatted?.data, highlight),
+  }
+}
+
+/** Each field as segments: marked where the engine marked it, else whole. */
+function highlightsOf(
+  data: Record<string, unknown>,
+  marked: Record<string, unknown> | undefined,
+  fields: string[]
+): Record<string, Segment[]> {
+  const highlights: Record<string, Segment[]> = {}
+  for (const field of fields) {
+    const text =
+      typeof marked?.[field] === "string" ? marked[field] : data[field]
+    highlights[field] = typeof text === "string" ? segments(text) : []
+  }
+  return highlights
+}
+
+/** A related record with its `highlights`; anything else (null, an asset) as it is. */
+function withHighlights(
+  value: unknown,
+  marked: unknown,
+  fields: string[]
+): unknown {
+  const data = recordData(value)
+  if (!data) return value
+  return {
+    ...(value as object),
+    highlights: highlightsOf(data, recordData(marked), fields),
+  }
+}
+
+function recordData(value: unknown): Record<string, unknown> | undefined {
+  const data = (value as { data?: unknown } | null | undefined)?.data
+  return typeof data === "object" && data !== null
+    ? (data as Record<string, unknown>)
+    : undefined
 }
 
 /** Text with the engine's marks, as segments. */
