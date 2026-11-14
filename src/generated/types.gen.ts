@@ -209,6 +209,10 @@ export type TextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min_length?: number;
     max_length?: number;
     /**
@@ -241,6 +245,10 @@ export type LongTextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min_length?: number;
     max_length?: number;
 };
@@ -265,6 +273,10 @@ export type RichTextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 export type IntegerFieldConfiguration = {
@@ -284,6 +296,10 @@ export type IntegerFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min?: number;
     max?: number;
     /**
@@ -309,6 +325,10 @@ export type DecimalFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min?: number;
     max?: number;
 };
@@ -319,9 +339,9 @@ export type DateFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * A date field has no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -330,6 +350,10 @@ export type DateFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     /**
      * Holds a moment (ISO 8601 with an offset) instead of a calendar date; changing it is a field migration.
      */
@@ -346,9 +370,9 @@ export type BooleanFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * A boolean field has no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -357,6 +381,10 @@ export type BooleanFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 export type EnumFieldConfiguration = {
@@ -376,6 +404,10 @@ export type EnumFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     options: Array<string>;
 };
 
@@ -385,9 +417,9 @@ export type AssetFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * An asset field is indexed as an asset ID, with no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -396,6 +428,14 @@ export type AssetFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
+    /**
+     * What public search hits return of the field's assets under `expanded`, while it's included: any of an image's `image_url`, `dimensions` (as `width` and `height`) and `alt`, and any file's `file_url`, `filename` and `content_type`, as the API's assets have them. By default an image's URL and dimensions where the field takes images, and a file's URL and filename where it takes other files (`accepted_types`; both when it takes any file). API reads expand what `?expand=` asks for.
+     */
+    expanded?: Array<'image_url' | 'dimensions' | 'alt' | 'file_url' | 'filename' | 'content_type'>;
     /**
      * MIME types or `type*` wildcards newly written values must have (`["image*", "application/pdf"]`); any file when absent.
      */
@@ -408,7 +448,7 @@ export type RelationFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * Search words match the related fields `searched` lists, in every search (API keys, search tokens, members). Default false.
      */
     searchable?: boolean;
     /**
@@ -419,6 +459,18 @@ export type RelationFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
+    /**
+     * The related collection's fields, by ID (`fld_...`), that public search hits return of each published related record under `expanded`, while the field is included, by their current keys (a list holds the first 100 related records that exist). None by default: the IDs only, whether or not the related collection is in public search. A filterable relation field also filters on them. API reads expand what `?expand=` asks for.
+     */
+    expanded?: Array<string>;
+    /**
+     * The related collection's fields, by ID (`fld_...`), whose words searches match in each published related record while the field is `searchable`, in every search, whether or not hits return them; only text, long text, rich text and enum fields are matched. None by default. A filterable relation field also filters on them: under `expanded.<key>.data.<field>` when hits return them, `expanded.<key>.searched.<field>` when they don't.
+     */
+    searched?: Array<string>;
     /**
      * The collection (same project) whose records it points at.
      */
@@ -445,6 +497,10 @@ export type JsonFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 /**
@@ -624,6 +680,15 @@ export type FieldConfigurationChange = {
     searchable?: boolean | null;
     filterable?: boolean | null;
     sortable?: boolean | null;
+    included?: boolean | null;
+    /**
+     * For an asset field, parts of its assets (`image_url`, `dimensions`, `alt`, `file_url`, `filename`, `content_type`); for a relation field, field IDs of the related collection.
+     */
+    expanded?: Array<string> | null;
+    /**
+     * For a relation field, field IDs of the related collection whose words searches match.
+     */
+    searched?: Array<string> | null;
     min_length?: number | null;
     max_length?: number | null;
     format?: 'slug' | 'url' | 'email' | null;
@@ -664,7 +729,9 @@ export type Collection = {
      * default: every field of those records becomes readable by anyone
      * with a token, so turn it on only for collections whose published
      * records are public. A change reaches search tokens within
-     * seconds.
+     * seconds. Off, its fields can still come along with hits of
+     * another collection that is on, through a relation field's
+     * `expanded` and `searched`.
      *
      */
     public_search: boolean;
