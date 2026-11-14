@@ -7,6 +7,9 @@ import {
   SearchError,
   searchPublic,
   snippet,
+  type ExpandedAsset,
+  type ExpandedRecord,
+  type RelatedTextField,
   type SearchHit,
   type Segment,
   type TextField,
@@ -95,7 +98,7 @@ describe("searchPublic", () => {
       ],
     })
     expect(result).toEqual({
-      hits: [{ ...record, highlights: {} }],
+      hits: [{ ...record, expanded: {}, highlights: {} }],
       total: 42,
       query: "lentil",
     })
@@ -158,7 +161,7 @@ describe("searchPublic", () => {
     expect(parsed(server.received[0]!.body)).toMatchObject({
       queries: [
         {
-          attributesToHighlight: ["data"],
+          attributesToHighlight: ["data.title", "data.summary"],
           highlightPreTag: "\u0001",
           highlightPostTag: "\u0002",
         },
@@ -207,6 +210,132 @@ describe("searchPublic", () => {
     expect(hits[0]?.highlights).toEqual({
       title: [{ text: "Red lentil soup", match: false }],
     })
+  })
+
+  it("returns what the hit's asset and relation fields include", async () => {
+    const expanded = {
+      cover: {
+        id: "ast_A",
+        image_url: "https://images.nohead.io/plain/p/a",
+        width: 2000,
+        height: 1333,
+      },
+      authors: [{ id: "rec_P", data: { name: "Leela Menon" } }],
+    }
+    const server = await engine(200, results([{ ...record, expanded }]))
+    const { hits } = await searchPublic<
+      Post,
+      { cover: ExpandedAsset; authors: ExpandedRecord<{ name: string }>[] }
+    >({ token, index, baseUrl: server.url })
+
+    expect(hits[0]?.expanded).toEqual(expanded)
+    expectTypeOf(hits[0]!.expanded.cover).toEqualTypeOf<
+      ExpandedAsset | undefined
+    >()
+    expectTypeOf(hits[0]!.expanded.authors![0]!.data.name).toEqualTypeOf<
+      string | undefined
+    >()
+  })
+
+  it("marks related records' highlighted fields on each record", async () => {
+    type Person = { name: string; bio?: string; age: number }
+    type Expanded = {
+      cover: ExpandedAsset
+      authors: ExpandedRecord<Person>[]
+      editor: ExpandedRecord<Person> | null
+    }
+    const cover = {
+      id: "ast_A",
+      image_url: "https://images.nohead.io/plain/p/a",
+    }
+    const leela = { id: "rec_P", data: { name: "Leela Menon" } }
+    const jens = { id: "rec_Q", data: { name: "Jens Mikkelsen" } }
+    const server = await engine(
+      200,
+      results([
+        {
+          ...record,
+          expanded: { cover, authors: [leela, jens], editor: jens },
+          _formatted: {
+            data: record.data,
+            expanded: {
+              cover,
+              authors: [
+                { ...leela, data: { name: "\u0001Leela\u0002 Menon" } },
+                jens,
+              ],
+              editor: jens,
+            },
+          },
+        },
+        // Gone, or from an index built before expansions.
+        { ...record, expanded: { authors: [], editor: null } },
+        record,
+        // Nothing formatted: the whole text.
+        { ...record, expanded: { authors: [jens] } },
+      ])
+    )
+    const { hits } = await searchPublic<Post, Expanded>({
+      token,
+      index,
+      q: "leela",
+      highlight: ["title", "authors.name", "authors.bio", "editor.name"],
+      baseUrl: server.url,
+    })
+
+    expect(parsed(server.received[0]!.body)).toMatchObject({
+      queries: [
+        {
+          // A related record's data is returned whole, so it's marked whole.
+          attributesToHighlight: [
+            "data.title",
+            "expanded.authors.data",
+            "expanded.editor.data",
+          ],
+        },
+      ],
+    })
+    expect(hits[0]?.expanded).toEqual({
+      cover,
+      authors: [
+        {
+          ...leela,
+          highlights: {
+            name: [
+              { text: "Leela", match: true },
+              { text: " Menon", match: false },
+            ],
+            bio: [],
+          },
+        },
+        {
+          ...jens,
+          highlights: {
+            name: [{ text: "Jens Mikkelsen", match: false }],
+            bio: [],
+          },
+        },
+      ],
+      editor: {
+        ...jens,
+        highlights: {
+          name: [{ text: "Jens Mikkelsen", match: false }],
+        },
+      },
+    })
+    expect(hits[0]?.highlights).toEqual({
+      title: [{ text: "Red lentil soup", match: false }],
+    })
+    expect(hits[1]?.expanded).toEqual({ authors: [], editor: null })
+    expect(hits[2]?.expanded).toEqual({})
+    expect(hits[3]?.expanded.authors?.[0]?.highlights).toEqual({
+      name: [{ text: "Jens Mikkelsen", match: false }],
+      bio: [],
+    })
+    // Only related records' text fields can be highlighted.
+    expectTypeOf<RelatedTextField<Expanded>>().toEqualTypeOf<
+      "authors.name" | "authors.bio" | "editor.name" | "editor.bio"
+    >()
   })
 
   it("throws the search engine's errors", async () => {

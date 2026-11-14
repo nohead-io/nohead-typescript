@@ -1,8 +1,10 @@
 // Smoke test (Nohead spec §48.14): the core flow against a live API, using
 // the built package. Needs NOHEAD_API_URL (the API to test, which the client
 // reads as its `baseUrl`) and NOHEAD_API_KEY (a key with schema, records, assets and
-// webhooks read/write scopes). Exits non-zero on failure, after deleting what
-// it created.
+// webhooks read/write scopes). With NOHEAD_SEARCH_TOKEN (a search token of the
+// key's project, made in the web app) and NOHEAD_SEARCH_URL (its search_url),
+// it also searches with searchPublic. Exits non-zero on failure, after
+// deleting what it created.
 //
 //   npm run build && NOHEAD_API_URL=http://localhost:3000 NOHEAD_API_KEY=nohead_sk_… npm run smoke
 import { randomUUID } from "node:crypto"
@@ -17,6 +19,7 @@ import {
   type Uploadable,
   type UploadParams,
 } from "../dist/index.js"
+import { searchPublic, type ExpandedRecord } from "../dist/search.js"
 
 function expect(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FAIL: ${message}`)
@@ -312,13 +315,107 @@ try {
   )
   left.webhooks.delete(webhook.id)
 
+  // Public search, as a site's search box reads it: against the real search
+  // engine, with a relation's names in hits and marked where they matched.
+  const searchToken = process.env.NOHEAD_SEARCH_TOKEN
+  if (searchToken) {
+    const searchUrl = process.env.NOHEAD_SEARCH_URL
+    expect(searchUrl, "NOHEAD_SEARCH_URL is set to the search engine to test")
+    const suffix = randomUUID().slice(0, 8)
+    const people = await nohead.collections.create({
+      name: "TypeScript smoke people",
+      slug: `sdk-typescript-people-${suffix}`,
+      fields: [{ name: "Name", key: "name", type: "text", required: true }],
+    })
+    left.collections.add(people.id)
+    const name = people.fields[0]!.id
+    // Hits return the authors' names, and searches match them.
+    const authors = {
+      target_collection_id: people.id,
+      searchable: true,
+      expanded: [name],
+      searched: [name],
+    }
+    const posts = await nohead.collections.create({
+      name: "TypeScript smoke posts",
+      slug: `sdk-typescript-posts-${suffix}`,
+      public_search: true,
+      fields: [
+        { name: "Title", key: "title", type: "text", required: true },
+        {
+          name: "Authors",
+          key: "authors",
+          type: "relation",
+          multiple: true,
+          configuration: authors,
+        },
+      ],
+    })
+    left.collections.add(posts.id)
+    const ada = await nohead.records.create(people.slug, {
+      data: { name: "Ada Lovelace" },
+      publish: true,
+    })
+    await nohead.records.create(posts.slug, {
+      data: { title: "Notes on the engine", authors: [ada.id] },
+      publish: true,
+    })
+    const { index } = await nohead.collections.searchIndex.get(posts.id)
+    const search = () =>
+      searchPublic<
+        { title: string },
+        { authors: ExpandedRecord<{ name: string }>[] }
+      >({
+        token: searchToken,
+        index,
+        q: "lovelace engine",
+        highlight: ["title", "authors.name"],
+        baseUrl: searchUrl,
+      })
+    // Indexed in the background: until then, no index or no hit.
+    let found: Awaited<ReturnType<typeof search>> | undefined
+    let failure: unknown
+    for (const deadline = Date.now() + 30_000; Date.now() < deadline;) {
+      found = await search().catch((error: unknown) => {
+        failure = error
+        return undefined
+      })
+      if (found?.hits.length) break
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+    const hit = found?.hits[0]
+    expect(
+      found?.hits.length === 1 && hit,
+      `a search token finds the published post (last error: ${String(failure)})`
+    )
+    const author = hit.expanded.authors?.[0]
+    expect(
+      author?.data.name === "Ada Lovelace",
+      "hits return the related fields the relation lists"
+    )
+    expect(
+      hit.highlights.title?.some((s) => s.match && s.text === "engine"),
+      "a hit's field is marked where it matched"
+    )
+    expect(
+      author.highlights?.name?.some((s) => s.match && s.text === "Lovelace"),
+      "a related record's field is marked where it matched"
+    )
+    // Posts first: their relation points at People.
+    for (const collection of [posts, people]) {
+      await nohead.collections.delete(collection.id)
+      left.collections.delete(collection.id)
+    }
+  }
+
   const deleted = await nohead.records.delete(first.id)
   expect(deleted.deleted_at, "delete soft-deletes")
   await nohead.collections.delete(collection.id)
   left.collections.delete(collection.id)
 } finally {
   for (const [resource, ids] of Object.entries(left)) {
-    for (const id of ids) {
+    // The last created first, so a relation goes before what it points at.
+    for (const id of [...ids].reverse()) {
       await nohead[resource as keyof typeof left].delete(id).catch(() => {})
     }
   }
