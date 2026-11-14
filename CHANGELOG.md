@@ -5,6 +5,14 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- Field configuration types follow the API's search options: `included`
+  on every field, `expanded` on asset and relation fields, and `searched`
+  on relation fields, for what public search hits return and match.
+  **Types:** `searchable` on boolean, date and asset fields is `false` only,
+  since the API refuses `true` there (they hold no words to match).
+
 ## 0.21.0
 
 - **Update for `searchPublic` highlights:** it asks the search engine to
