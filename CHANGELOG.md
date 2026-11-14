@@ -5,8 +5,13 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.21.0
 
+- **Update for `searchPublic` highlights:** it asks the search engine to
+  highlight each field in `highlight` by its path (`data.title`), as the
+  public search guide shows, instead of the whole of `data`. Once hits return
+  only the fields their collection includes, asking for `data` as a whole
+  marks nothing, so earlier versions' highlights come back unmarked.
 - `searchPublic` hits have `expanded`: what the collection's asset and relation
   fields expand in public search, by field key, as each field's `expanded`
   setting lists (an image's URL, dimensions or alt text, a file's URL, name
@@ -16,10 +21,6 @@ section is its GitHub release's notes.
 - `searchPublic`'s `highlight` takes related records' text fields by
   relation and field key (`authors.name`, typed by `RelatedTextField`):
   each related record under `expanded` then has its own `highlights`.
-- `searchPublic` asks the search engine to highlight each field in
-  `highlight` by its path (`data.title`), as the public search guide shows,
-  instead of the whole of `data`: once hits return only the fields their
-  collection includes, asking for `data` as a whole marks nothing.
 - A timeout names the host it was sent to:
   `The request to api.nohead.io timed out after 60000 ms`. On Node, a
   response that isn't HTTP says
