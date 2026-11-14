@@ -171,9 +171,10 @@ export async function searchPublic<D = Record<string, unknown>>(
           filter: options.filter,
           sort: options.sort,
           ...(highlight.length > 0 && {
-            // Nested paths ("data.title") return no highlights today: the whole of
-            // data is marked, and the fields asked for are read from it.
-            attributesToHighlight: ["data"],
+            // Each field by its path: hits return the fields their collection
+            // includes, each by its path, and the engine marks those it's asked
+            // for by path (asking for `data` as a whole marks nothing).
+            attributesToHighlight: highlight.map((field) => `data.${field}`),
             highlightPreTag: MARK,
             highlightPostTag: UNMARK,
           }),
