@@ -209,6 +209,10 @@ export type TextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min_length?: number;
     max_length?: number;
     /**
@@ -241,6 +245,10 @@ export type LongTextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min_length?: number;
     max_length?: number;
 };
@@ -265,6 +273,10 @@ export type RichTextFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 export type IntegerFieldConfiguration = {
@@ -284,6 +296,10 @@ export type IntegerFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min?: number;
     max?: number;
     /**
@@ -309,6 +325,10 @@ export type DecimalFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     min?: number;
     max?: number;
 };
@@ -319,9 +339,9 @@ export type DateFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * A date field has no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -330,6 +350,10 @@ export type DateFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     /**
      * Holds a moment (ISO 8601 with an offset) instead of a calendar date; changing it is a field migration.
      */
@@ -346,9 +370,9 @@ export type BooleanFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * A boolean field has no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -357,6 +381,10 @@ export type BooleanFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 export type EnumFieldConfiguration = {
@@ -376,6 +404,10 @@ export type EnumFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
     options: Array<string>;
 };
 
@@ -385,9 +417,9 @@ export type AssetFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * An asset field is indexed as an asset ID, with no words for searches to match, so it can't be searchable.
      */
-    searchable?: boolean;
+    searchable?: false;
     /**
      * API searches can filter on it. Default false.
      */
@@ -396,6 +428,14 @@ export type AssetFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
+    /**
+     * What public search hits return of the field's assets under `expanded`, while it's included: any of an image's `image_url`, `dimensions` (as `width` and `height`) and `alt`, and any file's `file_url`, `filename` and `content_type`, as the API's assets have them. By default an image's URL and dimensions where the field takes images, and a file's URL and filename where it takes other files (`accepted_types`; both when it takes any file). API reads expand what `?expand=` asks for.
+     */
+    expanded?: Array<'image_url' | 'dimensions' | 'alt' | 'file_url' | 'filename' | 'content_type'>;
     /**
      * MIME types or `type*` wildcards newly written values must have (`["image*", "application/pdf"]`); any file when absent.
      */
@@ -408,7 +448,7 @@ export type RelationFieldConfiguration = {
      */
     description?: string;
     /**
-     * Search words match the field, in every search (API keys, search tokens, members). Default true for text, long_text, rich_text and enum.
+     * Search words match the related fields `searched` lists, in every search (API keys, search tokens, members). Default false.
      */
     searchable?: boolean;
     /**
@@ -419,6 +459,18 @@ export type RelationFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
+    /**
+     * The related collection's fields, by ID (`fld_...`), that public search hits return of each published related record under `expanded`, while the field is included, by their current keys (a list holds the first 100 related records that exist). None by default: the IDs only, whether or not the related collection is in public search. A filterable relation field also filters on them. API reads expand what `?expand=` asks for.
+     */
+    expanded?: Array<string>;
+    /**
+     * The related collection's fields, by ID (`fld_...`), whose words searches match in each published related record while the field is `searchable`, in every search, whether or not hits return them; only text, long text, rich text and enum fields are matched. None by default. A filterable relation field also filters on them: under `expanded.<key>.data.<field>` when hits return them, `expanded.<key>.searched.<field>` when they don't.
+     */
+    searched?: Array<string>;
     /**
      * The collection (same project) whose records it points at.
      */
@@ -445,6 +497,10 @@ export type JsonFieldConfiguration = {
      * API searches can sort on it (one value only). Default false.
      */
     sortable?: boolean;
+    /**
+     * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
+     */
+    included?: boolean;
 };
 
 /**
@@ -624,6 +680,15 @@ export type FieldConfigurationChange = {
     searchable?: boolean | null;
     filterable?: boolean | null;
     sortable?: boolean | null;
+    included?: boolean | null;
+    /**
+     * For an asset field, parts of its assets (`image_url`, `dimensions`, `alt`, `file_url`, `filename`, `content_type`); for a relation field, field IDs of the related collection.
+     */
+    expanded?: Array<string> | null;
+    /**
+     * For a relation field, field IDs of the related collection whose words searches match.
+     */
+    searched?: Array<string> | null;
     min_length?: number | null;
     max_length?: number | null;
     format?: 'slug' | 'url' | 'email' | null;
@@ -664,7 +729,9 @@ export type Collection = {
      * default: every field of those records becomes readable by anyone
      * with a token, so turn it on only for collections whose published
      * records are public. A change reaches search tokens within
-     * seconds.
+     * seconds. Off, its fields can still come along with hits of
+     * another collection that is on, through a relation field's
+     * `expanded` and `searched`.
      *
      */
     public_search: boolean;
@@ -1940,30 +2007,70 @@ export type Error = {
     };
 };
 
+/**
+ * The project's ID (`prj_…`).
+ */
 export type ProjectId = string;
 
 /**
- * Collection ID, or the collection slug when authenticating with an API key.
+ * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
  */
 export type CollectionRef = string;
 
+/**
+ * The field's ID (`fld_…`).
+ */
 export type FieldId = string;
 
+/**
+ * The field migration's ID (`mig_…`).
+ */
 export type MigrationId = string;
 
+/**
+ * The asset's ID (`ast_…`).
+ */
 export type AssetId = string;
 
+/**
+ * The webhook secret's ID (`whs_…`).
+ */
 export type WebhookSecretId = string;
 
+/**
+ * The webhook's ID (`wh_…`).
+ */
 export type WebhookId = string;
 
+/**
+ * The delivery's ID (`whd_…`).
+ */
 export type DeliveryId = string;
 
+/**
+ * The record's ID (`rec_…`).
+ */
 export type RecordId = string;
 
+/**
+ * The draft's ID (`drf_…`).
+ */
 export type DraftId = string;
 
+/**
+ * The revision's ID (`rev_…`).
+ */
 export type RevisionId = string;
+
+/**
+ * `true` returns a preview of the change and changes nothing.
+ */
+export type DryRun = boolean;
+
+/**
+ * The words to search for; empty matches everything.
+ */
+export type SearchQuery = string;
 
 /**
  * Per-record revision number.
@@ -2132,7 +2239,7 @@ export type RecordsListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -2270,7 +2377,7 @@ export type RecordsCreateData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -2382,6 +2489,9 @@ export type RecordsDeleteData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -2447,6 +2557,9 @@ export type RecordsDeleteResponse = RecordsDeleteResponses[keyof RecordsDeleteRe
 export type RecordsGetData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -2537,6 +2650,9 @@ export type RecordsUpdateData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -2607,7 +2723,7 @@ export type RecordsCountData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -2717,7 +2833,7 @@ export type RecordsBulkData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -2813,6 +2929,9 @@ export type RecordsRestoreData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -2915,6 +3034,9 @@ export type RecordsUnpublishData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -2980,6 +3102,9 @@ export type RecordsUnpublishResponse = RecordsUnpublishResponses[keyof RecordsUn
 export type RecordsGetPublicationData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: never;
@@ -3061,6 +3186,9 @@ export type RecordsPublishData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -3143,6 +3271,9 @@ export type RecordsUnscheduleData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: never;
@@ -3197,6 +3328,9 @@ export type RecordsUnscheduleResponse = RecordsUnscheduleResponses[keyof Records
 export type RecordsGetScheduleData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: never;
@@ -3264,6 +3398,9 @@ export type RecordsScheduleData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: never;
@@ -3323,7 +3460,7 @@ export type ScheduledChangesListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -3385,6 +3522,9 @@ export type ScheduledChangesListResponse = ScheduledChangesListResponses[keyof S
 export type RecordRevisionsListData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -3455,6 +3595,9 @@ export type RecordRevisionsListResponse = RecordRevisionsListResponses[keyof Rec
 export type RecordRevisionsGetData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
         /**
          * Per-record revision number.
@@ -3509,6 +3652,9 @@ export type RecordRevisionsGetResponse = RecordRevisionsGetResponses[keyof Recor
 export type RevisionsGetData = {
     body?: never;
     path: {
+        /**
+         * The revision's ID (`rev_…`).
+         */
         revision_id: string;
     };
     query?: never;
@@ -3590,6 +3736,9 @@ export type RecordRevisionsRevertData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
         /**
          * Per-record revision number.
@@ -3601,6 +3750,9 @@ export type RecordRevisionsRevertData = {
          * How rich text fields read in the records and drafts returned (and in records they embed with `expand`): `document`, the stored ProseMirror JSON document; `html`, an HTML fragment of known elements with every text and attribute escaped, to put in a page as it is; or `markdown` (GitHub Flavored), which reads back as the same document when written. Images render with their URLs, so they need no `expand`: in HTML a WebP rendition at most 1600 pixels wide with its `width` and `height` (an SVG as itself), in Markdown the asset's `image_url`. An image whose asset was deleted is left out of HTML, and written as its asset ID in Markdown. Record history keeps documents.
          */
         rich_text?: 'document' | 'html' | 'markdown';
+        /**
+         * `true` returns a preview of the change and changes nothing.
+         */
         dry_run?: boolean;
     };
     url: '/v1/records/{record_id}/revisions/{revision}/revert';
@@ -3664,6 +3816,9 @@ export type RecordRevisionsRevertResponse = RecordRevisionsRevertResponses[keyof
 export type RecordsDiffData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query: {
@@ -3721,6 +3876,9 @@ export type RecordsDiffResponse = RecordsDiffResponses[keyof RecordsDiffResponse
 export type RecordDraftsListData = {
     body?: never;
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -3801,6 +3959,9 @@ export type DraftsCreateData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The record's ID (`rec_…`).
+         */
         record_id: string;
     };
     query?: {
@@ -3865,7 +4026,7 @@ export type DraftsListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -3952,6 +4113,9 @@ export type DraftsDiscardData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4017,6 +4181,9 @@ export type DraftsDiscardResponse = DraftsDiscardResponses[keyof DraftsDiscardRe
 export type DraftsGetData = {
     body?: never;
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4097,6 +4264,9 @@ export type DraftsUpdateData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4197,6 +4367,9 @@ export type DraftsMergeData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4283,6 +4456,9 @@ export type DraftsUnscheduleData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4359,6 +4535,9 @@ export type DraftsScheduleData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The draft's ID (`drf_…`).
+         */
         draft_id: string;
     };
     query?: {
@@ -4422,6 +4601,9 @@ export type DraftsScheduleResponse = DraftsScheduleResponses[keyof DraftsSchedul
 export type CollectionsListData = {
     body?: never;
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: {
@@ -4514,6 +4696,9 @@ export type CollectionsCreateData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: never;
@@ -4606,7 +4791,7 @@ export type CollectionsDeleteData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -4663,7 +4848,7 @@ export type CollectionsGetData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -4743,7 +4928,7 @@ export type CollectionsUpdateData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -4831,7 +5016,7 @@ export type CollectionsRestoreData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -4898,7 +5083,7 @@ export type CollectionsGetSchemaData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -4956,7 +5141,7 @@ export type SchemaChangesListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5068,7 +5253,7 @@ export type FieldsListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5163,7 +5348,7 @@ export type FieldsCreateData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5250,6 +5435,9 @@ export type FieldsDeleteData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The field's ID (`fld_…`).
+         */
         field_id: string;
     };
     query?: never;
@@ -5304,6 +5492,9 @@ export type FieldsDeleteResponse = FieldsDeleteResponses[keyof FieldsDeleteRespo
 export type FieldsGetData = {
     body?: never;
     path: {
+        /**
+         * The field's ID (`fld_…`).
+         */
         field_id: string;
     };
     query?: never;
@@ -5381,6 +5572,9 @@ export type FieldsUpdateData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The field's ID (`fld_…`).
+         */
         field_id: string;
     };
     query?: never;
@@ -5440,7 +5634,7 @@ export type FieldsGetOrderData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5522,7 +5716,7 @@ export type FieldsReorderData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5599,6 +5793,9 @@ export type FieldsRemoveAliasData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The field's ID (`fld_…`).
+         */
         field_id: string;
         /**
          * The old key.
@@ -5684,6 +5881,9 @@ export type FieldsRestoreData = {
         'Nohead-Change-Note'?: string;
     };
     path: {
+        /**
+         * The field's ID (`fld_…`).
+         */
         field_id: string;
     };
     query?: never;
@@ -5743,7 +5943,7 @@ export type MigrationsListData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -5832,11 +6032,14 @@ export type MigrationsCreateData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
     query?: {
+        /**
+         * `true` returns a preview of the change and changes nothing.
+         */
         dry_run?: boolean;
     };
     url: '/v1/collections/{collection_id}/migrations';
@@ -5898,6 +6101,9 @@ export type MigrationsCreateResponse = MigrationsCreateResponses[keyof Migration
 export type MigrationsGetData = {
     body?: never;
     path: {
+        /**
+         * The field migration's ID (`mig_…`).
+         */
         migration_id: string;
     };
     query?: never;
@@ -5965,6 +6171,9 @@ export type MigrationsCancelData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The field migration's ID (`mig_…`).
+         */
         migration_id: string;
     };
     query?: never;
@@ -6019,6 +6228,9 @@ export type MigrationsCancelResponse = MigrationsCancelResponses[keyof Migration
 export type AssetsListData = {
     body?: never;
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: {
@@ -6131,6 +6343,9 @@ export type AssetsUploadData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: never;
@@ -6212,6 +6427,9 @@ export type AssetsCompleteData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6287,6 +6505,9 @@ export type AssetsDeleteData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6341,6 +6562,9 @@ export type AssetsDeleteResponse = AssetsDeleteResponses[keyof AssetsDeleteRespo
 export type AssetsGetData = {
     body?: never;
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6408,6 +6632,9 @@ export type AssetsUpdateData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6466,6 +6693,9 @@ export type AssetsUpdateResponse = AssetsUpdateResponses[keyof AssetsUpdateRespo
 export type AssetsUsageData = {
     body?: never;
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6533,6 +6763,9 @@ export type AssetsRestoreData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6604,6 +6837,9 @@ export type AssetsPurgeData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The asset's ID (`ast_…`).
+         */
         asset_id: string;
     };
     query?: never;
@@ -6659,7 +6895,7 @@ export type CollectionsSearchData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -6770,6 +7006,9 @@ export type CollectionsSearchResponse = CollectionsSearchResponses[keyof Collect
 export type ProjectsSearchData = {
     body?: never;
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: {
@@ -6855,7 +7094,7 @@ export type SearchIndexGetData = {
     body?: never;
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -6925,7 +7164,7 @@ export type SearchIndexRebuildData = {
     };
     path: {
         /**
-         * Collection ID, or the collection slug when authenticating with an API key.
+         * The collection's ID (`col_…`), or its slug, such as `posts`, when authenticating with an API key.
          */
         collection_id: string;
     };
@@ -6981,6 +7220,9 @@ export type SearchIndexRebuildResponse = SearchIndexRebuildResponses[keyof Searc
 export type WebhooksListData = {
     body?: never;
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: {
@@ -7063,6 +7305,9 @@ export type WebhooksCreateData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: never;
@@ -7144,6 +7389,9 @@ export type WebhooksDeleteData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7198,6 +7446,9 @@ export type WebhooksDeleteResponse = WebhooksDeleteResponses[keyof WebhooksDelet
 export type WebhooksGetData = {
     body?: never;
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7265,6 +7516,9 @@ export type WebhooksUpdateData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7340,6 +7594,9 @@ export type WebhooksTestData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7394,6 +7651,9 @@ export type WebhooksTestResponse = WebhooksTestResponses[keyof WebhooksTestRespo
 export type WebhookSecretsListData = {
     body?: never;
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: {
@@ -7470,6 +7730,9 @@ export type WebhooksRotateSecretData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7541,6 +7804,9 @@ export type WebhookSecretsRetireData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook secret's ID (`whs_…`).
+         */
         secret_id: string;
     };
     query?: never;
@@ -7612,6 +7878,9 @@ export type WebhooksRestoreData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: never;
@@ -7672,6 +7941,9 @@ export type WebhooksRestoreResponse = WebhooksRestoreResponses[keyof WebhooksRes
 export type WebhookDeliveriesListData = {
     body?: never;
     path: {
+        /**
+         * The webhook's ID (`wh_…`).
+         */
         webhook_id: string;
     };
     query?: {
@@ -7734,6 +8006,9 @@ export type WebhookDeliveriesListResponse = WebhookDeliveriesListResponses[keyof
 export type WebhookDeliveriesGetData = {
     body?: never;
     path: {
+        /**
+         * The delivery's ID (`whd_…`).
+         */
         delivery_id: string;
     };
     query?: never;
@@ -7801,6 +8076,9 @@ export type WebhookDeliveriesRetryData = {
         'Nohead-Client'?: string;
     };
     path: {
+        /**
+         * The delivery's ID (`whd_…`).
+         */
         delivery_id: string;
     };
     query?: never;
@@ -7855,6 +8133,9 @@ export type WebhookDeliveriesRetryResponse = WebhookDeliveriesRetryResponses[key
 export type AuditEventsListData = {
     body?: never;
     path: {
+        /**
+         * The project's ID (`prj_…`).
+         */
         project_id: string;
     };
     query?: {
