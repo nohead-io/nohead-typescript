@@ -244,11 +244,14 @@ A form that writes a record shows a `ValidationError`'s `fieldErrors` beside its
 ```ts
 import { ValidationError } from "@nohead/sdk"
 
-try {
-  await nohead.records.create("applications", { data: { name, email } })
-} catch (error) {
-  if (!(error instanceof ValidationError)) throw error
-  return { errors: error.fieldErrors } // { email: "is required" }
+async function apply(name: string, email: string) {
+  try {
+    await nohead.records.create("applications", { data: { name, email } })
+    return { sent: true }
+  } catch (error) {
+    if (!(error instanceof ValidationError)) throw error
+    return { sent: false, errors: error.fieldErrors } // { email: "is required" }
+  }
 }
 ```
 
