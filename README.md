@@ -228,7 +228,7 @@ Every error is a `NoheadError`. API errors are `APIError`s with `status`, `type`
 | `NotFoundError`           | 404                     |
 | `ConflictError`           | 409                     |
 | `PreconditionFailedError` | 412 (`currentRevision`) |
-| `ValidationError`         | 422                     |
+| `ValidationError`         | 422 (`fieldErrors`)     |
 | `RateLimitError`          | 429 (`retryAfter`)      |
 | `InternalServerError`     | 500 and other 5xx       |
 | `ServiceUnavailableError` | 503                     |
@@ -239,17 +239,16 @@ The client follows no redirects: a `3xx` is an `APIError` (`type` `redirect`) th
 
 Other errors: `ConnectionError`, `TimeoutError` (a `ConnectionError`), `AbortError` (your `signal` fired), `UploadError` and `WebhookVerificationError`.
 
+A form that writes a record shows a `ValidationError`'s `fieldErrors` beside its fields: the first message for each field, by its key. `details` has every problem with its `code` (`required`, `taken`), for words of your own.
+
 ```ts
 import { ValidationError } from "@nohead/sdk"
 
 try {
-  await nohead.records.create("posts", { data: {} })
+  await nohead.records.create("applications", { data: { name, email } })
 } catch (error) {
-  if (error instanceof ValidationError) {
-    console.log(error.details) // [{ field: "title", code: "required", message: "…" }]
-  } else {
-    throw error
-  }
+  if (!(error instanceof ValidationError)) throw error
+  return { errors: error.fieldErrors } // { email: "is required" }
 }
 ```
 

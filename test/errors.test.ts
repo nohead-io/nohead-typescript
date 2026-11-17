@@ -90,6 +90,43 @@ describe("errors", () => {
     ])
   })
 
+  it.each([
+    { details: [], fieldErrors: {} },
+    {
+      details: [
+        { field: "title", code: "required", message: "is required" },
+        { field: "slug", code: "taken", message: "is already used" },
+      ],
+      fieldErrors: { title: "is required", slug: "is already used" },
+    },
+    {
+      details: [
+        { field: "title", code: "too_long", message: "is too long" },
+        { field: "title", code: "invalid", message: "is invalid" },
+      ],
+      fieldErrors: { title: "is too long" },
+    },
+    {
+      details: [
+        { code: "draft_exists", message: "has a draft" },
+        { field: "", code: "required", message: "is required" },
+      ],
+      fieldErrors: {},
+    },
+    {
+      details: [{ field: "__proto__", code: "invalid", message: "is invalid" }],
+      fieldErrors: JSON.parse('{ "__proto__": "is invalid" }') as object,
+    },
+  ])(
+    "maps each field to its first message: $fieldErrors",
+    async ({ details, fieldErrors }) => {
+      const error = (await failure(
+        apiError(422, "validation_error", { details })
+      )) as ValidationError
+      expect(error.fieldErrors).toStrictEqual(fieldErrors)
+    }
+  )
+
   it("reports the current revision of a 412", async () => {
     const error = (await failure(
       apiError(412, "precondition_failed", {

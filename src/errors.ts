@@ -81,6 +81,18 @@ export class PreconditionFailedError extends APIError {
 
 export class ValidationError extends APIError {
   override name = "ValidationError"
+  /**
+   * The first message for each field, by its key: `{ title: "is required" }`,
+   * to show beside a form's fields. Details without a field are left out;
+   * `details` keeps their codes.
+   */
+  get fieldErrors(): Record<string, string> {
+    // A Map, then fromEntries: `__proto__` stays a field like any other.
+    const errors = new Map<string, string>()
+    for (const { field, message } of this.details)
+      if (field && !errors.has(field)) errors.set(field, message)
+    return Object.fromEntries(errors)
+  }
 }
 
 export class RateLimitError extends APIError {

@@ -7,6 +7,9 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- `ValidationError.fieldErrors`: the first message for each field, by its
+  key (`{ email: "is required" }`), to show beside a form's fields.
+  Details without a field are left out; `details` keeps every code.
 - Field configuration types follow the API's search options: `included`
   on every field, `expanded` on asset and relation fields, and `searched`
   on relation fields, for what public search hits return and match.
