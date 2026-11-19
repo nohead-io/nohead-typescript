@@ -254,7 +254,7 @@ export type LongTextFieldConfiguration = {
 };
 
 /**
- * A rich text document up to 1,000,000 bytes (`too_large`), written as Markdown or a document (see `RecordData`).
+ * A rich text document up to 1,000,000 bytes (`too_large`), written as Markdown or a document (see `RecordData`). `min_length` and `max_length` count its text as a reader reads it: its characters, and a line break between blocks and for each hard break; not markup, Markdown syntax or images.
  */
 export type RichTextFieldConfiguration = {
     /**
@@ -277,6 +277,14 @@ export type RichTextFieldConfiguration = {
      * Public search hits (search tokens) include the field. Default true. A field not included can still be searched, filtered and sorted on.
      */
     included?: boolean;
+    /**
+     * The fewest characters of text a value may have (`too_short`); an empty document has no value, which `required` asks for.
+     */
+    min_length?: number;
+    /**
+     * The most characters of text a value may have (`too_long`).
+     */
+    max_length?: number;
 };
 
 export type IntegerFieldConfiguration = {
