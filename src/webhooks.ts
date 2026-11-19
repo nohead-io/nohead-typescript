@@ -1,9 +1,12 @@
 // Verifying webhook requests (Standard Webhooks), without a client:
 //
-//   import { unwrapWebhook } from "@nohead/sdk/webhooks"
+//   import { unwrapWebhook, WebhookVerificationError } from "@nohead/sdk/webhooks"
 import { WebhookVerificationError } from "./errors.ts"
 import type * as G from "./generated/types.gen.ts"
 import type { NoheadDraft, NoheadRecord, RecordData } from "./types.ts"
+
+// The error it throws, from the same entry, for a receiver to catch.
+export { WebhookVerificationError }
 
 interface EventBase<Type extends string, Data> {
   id: string

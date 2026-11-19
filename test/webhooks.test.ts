@@ -12,7 +12,10 @@ import {
   vi,
 } from "vitest"
 
-import { unwrapWebhook } from "../src/webhooks.ts"
+import {
+  unwrapWebhook,
+  WebhookVerificationError as EntryError,
+} from "../src/webhooks.ts"
 import { WebhookVerificationError, type NoheadDraft } from "../src/index.ts"
 import { mockClient } from "./helpers.ts"
 
@@ -130,6 +133,10 @@ describe("webhook verification", () => {
     await expect(
       unwrapWebhook(body, old, { secret, tolerance: 599 })
     ).rejects.toBeInstanceOf(WebhookVerificationError)
+  })
+
+  it("exports the error it throws, the same class as the main entry's", () => {
+    expect(EntryError).toBe(WebhookVerificationError)
   })
 
   it("rejects a secret that isn't base64", async () => {
