@@ -1472,6 +1472,10 @@ export type WebhookProperties = {
     published_only: boolean;
     enabled: boolean;
     /**
+     * Why it was disabled, when Nohead did it: `failing`, after its attempts failed for 3 days. Its project's owners and admins are emailed after it has failed for a day (an hour, if it has never worked), and again when it's disabled. Null when it's enabled, or was disabled by someone; enabling it again clears it.
+     */
+    disabled_reason: 'failing' | null;
+    /**
      * When a delivery to it was last attempted; null before the first attempt.
      */
     last_attempt_at: NullableTimestamp;
