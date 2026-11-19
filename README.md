@@ -512,7 +512,7 @@ With `"max"`, Next.js serves the old version to the next request while it fetche
 
 Event types are those of the activity log (`record.published`, `record.restored`, `field.updated`, `asset.purged`, …), and a webhook subscribes to types or wildcards (`record.*`, `*`). Narrowing by `type` types `event.data`, and `unwrap<Post>` types the records and drafts in it. `unwrap` checks the signature and the timestamp (Standard Webhooks), and throws `WebhookVerificationError` if either is off, or if the secret is empty or unset (`The webhook secret is empty`). After `rotateSecret`, requests carry a signature for the old secret and the new one for 24 hours, so switch the receiver's secret within that day (or end it sooner with `webhooks.secrets.retire`). Pass the raw body: parsing and re-serializing JSON changes the bytes.
 
-A receiver that never calls the API can use `unwrapWebhook` from `@nohead/sdk/webhooks` without a client. Events can arrive more than once, so deduplicate by the `webhook-id` header.
+A receiver that never calls the API can use `unwrapWebhook` from `@nohead/sdk/webhooks` without a client, and catch `WebhookVerificationError` from there too. Events can arrive more than once, so deduplicate by the `webhook-id` header.
 
 ## Raw responses
 
