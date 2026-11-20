@@ -72,7 +72,7 @@ export class Page<
   }
 
   hasNextPage(): boolean {
-    return this.meta.has_more && this.meta.next_cursor !== null
+    return this.meta.has_more && this.meta.next_cursor != null
   }
 
   /** The next page; throws when there is none (check `hasNextPage()`). */

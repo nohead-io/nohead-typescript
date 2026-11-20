@@ -57,13 +57,21 @@ describe("pagination", () => {
     )
   })
 
-  it("stops on has_more without a cursor", async () => {
-    const { nohead, calls } = mockClient([
-      page([record("rec_1")], null, true),
-      page([record("rec_2")], null),
-    ])
+  it.each([
+    ["a null cursor", () => page([record("rec_1")], null, true)],
+    [
+      "no cursor",
+      () =>
+        raw(json(200, { data: [record("rec_1")], meta: { has_more: true } })),
+    ],
+  ])("stops on has_more with %s", async (_, reply) => {
+    // Every request gets this page: paging on would fetch it again and again.
+    const { nohead, calls } = mockClient([reply()])
     const ids: string[] = []
-    for await (const r of nohead.records.list("posts")) ids.push(r.id)
+    for await (const r of nohead.records.list("posts")) {
+      ids.push(r.id)
+      if (ids.length > 2) break // fail rather than page forever
+    }
     expect(ids).toEqual(["rec_1"])
     expect(calls).toHaveLength(1)
   })
