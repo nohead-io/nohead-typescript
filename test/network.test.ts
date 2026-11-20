@@ -1,5 +1,7 @@
 // The client through the platform's fetch, against a real HTTP server on
 // 127.0.0.1: what goes over the wire, which a fake fetch can't show.
+import { runInNewContext } from "node:vm"
+
 import { describe, expect, it } from "vitest"
 
 import {
@@ -105,6 +107,14 @@ describe("over HTTP", () => {
       () => new TextEncoder().encode(">hello world").subarray(1),
     ],
     ["an ArrayBuffer", () => helloWorld().buffer],
+    [
+      "an ArrayBuffer from another realm",
+      () => {
+        const buffer = runInNewContext("new ArrayBuffer(11)") as ArrayBuffer
+        new Uint8Array(buffer).set(helloWorld())
+        return buffer
+      },
+    ],
     ["a ReadableStream", () => streamOf("hel", "lo wor", "ld")],
   ])("sends only byte_size bytes of %s", async (_, file) => {
     const { url, received } = await uploadServer()

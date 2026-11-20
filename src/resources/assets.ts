@@ -109,7 +109,6 @@ export class Assets extends Resource {
       }
     }
 
-    const stream = file instanceof ReadableStream
     // The URL is signed for byte_size bytes: send those, and no more.
     let short: UploadError | undefined
     const body =
@@ -119,6 +118,7 @@ export class Assets extends Resource {
             return short
           })
         : firstBytesOf(file, byteSize)
+    const stream = body instanceof ReadableStream
     const response = await this.core
       .fetchWithRetries(
         upload.url,
@@ -285,9 +285,13 @@ function firstBytesOf(
   file: Exclude<Uploadable, ReadableStream>,
   byteSize: number
 ): BodyInit {
-  if (file instanceof Blob) return file.slice(0, byteSize)
-  if (file instanceof ArrayBuffer) return new Uint8Array(file, 0, byteSize)
-  return new Uint8Array(file.buffer as ArrayBuffer, file.byteOffset, byteSize)
+  // Typed as the Blob is, which fetch sends when storage's headers don't.
+  if (file instanceof Blob) return file.slice(0, byteSize, file.type)
+  if (ArrayBuffer.isView(file)) {
+    return new Uint8Array(file.buffer as ArrayBuffer, file.byteOffset, byteSize)
+  }
+  // An ArrayBuffer, from this realm or another (`instanceof` fails then).
+  return new Uint8Array(file, 0, byteSize)
 }
 
 /**

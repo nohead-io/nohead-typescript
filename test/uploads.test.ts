@@ -75,6 +75,8 @@ describe("assets.upload", () => {
     expect(new Uint8Array(await (put.body as Blob).arrayBuffer())).toEqual(
       new Uint8Array([1, 2, 3])
     )
+    // fetch types the request by it when storage's headers don't.
+    expect((put.body as Blob).type).toBe("image/png")
     expect(put.headers.get("content-type")).toBe("image/png")
     expect(put.headers.has("authorization")).toBe(false)
     expect(put.init).not.toHaveProperty("duplex")
