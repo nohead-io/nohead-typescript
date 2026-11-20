@@ -11,7 +11,9 @@ section is its GitHub release's notes.
   `next_cursor` at all, as it does when `next_cursor` is `null`, rather than
   fetching the first page again.
 - `unwrapWebhook` accepts a `webhook-timestamp` of digits only, as the other
-  SDKs do; it also read signs, spaces, decimals and hexadecimal.
+  SDKs do; it also read signs, spaces, decimals and hexadecimal. It says one
+  that isn't digits is not a number, rather than too far from the current
+  time.
 
 ## 0.23.0
 

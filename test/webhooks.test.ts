@@ -159,12 +159,15 @@ describe("webhook verification", () => {
   ])(
     "rejects a signed timestamp that isn't only digits (%j)",
     async (timestamp) => {
-      expect(signAs(String(now))).toEqual(sign(body))
       await expect(
         unwrapWebhook(body, signAs(timestamp), { secret })
-      ).rejects.toThrow(/timestamp/)
+      ).rejects.toThrow("The webhook timestamp is not a number")
     }
   )
+
+  it("signs by hand as the official library does", () => {
+    expect(signAs(String(now))).toEqual(sign(body))
+  })
 
   it("exports the error it throws, the same class as the main entry's", () => {
     expect(EntryError).toBe(WebhookVerificationError)

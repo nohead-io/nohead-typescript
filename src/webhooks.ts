@@ -110,10 +110,10 @@ export async function unwrapWebhook<D = RecordData>(
     )
   }
   // Digits only: Number() would also read signs, spaces, decimals and hex.
-  if (
-    !/^\d+$/.test(timestamp) ||
-    Math.abs(Date.now() / 1000 - Number(timestamp)) > tolerance
-  ) {
+  if (!/^\d+$/.test(timestamp)) {
+    throw new WebhookVerificationError("The webhook timestamp is not a number")
+  }
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > tolerance) {
     throw new WebhookVerificationError(
       "The webhook timestamp is too far from the current time"
     )
