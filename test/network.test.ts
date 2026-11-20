@@ -7,6 +7,7 @@ import {
   ConnectionError,
   Nohead,
   TimeoutError,
+  UploadError,
   type Uploadable,
 } from "../src/index.ts"
 import { exampleOf, record } from "./helpers.ts"
@@ -32,43 +33,49 @@ const asset = (status: string) =>
 
 const hello = () => new TextEncoder().encode("hello")
 
+/** A stream of `parts`, each a chunk. */
+const streamOf = (...parts: string[]) =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const part of parts) {
+        controller.enqueue(new TextEncoder().encode(part))
+      }
+      controller.close()
+    },
+  })
+
+/** The API and storage: an upload that storage takes and completes. */
+const uploadServer = async () => {
+  const server = await localServer((request, response) => {
+    if (request.path === "/v1/projects/prj_1/assets") {
+      sendJson(response, 201, {
+        ...asset("pending"),
+        upload: {
+          method: "PUT",
+          url: `${server.url}/storage/ast_1?signature=x`,
+          headers: { "Content-Type": "text/plain" },
+          expires_at: new Date(Date.now() + 900_000).toISOString(),
+        },
+      })
+    } else if (request.path.startsWith("/storage/")) {
+      response.end()
+    } else {
+      sendJson(response, 200, asset("ready"))
+    }
+  })
+  return server
+}
+
 describe("over HTTP", () => {
   it.each<[string, () => Uploadable, number?]>([
     ["a Blob", () => new Blob(["hello"])],
     ["a Uint8Array", hello],
     ["an ArrayBuffer", () => hello().buffer],
-    [
-      "a ReadableStream",
-      () =>
-        new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode("hel"))
-            controller.enqueue(new TextEncoder().encode("lo"))
-            controller.close()
-          },
-        }),
-      5,
-    ],
+    ["a ReadableStream", () => streamOf("hel", "lo"), 5],
   ])(
     "uploads %s with a Content-Length, not in chunks",
     async (_, file, byteSize) => {
-      const { url, received } = await localServer((request, response) => {
-        if (request.path === "/v1/projects/prj_1/assets") {
-          sendJson(response, 201, {
-            ...asset("pending"),
-            upload: {
-              method: "PUT",
-              url: `${url}/storage/ast_1?signature=x`,
-              headers: { "Content-Type": "text/plain" },
-              expires_at: new Date(Date.now() + 900_000).toISOString(),
-            },
-          })
-        } else if (request.path.startsWith("/storage/")) {
-          response.end()
-        } else {
-          sendJson(response, 200, asset("ready"))
-        }
-      })
+      const { url, received } = await uploadServer()
       const ready = await client(url).assets.upload(file(), {
         filename: "a.txt",
         byte_size: byteSize,
@@ -86,6 +93,53 @@ describe("over HTTP", () => {
       expect(put.headers["content-type"]).toBe("text/plain")
       expect(put.headers).not.toHaveProperty("authorization")
       expect(put.body.toString()).toBe("hello")
+    }
+  )
+
+  const helloWorld = () => new TextEncoder().encode("hello world")
+  it.each<[string, () => Uploadable]>([
+    ["a Blob", () => new Blob(["hello world"])],
+    // Bytes that start inside their buffer.
+    [
+      "a Uint8Array",
+      () => new TextEncoder().encode(">hello world").subarray(1),
+    ],
+    ["an ArrayBuffer", () => helloWorld().buffer],
+    ["a ReadableStream", () => streamOf("hel", "lo wor", "ld")],
+  ])("sends only byte_size bytes of %s", async (_, file) => {
+    const { url, received } = await uploadServer()
+    const ready = await client(url).assets.upload(file(), {
+      filename: "a.txt",
+      byte_size: 5,
+    })
+    expect(ready.status).toBe("ready")
+    const put = received[1]!
+    expect(put.headers["content-length"]).toBe("5")
+    expect(put.body.toString()).toBe("hello")
+  })
+
+  it.each<[string, () => Uploadable, string[]]>([
+    // A known size is refused before the upload starts.
+    ["a Blob", () => new Blob(["hel"]), []],
+    ["a Uint8Array", () => new TextEncoder().encode("hel"), []],
+    ["an ArrayBuffer", () => new TextEncoder().encode("hel").buffer, []],
+    [
+      "a ReadableStream",
+      () => streamOf("he", "l"),
+      ["POST /v1/projects/prj_1/assets"],
+    ],
+  ])(
+    "throws UploadError for %s with fewer bytes than byte_size",
+    async (_, file, requests) => {
+      const { url, received } = await uploadServer()
+      const error = await client(url)
+        .assets.upload(file(), { filename: "a.txt", byte_size: 5 })
+        .catch((e: unknown) => e)
+      expect(error).toBeInstanceOf(UploadError)
+      expect((error as UploadError).message).toBe(
+        "Could not upload a.txt: it has 3 bytes, fewer than its byte_size (5)"
+      )
+      expect(received.map((r) => `${r.method} ${r.path}`)).toEqual(requests)
     }
   )
 

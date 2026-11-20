@@ -14,6 +14,10 @@ section is its GitHub release's notes.
   SDKs do; it also read signs, spaces, decimals and hexadecimal. It says one
   that isn't digits is not a number, rather than too far from the current
   time.
+- `assets.upload` sends at most `byte_size` bytes of a file, and throws
+  `UploadError` when the file has fewer, rather than fetch's error; it sent
+  every byte the file had. A `Blob` or bytes with fewer fail before the
+  upload starts.
 
 ## 0.23.0
 
