@@ -10,6 +10,8 @@ section is its GitHub release's notes.
 - Iterating a list stops when a page's `meta` has `has_more` but no
   `next_cursor` at all, as it does when `next_cursor` is `null`, rather than
   fetching the first page again.
+- `unwrapWebhook` accepts a `webhook-timestamp` of digits only, as the other
+  SDKs do; it also read signs, spaces, decimals and hexadecimal.
 
 ## 0.23.0
 

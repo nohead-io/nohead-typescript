@@ -109,10 +109,10 @@ export async function unwrapWebhook<D = RecordData>(
       "Missing webhook-id, webhook-timestamp or webhook-signature header"
     )
   }
-  const sentAt = Number(timestamp)
+  // Digits only: Number() would also read signs, spaces, decimals and hex.
   if (
-    !Number.isInteger(sentAt) ||
-    Math.abs(Date.now() / 1000 - sentAt) > tolerance
+    !/^\d+$/.test(timestamp) ||
+    Math.abs(Date.now() / 1000 - Number(timestamp)) > tolerance
   ) {
     throw new WebhookVerificationError(
       "The webhook timestamp is too far from the current time"
