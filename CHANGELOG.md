@@ -5,6 +5,12 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- Iterating a list stops when a page's `meta` has `has_more` but no
+  `next_cursor` at all, as it does when `next_cursor` is `null`, rather than
+  fetching the first page again.
+
 ## 0.23.0
 
 - `@nohead/sdk/webhooks` exports `WebhookVerificationError` too, so a
