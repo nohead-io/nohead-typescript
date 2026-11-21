@@ -10,6 +10,14 @@ section is its GitHub release's notes.
 - Iterating a list stops when a page's `meta` has `has_more` but no
   `next_cursor` at all, as it does when `next_cursor` is `null`, rather than
   fetching the first page again.
+- `unwrapWebhook` accepts a `webhook-timestamp` of digits only, as the other
+  SDKs do; it also read signs, spaces, decimals and hexadecimal. It says one
+  that isn't digits is not a number, rather than too far from the current
+  time.
+- `assets.upload` sends at most `byte_size` bytes of a file, and throws
+  `UploadError` when the file has fewer, rather than fetch's error; it sent
+  every byte the file had. A `Blob` or bytes with fewer fail before the
+  upload starts.
 
 ## 0.23.0
 

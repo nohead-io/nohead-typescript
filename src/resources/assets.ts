@@ -22,7 +22,11 @@ export interface UploadParams {
    * its filename's extension.
    */
   content_type?: string
-  /** Required for a `ReadableStream`; known for everything else. */
+  /**
+   * Required for a `ReadableStream`; known for everything else. Only the
+   * first `byte_size` bytes are sent, and a file with fewer throws
+   * `UploadError`.
+   */
   byte_size?: number
   /** Alt text, set from the start (as `update` would set it later). */
   alt?: string | null
@@ -59,7 +63,8 @@ export class Assets extends Resource {
         "upload takes a Blob, File, ArrayBuffer, Uint8Array or ReadableStream; to upload a file from disk, pass await fs.openAsBlob(path)"
       )
     }
-    const byteSize = params.byte_size ?? sizeOf(file)
+    const size = sizeOf(file)
+    const byteSize = params.byte_size ?? size
     if (byteSize === undefined) {
       throw new UploadError("Uploading a stream needs `byte_size`")
     }
@@ -68,6 +73,12 @@ export class Assets extends Resource {
       params.filename ||
       (typeof File !== "undefined" && file instanceof File && file.name) ||
       "upload"
+    const tooShort = (sent: number) =>
+      new UploadError(
+        `Could not upload ${filename}: it has ${sent} bytes, fewer than its byte_size (${byteSize})`
+      )
+    // A file known to be shorter fails before the upload starts.
+    if (size !== undefined && size < byteSize) throw tooShort(size)
     // The type given, or the Blob's own; without one (a Blob from Node's
     // openAsBlob has none, nor do bytes), the API types the file by its
     // filename, the same for every client.
@@ -98,7 +109,16 @@ export class Assets extends Resource {
       }
     }
 
-    const stream = file instanceof ReadableStream
+    // The URL is signed for byte_size bytes: send those, and no more.
+    let short: UploadError | undefined
+    const body =
+      file instanceof ReadableStream
+        ? firstBytes(file as ReadableStream<Uint8Array>, byteSize, (sent) => {
+            short = tooShort(sent)
+            return short
+          })
+        : firstBytesOf(file, byteSize)
+    const stream = body instanceof ReadableStream
     const response = await this.core
       .fetchWithRetries(
         upload.url,
@@ -109,13 +129,16 @@ export class Assets extends Resource {
           headers: stream
             ? { ...upload.headers, "Content-Length": String(byteSize) }
             : upload.headers,
-          body: file as BodyInit,
+          body,
           ...(stream ? { duplex: "half" } : {}),
         },
         { ...options, retry: !stream, byteSize }
       )
       .catch((error: unknown) => {
         if (error instanceof AbortError) throw error
+        // A stream that ended too soon failed the request: say so, rather
+        // than fetch's error for the bytes it was missing.
+        if (short) throw short
         throw new UploadError(
           `Could not upload ${filename}: ${(error as Error).message}`,
           undefined,
@@ -256,4 +279,49 @@ function sizeOf(file: Uploadable): number | undefined {
     return file.byteLength
   }
   return undefined
+}
+
+function firstBytesOf(
+  file: Exclude<Uploadable, ReadableStream>,
+  byteSize: number
+): BodyInit {
+  // Typed as the Blob is, which fetch sends when storage's headers don't.
+  if (file instanceof Blob) return file.slice(0, byteSize, file.type)
+  if (ArrayBuffer.isView(file)) {
+    return new Uint8Array(file.buffer as ArrayBuffer, file.byteOffset, byteSize)
+  }
+  // An ArrayBuffer, from this realm or another (`instanceof` fails then).
+  return new Uint8Array(file, 0, byteSize)
+}
+
+/**
+ * The first `byteSize` bytes of `source`, which is then cancelled; when it
+ * ends sooner, the stream errors with `tooShort`'s error.
+ */
+function firstBytes(
+  source: ReadableStream<Uint8Array>,
+  byteSize: number,
+  tooShort: (sent: number) => UploadError
+): ReadableStream<Uint8Array> {
+  const reader = source.getReader()
+  let sent = 0
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (sent < byteSize) {
+        const { done, value } = await reader.read()
+        if (done) {
+          controller.error(tooShort(sent))
+          return
+        }
+        const chunk = value.subarray(0, byteSize - sent)
+        sent += chunk.byteLength
+        controller.enqueue(chunk)
+      }
+      if (sent === byteSize) {
+        controller.close()
+        reader.cancel().catch(() => undefined)
+      }
+    },
+    cancel: (reason) => reader.cancel(reason),
+  })
 }

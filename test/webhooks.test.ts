@@ -2,6 +2,7 @@ import {
   Webhook,
   WebhookVerificationError as StandardVerificationError,
 } from "standardwebhooks"
+import { createHmac } from "node:crypto"
 import {
   afterEach,
   beforeEach,
@@ -58,6 +59,20 @@ function sign(
       new Date(timestamp * 1000),
       payload
     ),
+  }
+}
+
+/** The headers of `body` signed by hand with any webhook-timestamp, which
+ * the official library can't sign. */
+function signAs(timestamp: string): Record<string, string> {
+  const key = Buffer.from(secret.replace("whsec_", ""), "base64")
+  const digest = createHmac("sha256", key)
+    .update(`msg_1.${timestamp}.${body}`)
+    .digest("base64")
+  return {
+    "webhook-id": "msg_1",
+    "webhook-timestamp": timestamp,
+    "webhook-signature": `v1,${digest}`,
   }
 }
 
@@ -133,6 +148,25 @@ describe("webhook verification", () => {
     await expect(
       unwrapWebhook(body, old, { secret, tolerance: 599 })
     ).rejects.toBeInstanceOf(WebhookVerificationError)
+  })
+
+  it.each([
+    `+${now}`,
+    ` ${now}`,
+    `${now}.0`,
+    `${now / 100}e2`,
+    `0x${now.toString(16)}`,
+  ])(
+    "rejects a signed timestamp that isn't only digits (%j)",
+    async (timestamp) => {
+      await expect(
+        unwrapWebhook(body, signAs(timestamp), { secret })
+      ).rejects.toThrow("The webhook timestamp is not a number")
+    }
+  )
+
+  it("signs by hand as the official library does", () => {
+    expect(signAs(String(now))).toEqual(sign(body))
   })
 
   it("exports the error it throws, the same class as the main entry's", () => {
