@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.25.0
 
 - **Breaking, types:** a field's search options are its configuration's
   `search` group, as the API now has them:
