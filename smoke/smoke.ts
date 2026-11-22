@@ -332,9 +332,7 @@ try {
     // Hits return the authors' names, and searches match them.
     const authors = {
       target_collection_id: people.id,
-      searchable: true,
-      expanded: [name],
-      searched: [name],
+      search: { searchable: [name], returned: [name] },
     }
     const posts = await nohead.collections.create({
       name: "TypeScript smoke posts",

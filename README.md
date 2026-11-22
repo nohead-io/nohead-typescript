@@ -448,7 +448,7 @@ for (const hit of hits) {
 }
 ```
 
-A single value is the asset or record, or `null` when it's gone; a list holds those that exist. What a field doesn't include isn't in the hit, and the related collection doesn't need to be in public search. `highlight` marks the searched words in a related record's text fields too, named by relation and field key (`authors.name`), in each related record's own `highlights`. A mark shows where the words appear, not why the record matched: searches match a related field only when the relation's `searched` setting lists it.
+A single value is the asset or record, or `null` when it's gone; a list holds those that exist. What a field doesn't return isn't in the hit, and the related collection doesn't need to be in public search. `highlight` marks the searched words in a related record's text fields too, named by relation and field key (`authors.name`), in each related record's own `highlights`. A mark shows where the words appear, not why the record matched: searches match a related field only when the relation's `search.searchable` setting lists it.
 
 The helper is the small default: the same token works with the official [`meilisearch`](https://www.npmjs.com/package/meilisearch) client and with InstantSearch ([`@meilisearch/instant-meilisearch`](https://www.npmjs.com/package/@meilisearch/instant-meilisearch)), for facets or a ready-made search UI.
 

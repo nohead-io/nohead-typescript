@@ -84,8 +84,8 @@ export interface Segment {
 
 /**
  * An asset that an asset field returns in hits: its ID, and the parts the
- * field's `expanded` setting lists (by default an image's URL, width and
- * height, and a file's URL and filename, as the field's accepted types
+ * field's `search.returned` setting lists (by default an image's URL, width
+ * and height, and a file's URL and filename, as the field's accepted types
  * suggest). `image_url`, `width` and `height` are null for a file that
  * isn't an image.
  */
@@ -102,8 +102,8 @@ export interface ExpandedAsset {
 
 /**
  * A published related record that a relation field returns in hits: its
- * ID, and the related collection's fields its `expanded` setting lists, by
- * key, indexed like `data` (an asset field as an ExpandedAsset).
+ * ID, and the related collection's fields its `search.returned` setting
+ * lists, by key, indexed like `data` (an asset field as an ExpandedAsset).
  */
 export interface ExpandedRecord<R = Record<string, unknown>> {
   id: string
@@ -136,8 +136,8 @@ export interface SearchHit<
   data: D
   /**
    * What the record's asset and relation fields return of the assets and
-   * related records they point at, by field key, as each field's `expanded`
-   * setting lists: an ExpandedAsset or ExpandedRecord, a list of those that
+   * related records they point at, by field key, as each field's
+   * `search.returned` setting lists: an ExpandedAsset or ExpandedRecord, a list of those that
    * exist for a list field, null where a single one is gone. Type it with
    * the second type parameter:
    * `searchPublic<Post, { cover: ExpandedAsset; authors: ExpandedRecord<Person>[] }>`.
