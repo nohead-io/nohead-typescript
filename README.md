@@ -416,7 +416,7 @@ for (const hit of hits) {
 - **`filter`, `sort`, `limit` and `offset`** are the search engine's, with fields under `data`: `filter: 'data.cuisine = "french"'`.
 - **Errors** are a `SearchError`, with the `status`, the search engine's `code` (`invalid_search_filter`) and its own text as `engineMessage`. A token it refuses is `403: The search token is invalid or was deleted`, and an index the token can't reach (a typo, or a collection not in public search) says so. A search its signal cancels rejects with an `AbortError`.
 
-**Images and related records.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`) in `data`, and under `expanded` what each field's `expanded` setting lists: an asset's URL, size and alt text, or fields of the related records (only published ones). In Nohead it's the list under **Included in public search results** in the field's search options, on the collection's **Search** tab. Name what's expanded in the second type parameter:
+**Images and related records.** Hits hold asset and relation fields as IDs (`ast_…`, `rec_…`) in `data`, and under `expanded` what each field's `search.returned` setting lists: an asset's URL, size and alt text, or fields of the related records (only published ones). In Nohead it's the list under **Returned in public search results** in the field's search options, on the collection's **Search** tab. Name what's expanded in the second type parameter:
 
 ```ts
 import { imageUrl } from "@nohead/sdk/images"
