@@ -14,7 +14,7 @@ section is its GitHub release's notes.
   field IDs, or an asset's parts) in place of `true`. The old `searchable`,
   `filterable`, `sortable`, `included`, `expanded` and `searched` options
   are gone. Search-only related fields filter and facet under
-  `expanded.<key>.hidden.<field>` (was `searched`).
+  `expanded.<key>.unreturned.<field>` (was `searched`).
 
 ## 0.24.0
 

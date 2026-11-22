@@ -409,7 +409,7 @@ export type RelationSearchOptions = {
      */
     searchable?: false | Array<string>;
     /**
-     * Searches can filter and count on its related records' IDs, and on the related fields it lists: under `expanded.<key>.data.<field>` when hits return them, `expanded.<key>.hidden.<field>` when only searches match them. Default false.
+     * Searches can filter and count on its related records' IDs, and on the related fields it lists: under `expanded.<key>.data.<field>` when hits return them, `expanded.<key>.unreturned.<field>` when only searches match them. Default false.
      */
     filterable?: boolean;
     /**
