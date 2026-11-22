@@ -1099,9 +1099,10 @@ export type MergedDraft = {
  * `tableCell` (`colspan`, `rowspan`, `colwidth`, `align`); any block
  * may have `dir` (`auto`, `ltr`, `rtl`);
  * - inline: `text` (non-empty) and `hardBreak`;
- * - marks on text: `bold`, `italic`, `strike`, `underline`, `code` (alone),
- * and `link` (`href`, and `target`, `rel`, `class`, `title`); a link's
- * `href` is an `http`, `https`, `mailto`, `tel` or relative URL.
+ * - marks on text: `bold`, `italic`, `strike`, `underline`, `code` (with
+ * a `link` at most), and `link` (`href`, and `target`, `rel`, `class`,
+ * `title`); a link's `href` is an `http`, `https`, `mailto`, `tel` or
+ * relative URL.
  *
  * An image of an asset is `{"type": "image", "attrs": {"asset_id":
  * "ast_...", "alt": "..."}}` (in Markdown `![alt](ast_...)`, or the
