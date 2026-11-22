@@ -5,6 +5,17 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- **Breaking, types:** a field's search options are its configuration's
+  `search` group, as the API now has them:
+  `searchable`, `filterable`, `sortable` and `returned`, where a relation's
+  `searchable` and an asset's or relation's `returned` take a list (related
+  field IDs, or an asset's parts) in place of `true`. The old `searchable`,
+  `filterable`, `sortable`, `included`, `expanded` and `searched` options
+  are gone. Search-only related fields filter and facet under
+  `expanded.<key>.unreturned.<field>` (was `searched`).
+
 ## 0.24.0
 
 - Iterating a list stops when a page's `meta` has `has_more` but no
