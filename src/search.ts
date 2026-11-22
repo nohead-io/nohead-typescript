@@ -131,15 +131,15 @@ export interface SearchHit<
   /**
    * Field values by key: dates as Unix seconds, rich text as plain text,
    * JSON as a string, assets and relations as IDs. Empty fields, and fields
-   * the collection's search settings don't include, are left out.
+   * the collection's search settings don't return, are left out.
    */
   data: D
   /**
    * What the record's asset and relation fields return of the assets and
    * related records they point at, by field key, as each field's
-   * `search.returned` setting lists: an ExpandedAsset or ExpandedRecord, a list of those that
-   * exist for a list field, null where a single one is gone. Type it with
-   * the second type parameter:
+   * `search.returned` setting lists: an ExpandedAsset or ExpandedRecord, a
+   * list of those that exist for a list field, null where a single one is
+   * gone. Type it with the second type parameter:
    * `searchPublic<Post, { cover: ExpandedAsset; authors: ExpandedRecord<Person>[] }>`.
    */
   expanded: Partial<X>
