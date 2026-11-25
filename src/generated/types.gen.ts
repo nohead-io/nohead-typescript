@@ -1027,6 +1027,13 @@ export type Draft = {
      */
     changed_fields: Array<string>;
     schedule: DraftSchedule;
+    /**
+     * The record's page in the web editor, where the project's members
+     * review the draft, change it and merge it. Give it to whoever will
+     * review the draft.
+     *
+     */
+    editor_url: string;
     created_by: Actor;
     /**
      * Everyone who changed it since, in order.
