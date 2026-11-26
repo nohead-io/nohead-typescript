@@ -7,6 +7,16 @@ section is its GitHub release's notes.
 
 ## Unreleased
 
+- **Types:** `records.list`, `records.get`, `records.search` and
+  `drafts.get` take a second type parameter for what `expand` embeds, so
+  `record.expanded.author` reads as the record or asset it is, with no
+  casts: `records.get<Post, { author: NoheadRecord<Person> | null }>(id, { expand: ["author"] })`.
+  `NoheadRecord<D, X>` and `NoheadDraft<D, X>` take it too. Without it,
+  `expanded` reads as before.
+- `expand` takes a dotted key, which reaches one relation further:
+  `author.photo` embeds the author, and the author's photo under the
+  author's own `expanded`. It counts the author toward the five fields.
+
 - **Types:** a draft has `editor_url`, the record's page in the web app,
   where your team reviews the draft and merges it.
 
