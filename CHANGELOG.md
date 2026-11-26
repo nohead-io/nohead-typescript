@@ -5,7 +5,7 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
-## Unreleased
+## 0.26.0
 
 - **Types:** `records.list`, `records.get`, `records.search` and
   `drafts.get` take a second type parameter for what `expand` embeds, so
