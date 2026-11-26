@@ -11,7 +11,8 @@ export type * from "./generated/schemas.gen.ts"
  *   interface Post { title: string; author: string }
  *   const post = await nohead.records.get<Post>(id)   // post.data.title
  *
- * `X` types `expanded`, what `expand` embeds, by field key: a related record
+ * `X` types `expanded`, what `expand` embeds, by each field's current key
+ * (an old key in `expand` still reads under the current one): a related record
  * (itself a `NoheadRecord`, with its own `X` for a dotted key) or an
  * `Asset`, `| null` where a single one is gone or, for a published-only key,
  * unpublished; a list of those that are there for a list field, and an
@@ -22,7 +23,9 @@ export type * from "./generated/schemas.gen.ts"
  *     id, { expand: ["author.photo"] }
  *   )   // post.expanded.author?.expanded.photo?.image_url
  *
- * Without `X`, `expanded` is optional, and each value any of those.
+ * `X` should name what `expand` asks for, no more: like `D`, it is a
+ * promise, not checked at runtime. Without `X`, `expanded` is optional, and
+ * each value any of those.
  */
 export type NoheadRecord<D = G.RecordData, X = never> = Omit<
   G.Record,
