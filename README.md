@@ -131,6 +131,38 @@ await nohead.records.update<Post>(id, { data: { title: null } }) // null clears
 
 The type is a promise you make; nothing is checked at runtime. The record type itself is `Nohead.Record<Post>` (also exported as `NoheadRecord`).
 
+**Expanding relations and assets.** `expand` embeds what relation, asset and rich text fields point at under `expanded`, by field key, at most five fields. A dotted key reaches one relation further, and counts the relation too: `agent.photo` embeds the agent, and the agent's photo under the agent's own `expanded`. Type what comes back with the second type parameter:
+
+```ts
+import type { Asset, NoheadRecord } from "@nohead/sdk"
+
+interface Listing {
+  title: string
+  agent: string | null
+  photos: string[]
+}
+interface Agent {
+  name: string
+  photo: string | null
+}
+
+const listings = await nohead.records.list<
+  Listing,
+  {
+    agent: NoheadRecord<Agent, { photo: Asset | null }> | null
+    photos: Asset[]
+  }
+>("listings", { expand: ["agent.photo", "photos"] })
+
+for (const listing of listings.data) {
+  listing.expanded.agent?.data.name // string
+  listing.expanded.agent?.expanded.photo?.image_url
+  listing.expanded.photos[0]?.alt
+}
+```
+
+A single relation or asset is `null` when what it points at is gone, or, for a published-only key, unpublished; a list leaves those out. A rich text field expands to the assets its images show (`Asset[]`). `records.get`, `records.search` and `drafts.get` take the same second type parameter; without it, `expanded` is optional and each value could be any of these.
+
 **More:** `count`, `bulk` (up to 100 records at once), `diff`, `revisions.list`, `revisions.get` and `revisions.revert` (with `{ dry_run: true }` for a preview). A revision by its own ID, as webhooks and the activity log name it: `nohead.revisions.get("rev_…")`.
 
 ## Drafts
@@ -154,7 +186,7 @@ await nohead.drafts.merge(draft.id) // or drafts.schedule(draft.id, { merge_at }
 - A merge changes content only: a live record stays live, an unpublished one unpublished. Publishing a live record with a pending draft is a `ConflictError` (`draft_pending`).
 - `records.drafts(id)` lists a record's draft, and `drafts.list(collection)` a collection's.
 - `drafts.discard` deletes one for good.
-- Drafts take the type of their data as records do: `drafts.get<Post>(id)` is a `Nohead.Draft<Post>` (also exported as `NoheadDraft`).
+- Drafts take the type of their data, and of what `expand` embeds, as records do: `drafts.get<Post>(id)` is a `Nohead.Draft<Post>` (also exported as `NoheadDraft`).
 
 ## Rich text
 

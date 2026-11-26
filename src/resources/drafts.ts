@@ -59,17 +59,22 @@ export class Drafts extends Resource {
     )
   }
 
-  /** With `data` as the record reads after the merge, for previews. */
-  get<D = RecordData>(
+  /**
+   * With `data` as the record reads after the merge, for previews. `X`
+   * types what `expand` embeds (see `NoheadRecord`).
+   */
+  get<D = RecordData, X = never>(
     draft: string,
     params: DraftGetParams = {},
     options?: RequestOptions
-  ): APIPromise<NoheadDraft<D>> {
+  ): APIPromise<NoheadDraft<D, X>> {
     return this.core.request(
       "drafts_get",
       { path: { draft_id: draft }, query: params },
       options
-    ) as APIPromise<NoheadDraft<D>>
+      // Through unknown: until X is known, TypeScript can't compare the
+      // contract's type with the one X gives `expanded`.
+    ) as unknown as APIPromise<NoheadDraft<D, X>>
   }
 
   /** Sets the given fields (`null` clears one), as a record update does. */

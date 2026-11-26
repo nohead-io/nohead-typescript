@@ -10,18 +10,42 @@ export type * from "./generated/schemas.gen.ts"
  *
  *   interface Post { title: string; author: string }
  *   const post = await nohead.records.get<Post>(id)   // post.data.title
+ *
+ * `X` types `expanded`, what `expand` embeds, by each field's current key
+ * (an old key in `expand` still reads under the current one): a related record
+ * (itself a `NoheadRecord`, with its own `X` for a dotted key) or an
+ * `Asset`, `| null` where a single one is gone or, for a published-only key,
+ * unpublished; a list of those that are there for a list field, and an
+ * `Asset[]` for a rich text field's images.
+ *
+ *   type Author = NoheadRecord<Person, { photo: Asset | null }>
+ *   const post = await nohead.records.get<Post, { author: Author | null }>(
+ *     id, { expand: ["author.photo"] }
+ *   )   // post.expanded.author?.expanded.photo?.image_url
+ *
+ * `X` should name what `expand` asks for, no more: like `D`, it is a
+ * promise, not checked at runtime. Without `X`, `expanded` is optional, and
+ * each value any of those.
  */
-export type NoheadRecord<D = G.RecordData> = Omit<G.Record, "data"> & {
-  data: D
-}
+export type NoheadRecord<D = G.RecordData, X = never> = Omit<
+  G.Record,
+  "data" | "expanded"
+> & { data: D } & Expanded<G.Record, X>
 
 /**
  * A draft whose `data` (the record's values as they read after the merge)
- * has the shape `D`, as on `NoheadRecord<D>`. Also `Nohead.Draft`.
+ * has the shape `D`, and whose `expanded` has the shape `X`, as on
+ * `NoheadRecord<D, X>`. Also `Nohead.Draft`.
  */
-export type NoheadDraft<D = G.RecordData> = Omit<G.Draft, "data"> & {
-  data: D
-}
+export type NoheadDraft<D = G.RecordData, X = never> = Omit<
+  G.Draft,
+  "data" | "expanded"
+> & { data: D } & Expanded<G.Draft, X>
+
+// `expanded` as `X` types it, or, without `X`, as the contract has it.
+type Expanded<T extends { expanded?: unknown }, X> = [X] extends [never]
+  ? Pick<T, "expanded">
+  : { expanded: X }
 
 /** Field values to write: `null` clears a field. */
 export type RecordDataUpdate<D> = { [K in keyof D]?: D[K] | null }
@@ -89,17 +113,27 @@ export interface ListParams {
   cursor?: string
 }
 
-export interface RecordListParams extends ListParams, RichTextParams {
-  filter?: RecordFilter
-  sort?: RecordSort
-  /** Relation or asset fields to embed under `expanded` (at most 5). */
+/** Params of reads that embed related records and assets. */
+export interface ExpandParams {
+  /**
+   * Relation, asset or rich text fields to embed under `expanded` (at most
+   * 5); for a rich text field, the assets its images show. A dotted key
+   * reaches one relation further: `"author.photo"` embeds the author, and
+   * the author's photo under the author's own `expanded`, and counts the
+   * author toward the 5. Type what comes back with the second type
+   * parameter (`NoheadRecord`).
+   */
   expand?: string[]
 }
 
-/** A deleted record is returned too, with `deleted_at` and `purge_after`. */
-export interface RecordGetParams extends RichTextParams {
-  expand?: string[]
+export interface RecordListParams
+  extends ListParams, RichTextParams, ExpandParams {
+  filter?: RecordFilter
+  sort?: RecordSort
 }
+
+/** A deleted record is returned too, with `deleted_at` and `purge_after`. */
+export interface RecordGetParams extends RichTextParams, ExpandParams {}
 
 export interface RecordCreateParams<D = G.RecordData> {
   data: D
@@ -129,10 +163,7 @@ export interface DraftUpdateParams<D = G.RecordData> {
   data: RecordDataUpdate<D>
 }
 
-export interface DraftGetParams extends RichTextParams {
-  /** Relation or asset fields to embed under `expanded` (at most 5). */
-  expand?: string[]
-}
+export interface DraftGetParams extends RichTextParams, ExpandParams {}
 
 export interface DraftListParams extends ListParams, RichTextParams {
   sort?: "updated_at" | "-updated_at"
@@ -163,12 +194,12 @@ export type RecordBulkParams = G.RecordBatchRequest
 
 export type RecordDiffParams = NonNullable<G.RecordsDiffData["query"]>
 
-export interface RecordSearchParams extends ListParams, RichTextParams {
+export interface RecordSearchParams
+  extends ListParams, RichTextParams, ExpandParams {
   /** Needs `filterable` fields (`published_at: { exists }` always works). */
   filter?: RecordFilter
   /** Needs a `sortable` field, e.g. `-published_at`; relevance otherwise. */
   sort?: string
-  expand?: string[]
 }
 
 export interface ProjectSearchParams extends ListParams, RichTextParams {

@@ -16,6 +16,8 @@ import {
   NotFoundError,
   PreconditionFailedError,
   ValidationError,
+  type Asset,
+  type NoheadRecord,
   type Uploadable,
   type UploadParams,
 } from "../dist/index.js"
@@ -286,6 +288,56 @@ try {
     filename: "greeting.txt",
   })
   expect(renamed.filename === "greeting.txt", "assets rename")
+
+  // A dotted expand, typed: a note's author, and the author's photo under
+  // the author's own `expanded`.
+  {
+    const suffix = randomUUID().slice(0, 8)
+    const people = await nohead.collections.create({
+      name: "TypeScript smoke people",
+      slug: `sdk-typescript-people-${suffix}`,
+      fields: [
+        { name: "Name", key: "name", type: "text", required: true },
+        { name: "Photo", key: "photo", type: "asset" },
+      ],
+    })
+    left.collections.add(people.id)
+    const notes = await nohead.collections.create({
+      name: "TypeScript smoke notes",
+      slug: `sdk-typescript-notes-${suffix}`,
+      fields: [
+        { name: "Title", key: "title", type: "text", required: true },
+        {
+          name: "Author",
+          key: "author",
+          type: "relation",
+          configuration: { target_collection_id: people.id },
+        },
+      ],
+    })
+    left.collections.add(notes.id)
+    const ada = await nohead.records.create(people.slug, {
+      data: { name: "Ada Lovelace", photo: pixel.id },
+    })
+    const note = await nohead.records.create(notes.slug, {
+      data: { title: "Notes on the engine", author: ada.id },
+    })
+    type Person = NoheadRecord<{ name: string }, { photo: Asset | null }>
+    const read = await nohead.records.get<Post, { author: Person | null }>(
+      note.id,
+      { expand: ["author.photo"] }
+    )
+    expect(
+      read.expanded.author?.data.name === "Ada Lovelace" &&
+        read.expanded.author.expanded.photo?.id === pixel.id,
+      "a dotted expand embeds the related record, and its asset under it"
+    )
+    // Notes first: their relation points at People.
+    for (const collection of [notes, people]) {
+      await nohead.collections.delete(collection.id)
+      left.collections.delete(collection.id)
+    }
+  }
 
   for (const id of left.assets) {
     const deletedAsset = await nohead.assets.delete(id)
