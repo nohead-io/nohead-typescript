@@ -1,6 +1,12 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
 
-import { NoheadError } from "../src/index.ts"
+import type { Draft, Record as ApiRecord } from "../src/generated/types.gen.ts"
+import {
+  NoheadError,
+  type Asset,
+  type NoheadDraft,
+  type NoheadRecord,
+} from "../src/index.ts"
 import { exampleOf, json, mockClient, page, record } from "./helpers.ts"
 
 describe("requests", () => {
@@ -60,6 +66,67 @@ describe("requests", () => {
     expect(params.get("sort")).toBe("-published_at")
     expect(params.get("expand")).toBe("author,tags")
     expect(params.get("limit")).toBe("50")
+  })
+
+  it("types what expand embeds, one relation down too", async () => {
+    interface Listing {
+      title: string
+      agent: string | null
+    }
+    interface Agent {
+      name: string
+      photo: string | null
+    }
+    type Expansion = {
+      agent: NoheadRecord<Agent, { photo: Asset | null }> | null
+      photos: Asset[]
+    }
+    const photo = exampleOf("assets_get")
+    const agent = {
+      ...record("rec_2", { name: "Ada", photo: photo.id }),
+      expanded: { photo },
+    }
+    const listing = {
+      ...record("rec_1", { title: "Flat", agent: "rec_2" }),
+      expanded: { agent, photos: [photo] },
+    }
+    const draft = exampleOf("drafts_get", { expanded: listing.expanded })
+    const { nohead } = mockClient([
+      json(200, listing),
+      page([listing], null),
+      json(200, exampleOf("collections_search", { data: [listing] })),
+      json(200, draft),
+      json(200, listing),
+    ])
+    const expand = ["agent.photo", "photos"]
+
+    const got = await nohead.records.get<Listing, Expansion>("rec_1", {
+      expand,
+    })
+    const listed = await nohead.records.list<Listing, Expansion>("listings", {
+      expand,
+    })
+    const found = await nohead.records.search<Listing, Expansion>(
+      "listings",
+      "flat",
+      { expand }
+    )
+    const preview = await nohead.drafts.get<Listing, Expansion>("drf_1", {
+      expand,
+    })
+    for (const read of [got, listed.data[0]!, found.data[0]!, preview]) {
+      expectTypeOf(read.expanded).toEqualTypeOf<Expansion>()
+      expectTypeOf(read.expanded.agent?.expanded.photo).toEqualTypeOf<
+        Asset | null | undefined
+      >()
+      expect(read.expanded.agent?.expanded.photo?.id).toBe(photo.id)
+      expect(read.expanded.agent?.data.name).toBe("Ada")
+    }
+
+    // Without the second type parameter, as the contract has it.
+    const plain = await nohead.records.get("rec_1", { expand })
+    expectTypeOf(plain.expanded).toEqualTypeOf<ApiRecord["expanded"]>()
+    expectTypeOf<NoheadDraft["expanded"]>().toEqualTypeOf<Draft["expanded"]>()
   })
 
   it("sends filter operators, escaping commas in lists", async () => {

@@ -45,12 +45,15 @@ import { Resource } from "./resource.ts"
 export class Records extends Resource {
   readonly revisions = new Revisions(this.core)
 
-  /** A collection's records, newest first by default. */
-  list<D = RecordData>(
+  /**
+   * A collection's records, newest first by default. `X` types what
+   * `expand` embeds (see `NoheadRecord`).
+   */
+  list<D = RecordData, X = never>(
     collection: string,
     params: RecordListParams = {},
     options?: RequestOptions
-  ): PagePromise<NoheadRecord<D>> {
+  ): PagePromise<NoheadRecord<D, X>> {
     return this.core.paginate(
       "records_list",
       { path: { collection_id: collection }, query: params },
@@ -58,16 +61,19 @@ export class Records extends Resource {
     )
   }
 
-  get<D = RecordData>(
+  /** `X` types what `expand` embeds (see `NoheadRecord`). */
+  get<D = RecordData, X = never>(
     record: string,
     params: RecordGetParams = {},
     options?: RequestOptions
-  ): APIPromise<NoheadRecord<D>> {
+  ): APIPromise<NoheadRecord<D, X>> {
     return this.core.request(
       "records_get",
       { path: { record_id: record }, query: params },
       options
-    ) as APIPromise<NoheadRecord<D>>
+      // Through unknown: until X is known, TypeScript can't compare the
+      // contract's type with the one X gives `expanded`.
+    ) as unknown as APIPromise<NoheadRecord<D, X>>
   }
 
   /**
@@ -288,14 +294,15 @@ export class Records extends Resource {
 
   /**
    * Full-text search in one collection, matching its `searchable` fields.
-   * Pages through the first 1,000 hits, most relevant first.
+   * Pages through the first 1,000 hits, most relevant first. `X` types what
+   * `expand` embeds (see `NoheadRecord`).
    */
-  search<D = RecordData>(
+  search<D = RecordData, X = never>(
     collection: string,
     query: string,
     params: RecordSearchParams = {},
     options?: RequestOptions
-  ): PagePromise<NoheadRecord<D>, SearchMeta> {
+  ): PagePromise<NoheadRecord<D, X>, SearchMeta> {
     return this.core.paginate(
       "collections_search",
       { path: { collection_id: collection }, query: { q: query, ...params } },
