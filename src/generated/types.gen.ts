@@ -1164,7 +1164,8 @@ export type Record = {
      * it no longer exists; a multiple value is a list of those that still
      * exist. For a rich text field, the list of assets its images show,
      * in document order, leaving out those that no longer exist.
-     * Expanded records are not expanded further.
+     * An expanded record has its own `expanded` only for the dotted
+     * keys that reach through it (`author.photo`).
      *
      */
     expanded?: {
@@ -2037,7 +2038,7 @@ export type RevisionNumber = number;
 export type RichText = 'document' | 'html' | 'markdown';
 
 /**
- * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+ * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. A dotted key reaches one relation further: `author.photo` embeds the author, and the author's photo under the author's own `expanded`; it counts the author too. Embedding needs permission to read what is embedded, at each level: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
  */
 export type Expand = string;
 
@@ -2240,7 +2241,7 @@ export type RecordsListData = {
          */
         sort?: string;
         /**
-         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. A dotted key reaches one relation further: `author.photo` embeds the author, and the author's photo under the author's own `expanded`; it counts the author too. Embedding needs permission to read what is embedded, at each level: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
         /**
@@ -2522,7 +2523,7 @@ export type RecordsGetData = {
          */
         rich_text?: 'document' | 'html' | 'markdown';
         /**
-         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. A dotted key reaches one relation further: `author.photo` embeds the author, and the author's photo under the author's own `expanded`; it counts the author too. Embedding needs permission to read what is embedded, at each level: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
@@ -4146,7 +4147,7 @@ export type DraftsGetData = {
          */
         rich_text?: 'document' | 'html' | 'markdown';
         /**
-         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. A dotted key reaches one relation further: `author.photo` embeds the author, and the author's photo under the author's own `expanded`; it counts the author too. Embedding needs permission to read what is embedded, at each level: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
@@ -6901,7 +6902,7 @@ export type CollectionsSearchData = {
         };
         sort?: string;
         /**
-         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. Embedding needs permission to read what is embedded: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
+         * Comma-separated relation, asset or rich text field keys whose records or assets to embed under `expanded` (at most 5); for a rich text field, the assets its images show. A dotted key reaches one relation further: `author.photo` embeds the author, and the author's photo under the author's own `expanded`; it counts the author too. Embedding needs permission to read what is embedded, at each level: `records:read` for relations, `assets:read` for assets and rich text (`403` otherwise).
          */
         expand?: string;
     };
