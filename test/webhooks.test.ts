@@ -242,6 +242,12 @@ describe("webhook verification against the official library", () => {
     delete headers[name]
     return headers
   }
+  /** `body` with its webhook-signature header changed. */
+  const resigned = (change: (signature: string) => string) => {
+    const headers = sign(body)
+    headers["webhook-signature"] = change(headers["webhook-signature"]!)
+    return [body, headers] as const
+  }
 
   it.each([
     ["a changed body", () => [body.replace("Hi", "Bye"), sign(body)] as const],
@@ -251,14 +257,17 @@ describe("webhook verification against the official library", () => {
     ],
     [
       "a signature of another version",
-      () => {
-        const headers = sign(body)
-        headers["webhook-signature"] = headers["webhook-signature"]!.replace(
-          "v1,",
-          "v2,"
-        )
-        return [body, headers] as const
-      },
+      () => resigned((s) => s.replace("v1,", "v2,")),
+    ],
+    ["a signature with more after it", () => resigned((s) => `${s},junk`)],
+    ["a signature with a tab after it", () => resigned((s) => `${s}\t v1,x`)],
+    [
+      "a signature with its padding left off",
+      () => resigned((s) => s.replace(/=+$/, "")),
+    ],
+    [
+      "a signature megabytes long",
+      () => resigned(() => `v1,${"A".repeat(4_000_000)}`),
     ],
     [
       "a wrong secret",

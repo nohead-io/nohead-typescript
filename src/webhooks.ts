@@ -133,14 +133,24 @@ export async function unwrapWebhook<D = RecordData>(
   )
   const signed = new TextEncoder().encode(`${id}.${timestamp}.${text}`)
   for (const entry of signatures.split(" ")) {
-    const [version, signature] = entry.split(",", 2)
-    if (version !== "v1" || !signature) continue
+    // Everything after the first comma is the signature, which must be
+    // canonical base64: atob alone would skip whitespace and missing padding,
+    // and the official libraries compare the text exactly.
+    const comma = entry.indexOf(",")
+    if (comma === -1 || entry.slice(0, comma) !== "v1") continue
+    const signature = entry.slice(comma + 1)
     let bytes: Uint8Array<ArrayBuffer>
     try {
       bytes = decodeBase64(signature, "signature")
     } catch {
       continue
     }
+    // An HMAC-SHA256 is 32 bytes, which also keeps the spread small.
+    if (
+      bytes.length !== 32 ||
+      btoa(String.fromCharCode(...bytes)) !== signature
+    )
+      continue
     // Constant-time comparison: the platform verifies the HMAC.
     if (await crypto.subtle.verify("HMAC", key, bytes, signed)) {
       try {
