@@ -5,6 +5,13 @@ Changes to `@nohead/sdk` that you can notice. Versions follow
 releases; a change that could break your code is a major one. Each release's
 section is its GitHub release's notes.
 
+## Unreleased
+
+- `unwrapWebhook` matches each `webhook-signature` entry exactly, as the
+  Standard Webhooks libraries do since 1.3.0. It used to accept an entry with
+  more after the signature (`v1,<signature>,more`), a tab in it or its base64
+  padding left off.
+
 ## 0.26.0
 
 - **Types:** `records.list`, `records.get`, `records.search` and
